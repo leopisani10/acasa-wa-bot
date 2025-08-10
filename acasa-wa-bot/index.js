@@ -74,6 +74,7 @@ app.use(cors({
 
 const PORT = process.env.PORT || 8080;
 const SESSION_DIR = process.env.WHATSAPP_SESSION_DIR || '/data/wa-sessions';
+const WA_WEB_REMOTE_PATH = process.env.WA_WEB_REMOTE_PATH || 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE;
 
@@ -149,6 +150,10 @@ app.post('/send', auth, async (req, res) => {
 
 // Cliente WhatsApp
 if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
+  console.log('🔧 Initializing WhatsApp client with fixed web version...');
+  console.log('📂 Session directory:', SESSION_DIR);
+  console.log('🌐 WhatsApp Web version:', WA_WEB_REMOTE_PATH);
+  
   client = new Client({
     authStrategy: new LocalAuth({ 
       dataPath: SESSION_DIR,
@@ -166,6 +171,10 @@ if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
         '--single-process',
         '--disable-gpu'
       ]
+    },
+    webVersionCache: {
+      type: 'remote',
+      remotePath: WA_WEB_REMOTE_PATH
     }
   });
 
@@ -216,6 +225,22 @@ if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
     console.log('🔐 WhatsApp authenticated successfully');
   });
 
+  client.on('auth_failure', (message) => {
+    ready = false;
+    lastQrDataUrl = null;
+    console.error('❌ WhatsApp authentication failed:', message);
+    console.log('💡 Se o problema persistir, delete a pasta de sessão no Render:');
+    console.log('💡 rm -rf /data/wa-sessions/* ou use o painel do Render');
+  });
+
+  client.on('change_state', (state) => {
+    console.log('🔄 WhatsApp state changed:', state);
+  });
+
+  client.on('loading_screen', (percent, message) => {
+    console.log('📱 WhatsApp loading:', percent + '%', message);
+  });
+
   client.initialize();
 } else {
   console.warn('⚠️  HUB_TOKEN not configured - WhatsApp client not initialized');
@@ -229,6 +254,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🔑 HUB_TOKEN: ${HUB_TOKEN ? 'configured' : 'not configured'}`);
   console.log(`📂 Session directory: ${SESSION_DIR}`);
   console.log(`⏱️  QR throttle: ${QR_THROTTLE_MS}ms`);
+  console.log(`🌐 WhatsApp Web version: ${WA_WEB_REMOTE_PATH}`);
   console.log(`✅ Ready to receive WhatsApp messages and API calls`);
 });
 
