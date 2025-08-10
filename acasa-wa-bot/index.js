@@ -29,7 +29,7 @@ function auth(req, res, next) {
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: ['https://hub.acasaresidencialsenior.com.br'], credentials: false }));
+app.use(cors({ origin: ['https://hub.acasaresidencialsenior.com.br', 'https://localhost:5173'], credentials: false }));
 
 const PORT = process.env.PORT || 8080;
 const SESSION_DIR = process.env.WHATSAPP_SESSION_DIR || './.wa-sessions';
