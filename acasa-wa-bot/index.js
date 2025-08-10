@@ -1,52 +1,150 @@
-import { Client, LocalAuth } from 'whatsapp-web.js';
 import express from 'express';
 import cors from 'cors';
-import QRCode from 'qrcode';
-import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import qrcode from 'qrcode';
+import { createClient } from '@supabase/supabase-js';
 
-// Load environment variables
+// IMPORT CORRETO DO WWEBJS (CJS EM AMBIENTE ESM)
+import wwebjs from 'whatsapp-web.js';
+const { Client, LocalAuth } = wwebjs;
+
 dotenv.config();
 
-// Environment variables
+const app = express();
+app.use(express.json());
+app.use(cors({ origin: ['https://hub.acasaresidencialsenior.com.br'], credentials: false }));
+
 const PORT = process.env.PORT || 8080;
+const HUB_TOKEN = process.env.HUB_TOKEN || '';
+const SESSION_DIR = process.env.WHATSAPP_SESSION_DIR || './.wa-sessions';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE;
-const HUB_TOKEN = process.env.HUB_TOKEN;
-const HANDOFF_NUMBER = process.env.HANDOFF_NUMBER;
-const SESSION_DIR = process.env.WHATSAPP_SESSION_DIR || './sessions';
-
-// Validation
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE || !HUB_TOKEN) {
-  console.error('❌ Missing required environment variables');
-  process.exit(1);
-}
 
 // Initialize Supabase with service role for admin access
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
+const supabase = SUPABASE_URL && SUPABASE_SERVICE_ROLE ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE) : null;
 
-// Initialize Express
-const app = express();
-app.use(cors());
-app.use(express.json());
+let ready = false;
+let lastQrDataUrl = null;
+let client = null;
 
-// Global state
-let whatsappClient = null;
-let whatsappReady = false;
-let currentQR = null;
-let clientInfo = null;
+// Auth middleware simples (Bearer)
+function auth(req, res, next) {
+  const hdr = req.headers.authorization || '';
+  const token = hdr.startsWith('Bearer ') ? hdr.slice(7) : '';
+  if (!HUB_TOKEN || token === HUB_TOKEN) return next();
+  return res.status(401).json({ error: 'Unauthorized' });
+}
 
-// Middleware to validate HUB_TOKEN
-const authenticateHub = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-  
-  if (!token || token !== HUB_TOKEN) {
-    return res.status(401).json({ error: 'Unauthorized' });
+// Rotas HTTP
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), whatsapp: ready });
+});
+
+app.get('/status', auth, (req, res) => {
+  res.json({ ready });
+});
+
+app.get('/qr', auth, async (req, res) => {
+  if (!lastQrDataUrl && ready) return res.json({ message: 'already_ready' });
+  res.json({ dataUrl: lastQrDataUrl });
+});
+
+app.post('/send', auth, async (req, res) => {
+  try {
+    const { to, message } = req.body || {};
+    if (!to || !message) return res.status(400).json({ error: 'to and message are required' });
+    if (!ready || !client) return res.status(503).json({ error: 'WhatsApp not ready' });
+    
+    const normalizedTo = to.replace(/\D/g, '');
+    const chatId = `${normalizedTo}@c.us`;
+    await client.sendMessage(chatId, message);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('send error', e);
+    return res.status(500).json({ error: 'send_failed' });
   }
-  
-  next();
-};
+});
+
+// Cliente WhatsApp
+if (HUB_TOKEN) {
+  client = new Client({
+    authStrategy: new LocalAuth({ dataPath: SESSION_DIR }),
+    puppeteer: {
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ]
+    }
+  });
+
+  client.on('qr', async (qr) => {
+    try {
+      lastQrDataUrl = await qrcode.toDataURL(qr);
+      ready = false;
+      console.log('🔄 QR atualizado');
+    } catch (e) {
+      console.error('❌ qr to dataurl error', e);
+    }
+  });
+
+  client.on('ready', () => {
+    ready = true;
+    lastQrDataUrl = null;
+    console.log('✅ WhatsApp READY');
+  });
+
+  client.on('disconnected', (reason) => {
+    ready = false;
+    console.warn('🔌 WhatsApp disconnected:', reason);
+  });
+
+  client.on('auth_failure', () => {
+    console.error('❌ WhatsApp authentication failed');
+    ready = false;
+  });
+
+  // Event: New message received
+  client.on('message', async (message) => {
+    try {
+      // Skip group messages and status updates
+      if (message.from.includes('@g.us') || message.from === 'status@broadcast') {
+        return;
+      }
+
+      // Skip messages from ourselves
+      if (message.fromMe) {
+        return;
+      }
+
+      if (!supabase) {
+        console.log('📨 Message received but Supabase not configured');
+        return;
+      }
+
+      const fromNumber = message.from.replace('@c.us', '').replace(/\D/g, '');
+      const messageBody = message.body || '';
+
+      console.log('📨 New message received from:', `${fromNumber.slice(0, 4)}***${fromNumber.slice(-4)}`);
+
+      // Process contact and lead (existing logic would continue here)
+      await processIncomingMessage(fromNumber, messageBody, message);
+      
+    } catch (error) {
+      console.error('❌ Error processing message:', error);
+    }
+  });
+
+  client.initialize();
+} else {
+  console.log('⚠️  HUB_TOKEN not configured - WhatsApp client not initialized');
+}
 
 // Utility functions
 const normalizePhone = (phone) => {
