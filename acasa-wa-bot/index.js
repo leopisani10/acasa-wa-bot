@@ -1,9 +1,12 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const express = require('express');
-const cors = require('cors');
-const QRCode = require('qrcode');
-const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+import { Client, LocalAuth } from 'whatsapp-web.js';
+import express from 'express';
+import cors from 'cors';
+import QRCode from 'qrcode';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // Environment variables
 const PORT = process.env.PORT || 8080;
@@ -434,6 +437,7 @@ const startServer = () => {
     console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 Supabase URL: ${SUPABASE_URL}`);
     console.log(`📂 Session directory: ${SESSION_DIR}`);
+    console.log(`✅ Ready to receive WhatsApp messages and API calls`);
   });
 };
 
@@ -460,8 +464,10 @@ process.on('SIGINT', gracefulShutdown);
 const main = async () => {
   try {
     // Test Supabase connection
-    const { data, error } = await supabase.from('profiles').select('id').limit(1);
-    if (error) throw error;
+    const { data, error } = await supabase.from('units').select('id').limit(1);
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
     
     console.log('✅ Supabase connection established');
     
@@ -474,6 +480,7 @@ const main = async () => {
     
   } catch (error) {
     console.error('❌ Failed to initialize:', error);
+    console.log('💡 Make sure the CRM tables exist in Supabase');
     process.exit(1);
   }
 };
