@@ -13,6 +13,7 @@ export const CRMInbox: React.FC = () => {
   const [showToken, setShowToken] = useState(false);
   const [botStatus, setBotStatus] = useState<any>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [lastQrGenerated, setLastQrGenerated] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [qrLoading, setQrLoading] = useState(false);
   const [lastStatusCheck, setLastStatusCheck] = useState<Date | null>(null);
@@ -36,24 +37,25 @@ export const CRMInbox: React.FC = () => {
   // Auto-refresh status when online
   useEffect(() => {
     if (botStatus?.ready && isConfigured) {
-      const interval = setInterval(() => {
+      const statusInterval = setInterval(() => {
         checkBotStatus();
-      }, 30000); // Check every 30 seconds when online
+      }, 3000); // Check every 3 seconds when online for reliability
       
-      return () => clearInterval(interval);
+      return () => clearInterval(statusInterval);
     }
   }, [botStatus?.ready, isConfigured]);
 
   // QR polling when offline
   useEffect(() => {
     if (isConfigured && botStatus?.ready === false) {
-      const interval = setInterval(() => {
+      const qrInterval = setInterval(() => {
         fetchQrCode();
-      }, 3000); // Poll QR every 3 seconds when offline
+      }, 5000); // Poll QR every 5 seconds when offline
       
-      return () => clearInterval(interval);
+      return () => clearInterval(qrInterval);
     } else {
       setQrDataUrl(null);
+      setLastQrGenerated(0);
     }
   }, [botStatus?.ready, isConfigured]);
 
@@ -72,15 +74,25 @@ export const CRMInbox: React.FC = () => {
       setLastStatusCheck(new Date());
       
       if (status.ready && qrDataUrl) {
-        setQrDataUrl(null); // Clear QR when ready
+        // Clear QR when ready
+        setQrDataUrl(null);
+        setLastQrGenerated(0);
+        showToast('success', 'WhatsApp conectado com sucesso!');
       }
     } catch (error) {
       console.error('Error checking bot status:', error);
       setBotStatus(null);
-      if (error instanceof Error && error.message.includes('401')) {
-        showToast('error', 'Token inválido ou expirado');
+      
+      if (error instanceof Error) {
+        if (error.message.includes('401')) {
+          showToast('error', 'Token inválido (HUB_TOKEN)');
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          showToast('error', 'Bot indisponível. Verifique URL e CORS.');
+        } else {
+          showToast('error', 'Erro de conexão com o bot');
+        }
       } else {
-        showToast('error', 'Bot indisponível ou erro de conexão');
+        showToast('error', 'Erro desconhecido');
       }
     } finally {
       setLoading(false);
@@ -94,14 +106,21 @@ export const CRMInbox: React.FC = () => {
       setQrLoading(true);
       const qrResponse = await getQr(baseUrl, token);
       
-      if (qrResponse.dataUrl) {
+      // Only update QR if it's new (based on generatedAt timestamp)
+      if (qrResponse.dataUrl && qrResponse.generatedAt && qrResponse.generatedAt > lastQrGenerated) {
         setQrDataUrl(qrResponse.dataUrl);
+        setLastQrGenerated(qrResponse.generatedAt);
+        console.log('📱 QR updated:', new Date(qrResponse.generatedAt).toLocaleTimeString('pt-BR'));
       } else if (qrResponse.message === 'already_ready') {
         // Bot became ready, refresh status
         checkBotStatus();
+      } else if (qrResponse.message === 'qr_not_ready') {
+        // QR not ready yet, continue polling
+        console.log('⏳ QR not ready yet...');
       }
     } catch (error) {
       console.error('Error fetching QR:', error);
+      // Don't show toast for QR errors to avoid spam
     } finally {
       setQrLoading(false);
     }
@@ -353,9 +372,11 @@ export const CRMInbox: React.FC = () => {
                         </h4>
                         
                         {qrLoading ? (
-                          <div className="flex items-center justify-center py-8">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-600 mr-3"></div>
-                            <span className="text-yellow-700">Carregando QR Code...</span>
+                          <div className="text-center">
+                            <div className="flex items-center justify-center py-8">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div>
+                              <span className="ml-3 text-yellow-700">Gerando QR Code...</span>
+                            </div>
                           </div>
                         ) : qrDataUrl ? (
                           <div className="text-center">
@@ -365,21 +386,29 @@ export const CRMInbox: React.FC = () => {
                               className="mx-auto mb-3 border border-yellow-300 rounded-lg"
                               style={{ maxWidth: '200px' }}
                             />
-                            <p className="text-sm text-yellow-700">
+                            <p className="text-sm text-yellow-700 mb-2">
                               Abra o WhatsApp no seu celular e escaneie este código
                             </p>
-                            <p className="text-xs text-yellow-600 mt-1">
-                              QR atualiza automaticamente a cada 3 segundos
+                            <p className="text-xs text-yellow-600">
+                              QR estável • Gerado às {new Date(lastQrGenerated).toLocaleTimeString('pt-BR')}
+                            </p>
+                            <p className="text-xs text-yellow-500 mt-1">
+                              Aponte a câmera do WhatsApp para este código
                             </p>
                           </div>
                         ) : (
                           <div className="text-center py-4">
                             <button
                               onClick={fetchQrCode}
+                              disabled={qrLoading}
                               className="flex items-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors mx-auto"
                             >
-                              <QrCode size={16} className="mr-2" />
-                              Gerar QR Code
+                              {qrLoading ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              ) : (
+                                <QrCode size={16} className="mr-2" />
+                              )}
+                              {qrLoading ? 'Gerando...' : 'Gerar QR Code'}
                             </button>
                           </div>
                         )}
@@ -388,11 +417,17 @@ export const CRMInbox: React.FC = () => {
                   </div>
                 ) : isConfigured ? (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-                    <div className="text-red-600 text-4xl mb-2">⚠️</div>
+                    <div className="text-red-600 text-4xl mb-3">⚠️</div>
                     <h4 className="font-semibold text-red-800 mb-1">Bot Indisponível</h4>
-                    <p className="text-sm text-red-700">
-                      Não foi possível conectar ao bot. Verifique se a URL e token estão corretos.
+                    <p className="text-sm text-red-700 mb-3">
+                      Não foi possível conectar ao bot. Verifique:
                     </p>
+                    <ul className="text-xs text-red-600 text-left max-w-sm mx-auto space-y-1">
+                      <li>• URL do bot está correta</li>
+                      <li>• Token (HUB_TOKEN) está configurado</li>
+                      <li>• Bot está rodando no Render</li>
+                      <li>• CORS permite esta origem</li>
+                    </ul>
                   </div>
                 ) : null}
               </div>
@@ -408,15 +443,15 @@ export const CRMInbox: React.FC = () => {
               </div>
               <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-gray-400">0</div>
-                <div className="text-sm text-gray-600">Mensagens Hoje</div>
+                <div className="text-sm text-gray-600">Mensagens (em breve)</div>
               </div>
               <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-gray-400">0</div>
-                <div className="text-sm text-gray-600">Leads Criados</div>
+                <div className="text-sm text-gray-600">Leads (em breve)</div>
               </div>
               <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-gray-400">-</div>
-                <div className="text-sm text-gray-600">Último Contato</div>
+                <div className="text-sm text-gray-600">Último (em breve)</div>
               </div>
             </div>
           </div>
