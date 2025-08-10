@@ -1,27 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { MessageCircle, Smartphone, Zap, Users, BarChart3, Clock, Eye, EyeOff, Save, Send, Wifi, WifiOff, QrCode, Settings, Shield, CheckCircle, AlertTriangle, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { MessageCircle, Smartphone, Send, Phone, User, MapPin, Clock, Settings, Shield, CheckCircle, AlertTriangle, X, ArrowLeft, MoreVertical, Search, Filter } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCRM } from '../../contexts/CRMContext';
 import { useBotConfig } from '../../hooks/useBotConfig';
-import { getStatus, getQr, sendMessage } from '../../services/botClient';
+import { getStatus, sendMessage } from '../../services/botClient';
+import { formatPhone, getStageConfig } from '../../types/crm';
+import { Lead, WhatsAppMessage } from '../../types/crm';
 
 export const CRMInbox: React.FC = () => {
   const { user } = useAuth();
   const { config, saveConfig, isConfigured } = useBotConfig();
+  const { leads, updateLeadStage } = useCRM();
   
+  // Configuration state
   const [baseUrl, setBaseUrl] = useState('');
   const [token, setToken] = useState('');
-  const [showToken, setShowToken] = useState(false);
+  const [showConfig, setShowConfig] = useState(!isConfigured);
+  
+  // Bot status
   const [botStatus, setBotStatus] = useState<any>(null);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [lastQrGenerated, setLastQrGenerated] = useState<number>(0);
-  const [loading, setLoading] = useState(false);
-  const [qrLoading, setQrLoading] = useState(false);
   const [lastStatusCheck, setLastStatusCheck] = useState<Date | null>(null);
-  const [showTestModal, setShowTestModal] = useState(false);
-  const [testPhone, setTestPhone] = useState('');
-  const [testMessage, setTestMessage] = useState('');
-  const [testLoading, setTestLoading] = useState(false);
+  
+  // Chat interface state
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Toast notifications
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Check if user has permission (admin only)
   const hasPermission = user?.role === 'admin';
@@ -39,25 +49,56 @@ export const CRMInbox: React.FC = () => {
     if (botStatus?.ready && isConfigured) {
       const statusInterval = setInterval(() => {
         checkBotStatus();
-      }, 3000); // Check every 3 seconds when online for reliability
+      }, 30000); // Check every 30 seconds
       
       return () => clearInterval(statusInterval);
     }
   }, [botStatus?.ready, isConfigured]);
 
-  // QR polling when offline
+  // Scroll to bottom when messages change
   useEffect(() => {
-    if (isConfigured && botStatus?.ready === false) {
-      const qrInterval = setInterval(() => {
-        fetchQrCode();
-      }, 5000); // Poll QR every 5 seconds when offline
-      
-      return () => clearInterval(qrInterval);
-    } else {
-      setQrDataUrl(null);
-      setLastQrGenerated(0);
+    scrollToBottom();
+  }, [messages]);
+
+  // Mock messages for demonstration (in production, fetch from Supabase)
+  useEffect(() => {
+    if (selectedLead) {
+      // Mock messages data
+      const mockMessages: WhatsAppMessage[] = [
+        {
+          id: '1',
+          lead_id: selectedLead.id,
+          wa_from: selectedLead.contact?.phone || '',
+          wa_to: '5521995138800',
+          direction: 'inbound',
+          body: 'Olá, gostaria de informações sobre residencial para idosos',
+          wa_msg_id: 'msg_1',
+          created_at: new Date(Date.now() - 3600000).toISOString(),
+        },
+        {
+          id: '2',
+          lead_id: selectedLead.id,
+          wa_from: '5521995138800',
+          wa_to: selectedLead.contact?.phone || '',
+          direction: 'outbound',
+          body: 'Olá! Ficamos felizes com seu interesse. A ACASA oferece cuidados especializados para idosos. Gostaria de agendar uma visita?',
+          wa_msg_id: 'msg_2',
+          created_at: new Date(Date.now() - 3000000).toISOString(),
+        },
+        {
+          id: '3',
+          lead_id: selectedLead.id,
+          wa_from: selectedLead.contact?.phone || '',
+          wa_to: '5521995138800',
+          direction: 'inbound',
+          body: 'Sim, gostaria muito. É para minha mãe de 78 anos.',
+          wa_msg_id: 'msg_3',
+          created_at: new Date(Date.now() - 1800000).toISOString(),
+        },
+      ];
+      setMessages(mockMessages);
     }
-  }, [botStatus?.ready, isConfigured]);
+  }, [selectedLead]);
 
   const showToast = (type: 'success' | 'error' | 'info', message: string) => {
     setToast({ type, message });
@@ -68,74 +109,17 @@ export const CRMInbox: React.FC = () => {
     if (!baseUrl || !token) return;
 
     try {
-      setLoading(true);
       const status = await getStatus(baseUrl, token);
       setBotStatus(status);
       setLastStatusCheck(new Date());
       
-      if (status.ready && qrDataUrl) {
-        // Clear QR when ready
-        setQrDataUrl(null);
-        setLastQrGenerated(0);
-        showToast('success', 'WhatsApp conectado com sucesso!');
+      if (status.ready) {
+        showToast('success', 'WhatsApp conectado!');
       }
     } catch (error) {
       console.error('Error checking bot status:', error);
       setBotStatus(null);
-      
-      if (error instanceof Error) {
-        if (error.message.includes('401')) {
-          showToast('error', 'Token inválido (HUB_TOKEN)');
-        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-          showToast('error', 'Bot indisponível. Verifique URL e CORS.');
-        } else {
-          showToast('error', 'Erro de conexão com o bot');
-        }
-      } else {
-        showToast('error', 'Erro desconhecido');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchQrCode = async () => {
-    if (!baseUrl || !token || botStatus?.ready) return;
-
-    try {
-      setQrLoading(true);
-      const qrResponse = await getQr(baseUrl, token);
-      
-      console.log('QR Response:', qrResponse); // Debug log
-      
-      // Handle different QR response types
-      if (qrResponse.dataUrl) {
-        // QR code available
-        const responseGeneratedAt = qrResponse.generatedAt || Date.now();
-        
-        // Only update QR if it's new or we don't have one yet
-        if (!qrDataUrl || responseGeneratedAt > lastQrGenerated) {
-          setQrDataUrl(qrResponse.dataUrl);
-          setLastQrGenerated(responseGeneratedAt);
-          console.log('📱 QR updated:', new Date(responseGeneratedAt).toLocaleTimeString('pt-BR'));
-        }
-      } else if (qrResponse.message === 'already_ready') {
-        // Bot became ready, refresh status
-        checkBotStatus();
-      } else if (qrResponse.message === 'qr_not_ready') {
-        // QR not ready yet, continue polling
-        console.log('⏳ QR not ready yet...');
-      } else {
-        console.log('⏳ Unexpected QR response:', qrResponse);
-      }
-    } catch (error) {
-      console.error('Error fetching QR:', error);
-      if (error instanceof Error && error.message.includes('401')) {
-        showToast('error', 'Token inválido para QR');
-      }
-      // Don't show toast for QR errors to avoid spam
-    } finally {
-      setQrLoading(false);
+      showToast('error', 'Erro de conexão com o bot');
     }
   };
 
@@ -145,47 +129,86 @@ export const CRMInbox: React.FC = () => {
       return;
     }
 
-    try {
-      new URL(baseUrl); // Validate URL format
-    } catch {
-      showToast('error', 'URL inválida. Use formato: https://seu-bot.onrender.com');
-      return;
-    }
-
     const newConfig = {
-      baseUrl: baseUrl.trim().replace(/\/$/, ''), // Remove trailing slash
+      baseUrl: baseUrl.trim().replace(/\/$/, ''),
       token: token.trim(),
     };
 
     saveConfig(newConfig);
-    showToast('success', 'Configuração salva com sucesso!');
+    setShowConfig(false);
+    showToast('success', 'Configuração salva!');
     
-    // Check status immediately after saving
-    setTimeout(() => {
-      checkBotStatus();
-    }, 500);
+    setTimeout(() => checkBotStatus(), 500);
   };
 
-  const handleTestSend = async () => {
-    if (!testPhone.trim() || !testMessage.trim()) {
-      showToast('error', 'Telefone e mensagem são obrigatórios');
-      return;
-    }
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedLead || !isConfigured || !botStatus?.ready) return;
 
+    setSendingMessage(true);
     try {
-      setTestLoading(true);
-      await sendMessage(config.baseUrl, config.token, testPhone, testMessage);
-      showToast('success', 'Mensagem enviada com sucesso!');
-      setShowTestModal(false);
-      setTestPhone('');
-      setTestMessage('');
+      await sendMessage(config.baseUrl, config.token, selectedLead.contact?.phone || '', newMessage);
+      
+      // Add message to local state (in production, this would come from webhook/polling)
+      const sentMessage: WhatsAppMessage = {
+        id: Date.now().toString(),
+        lead_id: selectedLead.id,
+        wa_from: '5521995138800',
+        wa_to: selectedLead.contact?.phone || '',
+        direction: 'outbound',
+        body: newMessage,
+        wa_msg_id: `msg_${Date.now()}`,
+        created_at: new Date().toISOString(),
+      };
+      
+      setMessages(prev => [...prev, sentMessage]);
+      setNewMessage('');
+      showToast('success', 'Mensagem enviada!');
     } catch (error) {
-      console.error('Error sending test message:', error);
-      showToast('error', 'Erro ao enviar mensagem. Verifique o número e tente novamente.');
+      console.error('Error sending message:', error);
+      showToast('error', 'Erro ao enviar mensagem');
     } finally {
-      setTestLoading(false);
+      setSendingMessage(false);
     }
   };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const formatMessageTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffTime = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
+    
+    if (diffDays === 0) {
+      return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    } else if (diffDays === 1) {
+      return 'Ontem';
+    } else if (diffDays < 7) {
+      return `${diffDays} dias`;
+    } else {
+      return date.toLocaleDateString('pt-BR');
+    }
+  };
+
+  const getLeadsWithMessages = () => {
+    // Filter leads that have WhatsApp contact and group with last message time
+    return leads
+      .filter(lead => lead.contact?.phone)
+      .map(lead => ({
+        ...lead,
+        lastMessageTime: new Date(Date.now() - Math.random() * 86400000 * 7).toISOString(), // Mock last message
+        unreadCount: Math.floor(Math.random() * 3), // Mock unread count
+      }))
+      .sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+  };
+
+  const filteredLeads = getLeadsWithMessages().filter(lead =>
+    lead.contact?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    lead.contact?.phone?.includes(searchTerm) ||
+    lead.elderly_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (!hasPermission) {
     return (
@@ -204,18 +227,7 @@ export const CRMInbox: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center">
-        <div className="flex items-center justify-center mb-4">
-          <div className="bg-gradient-to-r from-green-500 to-green-600 p-4 rounded-full">
-            <MessageCircle className="text-white" size={32} />
-          </div>
-        </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Integração WhatsApp</h1>
-        <p className="text-gray-600">Central de conversas e comunicação com leads</p>
-      </div>
-
+    <div className="h-screen flex flex-col">
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg ${
@@ -231,361 +243,314 @@ export const CRMInbox: React.FC = () => {
         </div>
       )}
 
-      {/* WhatsApp Bot Connection Panel */}
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-green-500 to-green-600 p-6">
-            <div className="flex items-center justify-center">
-              <Smartphone className="text-white mr-3" size={28} />
-              <h2 className="text-2xl font-bold text-white">Conexão com WhatsApp (Render)</h2>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="bg-gradient-to-r from-green-500 to-green-600 p-3 rounded-lg mr-4">
+              <MessageCircle className="text-white" size={24} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">WhatsApp Business</h1>
+              <p className="text-sm text-gray-600">
+                {botStatus?.ready ? (
+                  <span className="text-green-600">● Conectado • {botStatus.me?.pushname}</span>
+                ) : (
+                  <span className="text-red-600">● Desconectado</span>
+                )}
+              </p>
             </div>
           </div>
-          
-          <div className="p-8">
-            {/* Configuration Section */}
-            <div className="bg-gray-50 rounded-xl p-6 mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Settings className="mr-2 text-gray-700" size={20} />
-                Configuração do Bot
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    URL do Bot (Render)
-                  </label>
-                  <input
-                    type="url"
-                    value={baseUrl}
-                    onChange={(e) => setBaseUrl(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="https://acasa-wa-bot.onrender.com"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Token de Autenticação
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showToken ? 'text' : 'password'}
-                      value={token}
-                      onChange={(e) => setToken(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent pr-12"
-                      placeholder="Token do HUB_TOKEN configurado no Render"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowToken(!showToken)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-gray-800 transition-colors"
-                    >
-                      {showToken ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="flex space-x-3">
-                  <button
-                    onClick={handleSaveConfig}
-                    disabled={!baseUrl.trim() || !token.trim()}
-                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Save size={16} className="mr-2" />
-                    Salvar Configuração
-                  </button>
-                  
-                  <button
-                    onClick={() => setShowTestModal(true)}
-                    disabled={!isConfigured || !botStatus?.ready}
-                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Send size={16} className="mr-2" />
-                    Testar Envio
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Status Section */}
-            {isConfigured && (
-              <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-xl p-6 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <Smartphone className="mr-2 text-gray-700" size={20} />
-                    Status da Conexão
-                  </h3>
-                  <button
-                    onClick={checkBotStatus}
-                    disabled={loading}
-                    className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    ) : (
-                      <Zap size={16} className="mr-2" />
-                    )}
-                    Verificar
-                  </button>
-                </div>
-
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                    <span className="ml-3 text-gray-600">Verificando status...</span>
-                  </div>
-                ) : botStatus ? (
-                  <div className="space-y-4">
-                    {/* Status Badge */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        {botStatus.ready ? (
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 bg-green-500 rounded-full mr-3 animate-pulse"></div>
-                            <Wifi className="text-green-600 mr-2" size={20} />
-                            <span className="text-green-700 font-semibold">Online</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
-                            <WifiOff className="text-red-600 mr-2" size={20} />
-                            <span className="text-red-700 font-semibold">Offline</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {lastStatusCheck && (
-                        <span className="text-xs text-gray-500">
-                          Última verificação: {lastStatusCheck.toLocaleTimeString('pt-BR')}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Connection Info */}
-                    {botStatus.ready && botStatus.me && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <h4 className="font-semibold text-green-800 mb-2">WhatsApp Conectado</h4>
-                        <div className="space-y-1 text-sm text-green-700">
-                          <div><strong>Número:</strong> {botStatus.me.number}</div>
-                          <div><strong>Nome:</strong> {botStatus.me.pushname}</div>
-                          <div><strong>Status:</strong> Pronto para enviar e receber mensagens</div>
-                        </div>
-                        <p className="text-xs text-green-600 mt-2">
-                          Conectado via Render • sessão salva em disco
-                        </p>
-                      </div>
-                    )}
-
-                    {/* QR Code Section */}
-                    {!botStatus.ready && (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <h4 className="font-semibold text-yellow-800 mb-3 flex items-center">
-                          <QrCode className="mr-2" size={18} />
-                          Escaneie o QR para conectar o WhatsApp
-                        </h4>
-                        
-                        {qrLoading ? (
-                          <div className="text-center">
-                            <div className="flex items-center justify-center py-8">
-                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div>
-                              <span className="ml-3 text-yellow-700">Gerando QR Code...</span>
-                            </div>
-                          </div>
-                        ) : qrDataUrl ? (
-                          <div className="text-center">
-                            <img 
-                              src={qrDataUrl} 
-                              alt="QR Code WhatsApp" 
-                              className="mx-auto mb-3 border border-yellow-300 rounded-lg"
-                              style={{ maxWidth: '200px' }}
-                            />
-                            <p className="text-sm text-yellow-700 mb-2">
-                              Abra o WhatsApp no seu celular e escaneie este código
-                            </p>
-                            <p className="text-xs text-yellow-600">
-                              QR estável • Gerado às {new Date(lastQrGenerated).toLocaleTimeString('pt-BR')}
-                            </p>
-                            <p className="text-xs text-yellow-500 mt-1">
-                              Aponte a câmera do WhatsApp para este código
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="text-center py-4">
-                            <button
-                              onClick={fetchQrCode}
-                              disabled={qrLoading}
-                              className="flex items-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors mx-auto"
-                            >
-                              {qrLoading ? (
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              ) : (
-                                <QrCode size={16} className="mr-2" />
-                              )}
-                              {qrLoading ? 'Gerando...' : 'Gerar QR Code'}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : isConfigured ? (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-                    <div className="text-red-600 text-4xl mb-3">⚠️</div>
-                    <h4 className="font-semibold text-red-800 mb-1">Bot Indisponível</h4>
-                    <p className="text-sm text-red-700 mb-3">
-                      Não foi possível conectar ao bot. Verifique:
-                    </p>
-                    <ul className="text-xs text-red-600 text-left max-w-sm mx-auto space-y-1">
-                      <li>• URL do bot está correta</li>
-                      <li>• Token (HUB_TOKEN) está configurado</li>
-                      <li>• Bot está rodando no Render</li>
-                      <li>• CORS permite esta origem</li>
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-            )}
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-gray-400">
-                  {botStatus?.ready ? '✓' : '○'}
-                </div>
-                <div className="text-sm text-gray-600">Conexão WhatsApp</div>
-              </div>
-              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-gray-400">0</div>
-                <div className="text-sm text-gray-600">Mensagens (em breve)</div>
-              </div>
-              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-gray-400">0</div>
-                <div className="text-sm text-gray-600">Leads (em breve)</div>
-              </div>
-              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-gray-400">-</div>
-                <div className="text-sm text-gray-600">Último (em breve)</div>
-              </div>
-            </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowConfig(!showConfig)}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Configurações"
+            >
+              <Settings size={20} />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Test Send Modal */}
-      {showTestModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">Testar Envio</h3>
-              <button
-                onClick={() => setShowTestModal(false)}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <X size={20} />
-              </button>
+      {/* Configuration Panel */}
+      {showConfig && (
+        <div className="bg-blue-50 border-b border-blue-200 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">URL do Bot</label>
+              <input
+                type="url"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                placeholder="https://seu-bot.onrender.com"
+              />
             </div>
-            
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Número de Telefone
-                </label>
-                <input
-                  type="tel"
-                  value={testPhone}
-                  onChange={(e) => setTestPhone(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="5521999999999 ou (21) 99999-9999"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Com código do país (55) e DDD
-                </p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mensagem de Teste
-                </label>
-                <textarea
-                  value={testMessage}
-                  onChange={(e) => setTestMessage(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  rows={3}
-                  placeholder="Olá! Este é um teste de envio do bot da ACASA."
-                />
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setShowTestModal(false)}
-                  className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleTestSend}
-                  disabled={testLoading || !testPhone.trim() || !testMessage.trim()}
-                  className="flex-1 flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {testLoading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  ) : (
-                    <Send size={16} className="mr-2" />
-                  )}
-                  Enviar Teste
-                </button>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Token</label>
+              <input
+                type="password"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                placeholder="HUB_TOKEN"
+              />
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={handleSaveConfig}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Salvar
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Setup Instructions */}
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-4">Instruções de Setup</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-blue-800">
-            <div className="space-y-3">
-              <div className="flex items-start space-x-3">
-                <div className="bg-blue-100 p-2 rounded-lg">
-                  <Smartphone className="text-blue-600" size={16} />
-                </div>
-                <div>
-                  <h4 className="font-medium">1. Deploy no Render</h4>
-                  <p className="text-blue-700">Configure o bot no Render com as variáveis de ambiente necessárias</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="bg-blue-100 p-2 rounded-lg">
-                  <Settings className="text-blue-600" size={16} />
-                </div>
-                <div>
-                  <h4 className="font-medium">2. Configurar Acesso</h4>
-                  <p className="text-blue-700">Insira a URL do bot e o token de autenticação acima</p>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-start space-x-3">
-                <div className="bg-blue-100 p-2 rounded-lg">
-                  <QrCode className="text-blue-600" size={16} />
-                </div>
-                <div>
-                  <h4 className="font-medium">3. Parear WhatsApp</h4>
-                  <p className="text-blue-700">Escaneie o QR code com o WhatsApp Business</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="bg-blue-100 p-2 rounded-lg">
-                  <CheckCircle className="text-blue-600" size={16} />
-                </div>
-                <div>
-                  <h4 className="font-medium">4. Pronto!</h4>
-                  <p className="text-blue-700">Bot conectado e pronto para receber leads</p>
-                </div>
-              </div>
+      <div className="flex-1 flex overflow-hidden">
+        {/* Conversations List */}
+        <div className="w-1/3 bg-white border-r border-gray-200 flex flex-col">
+          {/* Search */}
+          <div className="p-4 border-b border-gray-200">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                placeholder="Buscar conversas..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
             </div>
           </div>
+
+          {/* Conversations */}
+          <div className="flex-1 overflow-y-auto">
+            {!isConfigured ? (
+              <div className="p-6 text-center">
+                <Smartphone className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="font-medium text-gray-900 mb-2">Configure o Bot</h3>
+                <p className="text-sm text-gray-600 mb-4">Configure a URL e token do bot para ver as conversas</p>
+                <button
+                  onClick={() => setShowConfig(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Configurar
+                </button>
+              </div>
+            ) : !botStatus?.ready ? (
+              <div className="p-6 text-center">
+                <AlertTriangle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="font-medium text-gray-900 mb-2">WhatsApp Offline</h3>
+                <p className="text-sm text-gray-600">Conecte o WhatsApp para ver as conversas</p>
+              </div>
+            ) : filteredLeads.length === 0 ? (
+              <div className="p-6 text-center">
+                <MessageCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="font-medium text-gray-900 mb-2">Nenhuma Conversa</h3>
+                <p className="text-sm text-gray-600">As conversas aparecerão aqui quando chegarem mensagens</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {filteredLeads.map((lead) => {
+                  const stageConfig = getStageConfig(lead.stage);
+                  return (
+                    <div
+                      key={lead.id}
+                      onClick={() => setSelectedLead(lead)}
+                      className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                        selectedLead?.id === lead.id ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                          {(lead.contact?.full_name || 'NN').split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="font-medium text-gray-900 truncate">
+                              {lead.contact?.full_name || 'Nome não informado'}
+                            </h4>
+                            <span className="text-xs text-gray-500">
+                              {formatMessageTime(lead.lastMessageTime)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 truncate">
+                            {lead.elderly_name && `${lead.elderly_name} • `}
+                            {formatPhone(lead.contact?.phone || '')}
+                          </p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${stageConfig.bgColor} ${stageConfig.textColor}`}>
+                              {stageConfig.label}
+                            </span>
+                            {lead.unreadCount > 0 && (
+                              <div className="bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                                {lead.unreadCount}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col">
+          {!selectedLead ? (
+            <div className="flex-1 flex items-center justify-center bg-gray-50">
+              <div className="text-center">
+                <MessageCircle className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                <h3 className="text-xl font-medium text-gray-900 mb-2">Selecione uma Conversa</h3>
+                <p className="text-gray-600">Escolha um lead na lista para ver as mensagens</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Chat Header */}
+              <div className="bg-white border-b border-gray-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => setSelectedLead(null)}
+                      className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors mr-3 md:hidden"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
+                      {(selectedLead.contact?.full_name || 'NN').split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-gray-900">{selectedLead.contact?.full_name}</h3>
+                      <div className="flex items-center space-x-2 text-sm text-gray-600">
+                        <Phone size={12} />
+                        <span>{formatPhone(selectedLead.contact?.phone || '')}</span>
+                        {selectedLead.elderly_name && (
+                          <>
+                            <span>•</span>
+                            <span>{selectedLead.elderly_name}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <select
+                      value={selectedLead.stage}
+                      onChange={(e) => updateLeadStage(selectedLead.id, e.target.value as any)}
+                      className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="Novo">Novo</option>
+                      <option value="Qualificando">Qualificando</option>
+                      <option value="Agendou visita">Agendou visita</option>
+                      <option value="Visitou">Visitou</option>
+                      <option value="Proposta">Proposta</option>
+                      <option value="Fechado">Fechado</option>
+                      <option value="Perdido">Perdido</option>
+                    </select>
+                    <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                      <MoreVertical size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+                {messages.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MessageCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="font-medium text-gray-900 mb-2">Nenhuma mensagem ainda</h3>
+                    <p className="text-gray-600">Inicie a conversa enviando uma mensagem</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                            message.direction === 'outbound'
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-white border border-gray-200 text-gray-900'
+                          }`}
+                        >
+                          <p className="text-sm">{message.body}</p>
+                          <p className={`text-xs mt-1 ${
+                            message.direction === 'outbound' ? 'text-blue-100' : 'text-gray-500'
+                          }`}>
+                            {formatMessageTime(message.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </div>
+
+              {/* Message Input */}
+              <div className="bg-white border-t border-gray-200 p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      placeholder="Digite sua mensagem..."
+                      disabled={!botStatus?.ready || sendingMessage}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:opacity-50"
+                    />
+                  </div>
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={!newMessage.trim() || !botStatus?.ready || sendingMessage}
+                    className="p-3 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sendingMessage ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    ) : (
+                      <Send size={20} />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Status Bar */}
+      <div className="bg-gray-100 border-t border-gray-200 px-4 py-2">
+        <div className="flex items-center justify-between text-xs text-gray-600">
+          <div className="flex items-center space-x-4">
+            <span>
+              {botStatus?.ready ? '🟢 Online' : '🔴 Offline'}
+            </span>
+            <span>{filteredLeads.length} conversas</span>
+            {lastStatusCheck && (
+              <span>Última verificação: {lastStatusCheck.toLocaleTimeString('pt-BR')}</span>
+            )}
+          </div>
+          {selectedLead && (
+            <span>
+              Conversa com {selectedLead.contact?.full_name} • {messages.length} mensagens
+            </span>
+          )}
         </div>
       </div>
     </div>
