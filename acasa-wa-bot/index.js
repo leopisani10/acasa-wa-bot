@@ -433,7 +433,7 @@ app.use('*', (req, res) => {
 // Start server
 const startServer = () => {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 ACASA WhatsApp Bot running on port ${PORT}`);
+    console.log('ACASA WA Bot listening on', PORT);
     console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 Supabase URL: ${SUPABASE_URL}`);
     console.log(`📂 Session directory: ${SESSION_DIR}`);
