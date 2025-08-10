@@ -41,7 +41,8 @@ export async function getQr(baseUrl: string, token: string): Promise<QrResponse>
   });
 
   if (!response.ok) {
-    throw new Error(`QR request failed: ${response.status}`);
+    const errorText = await response.text();
+    throw new Error(`QR request failed: ${response.status} - ${errorText}`);
   }
 
   return response.json();

@@ -106,6 +106,8 @@ export const CRMInbox: React.FC = () => {
       setQrLoading(true);
       const qrResponse = await getQr(baseUrl, token);
       
+      console.log('QR Response:', qrResponse); // Debug log
+      
       // Only update QR if it's new (based on generatedAt timestamp)
       if (qrResponse.dataUrl && qrResponse.generatedAt && qrResponse.generatedAt > lastQrGenerated) {
         setQrDataUrl(qrResponse.dataUrl);
@@ -117,9 +119,14 @@ export const CRMInbox: React.FC = () => {
       } else if (qrResponse.message === 'qr_not_ready') {
         // QR not ready yet, continue polling
         console.log('⏳ QR not ready yet...');
+      } else {
+        console.log('⏳ QR response:', qrResponse.message || 'unknown response');
       }
     } catch (error) {
       console.error('Error fetching QR:', error);
+      if (error instanceof Error && error.message.includes('401')) {
+        showToast('error', 'Token inválido para QR');
+      }
       // Don't show toast for QR errors to avoid spam
     } finally {
       setQrLoading(false);
