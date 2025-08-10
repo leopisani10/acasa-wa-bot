@@ -137,9 +137,13 @@ Recebe notificações do Hub ACASA:
 
 - **Name**: `acasa-whatsapp-bot`
 - **Environment**: `Node`
+- **Node Version**: `20.x` (lido automaticamente de `engines`)
 - **Region**: `Virginia (US East)`
-- **Build Command**: `npm ci`
+- **Build Command**: `npm ci` (ou deixe vazio)
 - **Start Command**: `npm start`
+
+> 💡 **Importante**: O arquivo de entrada é `index.js` na raiz do projeto.
+> O Render executará automaticamente `node index.js` via npm start.
 
 ### 3. Configure as variáveis de ambiente
 
@@ -175,6 +179,9 @@ npm install
 
 # Executar em modo desenvolvimento (auto-reload)
 npm run dev
+
+# Ou executar diretamente
+node index.js
 
 # Testar endpoints
 curl -H "Authorization: Bearer seu_token" http://localhost:8080/status
