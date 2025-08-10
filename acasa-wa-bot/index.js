@@ -25,6 +25,7 @@ let connectionStartTime = null;
 const QR_TTL_MS = Number(process.env.QR_THROTTLE_MS || 25000); // 25s - mais rápido que timeout do WhatsApp
 let connectionState = 'disconnected'; // disconnected, qr_ready, authenticating, connected
 let lastStateChange = Date.now();
+const CONNECTION_TIMEOUT_MS = 60000;
 
 // Estado detalhado para debug
 let detailedStatus = {
@@ -35,7 +36,7 @@ let detailedStatus = {
   ready: false,
   last_error: null,
   connection_attempts: 0
-};</parameter>
+};
 
 // --- Auth por HUB_TOKEN (Bearer) ---
 const HUB_TOKEN = process.env.HUB_TOKEN || '';
@@ -167,8 +168,7 @@ app.post('/send', auth, async (req, res) => {
   }
 });
 
-// Cliente WhatsApp
-if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
+if (HUB_TOKEN) {
   console.log('🔧 Initializing WhatsApp client with fixed web version...');
   console.log('📂 Session directory:', SESSION_DIR);
   console.log('🌐 WhatsApp Web version:', WA_WEB_REMOTE_PATH);
@@ -187,16 +187,23 @@ if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI,BlinkGenPropertyTrees',
+        '--disable-ipc-flooding-protection'
       ]
     },
     webVersionCache: {
       type: 'remote',
       remotePath: WA_WEB_REMOTE_PATH
     },
-    takeoverOnConflict: true,
-    takeoverTimeoutMs: 60000
+    takeoverOnConflict: false, // Changed to avoid conflicts
+    takeoverTimeoutMs: CONNECTION_TIMEOUT_MS,
+    qrMaxRetries: 5,
+    authTimeoutMs: CONNECTION_TIMEOUT_MS,
+    restartOnAuthFail: false // Manual restart control
   });
 
   client.on('qr', async (qr) => {
@@ -224,14 +231,10 @@ if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
 
   client.on('ready', () => {
     ready = true;
-    isConnecting = false;
-    connectionAttempts = 0;
-    connectionStartTime = null;
     lastQr = null;
     lastQrDataUrl = null;
     lastQrAt = 0;
-    console.log('✅ WhatsApp READY - Fully connected and operational');
-    console.log('📱 Phone status should show "Connected" now');
+    console.log('✅ WhatsApp READY');
   });
 
   client.on('disconnected', (reason) => {
@@ -256,40 +259,7 @@ if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
     console.log('📱 WhatsApp loading:', percent + '%', message);
   });
 
-  // Add connection health check
-  client.on('remote_session_saved', () => {
-    console.log('💾 Remote session saved - connection stable');
-  });
-  
-  // Monitor message events to verify real connectivity
-  client.on('message', (message) => {
-    console.log('📧 Message received - connection confirmed active');
-  });
-  
-  // Add error handling for specific errors
-  client.on('disconnected', (reason) => {
-    console.log('🔌 Detailed disconnect reason:', reason);
-    if (reason === 'UNPAIRED_PHONE') {
-      console.log('📱 Phone unpaired - clearing session and requesting new QR');
-      // Clear session on unpair
-      try {
-        const sessionPath = path.join(SESSION_DIR, 'Default', 'acasa-bot');
-        if (fs.existsSync(sessionPath)) {
-          fs.rmSync(sessionPath, { recursive: true, force: true });
-          console.log('🗑️ Session cleared due to unpair');
-        }
-      } catch (error) {
-        console.error('❌ Error clearing session:', error);
-      }
-    }
-  });
-
   client.initialize();
-};
-
-// Cliente WhatsApp
-if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
-  initializeWhatsAppClient();
 } else {
   console.warn('⚠️  HUB_TOKEN not configured - WhatsApp client not initialized');
 }
