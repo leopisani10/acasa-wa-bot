@@ -139,10 +139,10 @@ Recebe notificações do Hub ACASA:
 - **Environment**: `Node`
 - **Build Command**: `npm ci` (ou deixe vazio)
 - **Start Command**: `npm start`
-- **Root Directory**: deixe vazio (`.`)
+- **Root Directory**: `acasa-wa-bot`
 - **Region**: `Virginia (US East)`
 
-> 💡 **Importante**: O arquivo de entrada é `index.js` na raiz do projeto. 
+> 💡 **Importante**: O arquivo de entrada é `index.js` no diretório `acasa-wa-bot/`. 
 > O Render detecta automaticamente Node 20 via `"engines": {"node": "20.x"}`.
 
 ### 3. Configure as variáveis de ambiente
