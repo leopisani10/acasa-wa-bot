@@ -70,8 +70,8 @@ export const CRMInbox: React.FC = () => {
       setQrCode(null);
       setQrError(null);
     }
+  }, [isConfigured, botStatus]);
 
-  const checkBotStatus = async () => {
     if (!config.baseUrl || !config.token) return;
 
     try {
