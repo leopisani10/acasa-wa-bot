@@ -138,9 +138,9 @@ Recebe notificações do Hub ACASA:
 - **Name**: `acasa-whatsapp-bot`
 - **Environment**: `Node`
 - **Build Command**: `npm ci` (ou deixe vazio)
-- **Start Command**: `npm start` (executa `node index.js`)
-- **Region**: `Virginia (US East)`
+- **Start Command**: `npm start`
 - **Root Directory**: deixe vazio (`.`)
+- **Region**: `Virginia (US East)`
 
 > 💡 **Importante**: O arquivo de entrada é `index.js` na raiz do projeto. 
 > O Render detecta automaticamente Node 20 via `"engines": {"node": "20.x"}`.
