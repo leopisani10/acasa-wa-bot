@@ -8,6 +8,7 @@ interface BotStatus {
 
 interface QrResponse {
   dataUrl?: string;
+  generatedAt?: number;
   message?: string;
 }
 
