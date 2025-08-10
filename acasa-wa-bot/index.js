@@ -19,7 +19,23 @@ let ready = false;
 let lastQr = null;
 let lastQrDataUrl = null;
 let lastQrAt = 0;
-const QR_TTL_MS = Number(process.env.QR_THROTTLE_MS || 45000); // 45s
+let connectionAttempts = 0;
+let isConnecting = false;
+let connectionStartTime = null;
+const QR_TTL_MS = Number(process.env.QR_THROTTLE_MS || 25000); // 25s - mais rápido que timeout do WhatsApp
+let connectionState = 'disconnected'; // disconnected, qr_ready, authenticating, connected
+let lastStateChange = Date.now();
+
+// Estado detalhado para debug
+let detailedStatus = {
+  qr_generated: false,
+  qr_scanned: false,
+  authenticating: false,
+  session_restored: false,
+  ready: false,
+  last_error: null,
+  connection_attempts: 0
+};</parameter>
 
 // --- Auth por HUB_TOKEN (Bearer) ---
 const HUB_TOKEN = process.env.HUB_TOKEN || '';
@@ -117,6 +133,16 @@ app.get('/qr', auth, async (req, res) => {
     return res.json({ message: 'already_ready', ready: true });
   }
   
+  if (isConnecting) {
+    const elapsedTime = Date.now() - (connectionStartTime || 0);
+    return res.json({ 
+      message: 'connecting', 
+      ready: false, 
+      elapsedTime,
+      maxWaitTime: CONNECTION_TIMEOUT_MS
+    });
+  }
+  
   if (!lastQrDataUrl) {
     return res.json({ message: 'qr_not_ready', ready: false });
   }
@@ -198,10 +224,14 @@ if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
 
   client.on('ready', () => {
     ready = true;
+    isConnecting = false;
+    connectionAttempts = 0;
+    connectionStartTime = null;
     lastQr = null;
     lastQrDataUrl = null;
     lastQrAt = 0;
-    console.log('✅ WhatsApp READY');
+    console.log('✅ WhatsApp READY - Fully connected and operational');
+    console.log('📱 Phone status should show "Connected" now');
   });
 
   client.on('disconnected', (reason) => {
@@ -226,7 +256,40 @@ if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
     console.log('📱 WhatsApp loading:', percent + '%', message);
   });
 
+  // Add connection health check
+  client.on('remote_session_saved', () => {
+    console.log('💾 Remote session saved - connection stable');
+  });
+  
+  // Monitor message events to verify real connectivity
+  client.on('message', (message) => {
+    console.log('📧 Message received - connection confirmed active');
+  });
+  
+  // Add error handling for specific errors
+  client.on('disconnected', (reason) => {
+    console.log('🔌 Detailed disconnect reason:', reason);
+    if (reason === 'UNPAIRED_PHONE') {
+      console.log('📱 Phone unpaired - clearing session and requesting new QR');
+      // Clear session on unpair
+      try {
+        const sessionPath = path.join(SESSION_DIR, 'Default', 'acasa-bot');
+        if (fs.existsSync(sessionPath)) {
+          fs.rmSync(sessionPath, { recursive: true, force: true });
+          console.log('🗑️ Session cleared due to unpair');
+        }
+      } catch (error) {
+        console.error('❌ Error clearing session:', error);
+      }
+    }
+  });
+
   client.initialize();
+};
+
+// Cliente WhatsApp
+if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
+  initializeWhatsAppClient();
 } else {
   console.warn('⚠️  HUB_TOKEN not configured - WhatsApp client not initialized');
 }

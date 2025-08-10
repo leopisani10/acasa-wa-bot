@@ -22,6 +22,7 @@ export const CRMInbox: React.FC = () => {
   // Bot status
   const [botStatus, setBotStatus] = useState<any>(null);
   const [lastStatusCheck, setLastStatusCheck] = useState<Date | null>(null);
+  const [connectionProgress, setConnectionProgress] = useState<string>('');
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
@@ -47,19 +48,21 @@ export const CRMInbox: React.FC = () => {
   useEffect(() => {
     if (isConfigured) {
       checkBotStatus();
-      const interval = setInterval(checkBotStatus, 30000); // Check every 30s
+      const interval = setInterval(checkBotStatus, 10000); // Check every 10s for better responsiveness
       return () => clearInterval(interval);
     }
   }, [isConfigured, config]);
 
   // Auto-fetch QR when bot is offline
   useEffect(() => {
-    if (isConfigured && botStatus !== null && !botStatus.ready) {
+    if (isConfigured && botStatus !== null && !botStatus.ready && !botStatus.isConnecting) {
       fetchQrCode();
       
       // Auto-refresh QR every 45 seconds
       const qrInterval = setInterval(() => {
-        fetchQrCode();
+        if (!botStatus.ready && !botStatus.isConnecting) {
+          fetchQrCode();
+        }
       }, 45000);
       
       return () => clearInterval(qrInterval);
@@ -67,7 +70,6 @@ export const CRMInbox: React.FC = () => {
       setQrCode(null);
       setQrError(null);
     }
-  }, [isConfigured, botStatus?.ready]);
 
   const checkBotStatus = async () => {
     if (!config.baseUrl || !config.token) return;
@@ -79,13 +81,23 @@ export const CRMInbox: React.FC = () => {
       setBotStatus(status);
       setLastStatusCheck(new Date());
       
+      // Update connection progress
+      if (status.isConnecting) {
+        const elapsed = status.connectionStartTime ? Date.now() - status.connectionStartTime : 0;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        setConnectionProgress(`Conectando há ${minutes}:${seconds.toString().padStart(2, '0')}`);
+      } else {
+        setConnectionProgress('');
+      }
+      
       if (status.ready && qrCode) {
         setQrCode(null); // Clear QR when ready
         setQrError(null);
       }
     } catch (error) {
       console.error('Error checking bot status:', error);
-      setBotStatus({ ready: false, error: error.message });
+      setBotStatus({ ready: false, isConnecting: false, error: error.message });
     }
   };
 
@@ -103,6 +115,12 @@ export const CRMInbox: React.FC = () => {
       if (response.dataUrl) {
         setQrCode(response.dataUrl);
         setQrError(null);
+      } else if (response.message?.includes('connecting')) {
+        setQrError(null);
+        setConnectionProgress(response.elapsedTime ? 
+          `Conectando há ${Math.floor(response.elapsedTime / 1000)}s` : 
+          'Conectando...'
+        );
       } else if (response.message?.includes('already_ready')) {
         checkBotStatus(); // Refresh status
       } else {
@@ -223,12 +241,16 @@ export const CRMInbox: React.FC = () => {
               <div className={`flex items-center px-3 py-2 rounded-lg ${
                 botStatus.ready 
                   ? 'bg-green-100 text-green-700' 
-                  : 'bg-red-100 text-red-700'
+                  : botStatus.isConnecting
+                    ? 'bg-yellow-100 text-yellow-700'
+                    : 'bg-red-100 text-red-700'
               }`}>
                 <div className={`w-2 h-2 rounded-full mr-2 ${
-                  botStatus.ready ? 'bg-green-500' : 'bg-red-500'
+                  botStatus.ready ? 'bg-green-500' : 
+                  botStatus.isConnecting ? 'bg-yellow-500 animate-pulse' : 'bg-red-500'
                 }`}></div>
-                {botStatus.ready ? 'WhatsApp Conectado' : 'WhatsApp Offline'}
+                {botStatus.ready ? 'WhatsApp Conectado' : 
+                 botStatus.isConnecting ? 'Conectando...' : 'WhatsApp Offline'}
               </div>
             )}
           </div>
@@ -341,20 +363,62 @@ export const CRMInbox: React.FC = () => {
           /* QR Code Pairing Interface */
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center max-w-md">
-              <div className="bg-green-100 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
-                <Smartphone className="text-green-600" size={32} />
+              <div className={`p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center ${
+                botStatus?.isConnecting ? 'bg-yellow-100' : 'bg-green-100'
+              }`}>
+                <Smartphone className={botStatus?.isConnecting ? 'text-yellow-600' : 'text-green-600'} size={32} />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Conectar WhatsApp</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                {botStatus?.isConnecting ? 'Conectando WhatsApp' : 'Conectar WhatsApp'}
+              </h2>
               <p className="text-gray-600 mb-6">
-                Escaneie o QR code com seu WhatsApp para conectar o bot.
+                {botStatus?.isConnecting 
+                  ? 'Aguarde enquanto estabelecemos a conexão com o WhatsApp...'
+                  : 'Escaneie o QR code com seu WhatsApp para conectar o bot.'
+                }
               </p>
 
+              {/* Connection Progress */}
+              {botStatus?.isConnecting && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-center mb-2">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-600 mr-3"></div>
+                    <span className="font-medium text-yellow-800">Estabelecendo Conexão</span>
+                  </div>
+                  <p className="text-sm text-yellow-700">
+                    {connectionProgress || 'Sincronizando com WhatsApp Web...'}
+                  </p>
+                  <div className="mt-3 bg-white rounded-full p-1">
+                    <div className="bg-yellow-500 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+                  </div>
+                </div>
+              )}
+
               {/* QR Code Display */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <div className={`bg-white rounded-xl border p-6 shadow-sm ${
+                botStatus?.isConnecting ? 'border-yellow-300' : 'border-gray-200'
+              }`}>
                 {qrLoading ? (
                   <div className="py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
                     <p className="text-sm text-gray-600">Gerando QR code...</p>
+                  </div>
+                ) : botStatus?.isConnecting ? (
+                  <div className="py-8">
+                    <div className="animate-pulse">
+                      <div className="bg-yellow-100 border border-yellow-300 rounded-lg w-64 h-64 mx-auto mb-4 flex items-center justify-center">
+                        <Smartphone className="text-yellow-600" size={48} />
+                      </div>
+                    </div>
+                    <p className="text-sm text-yellow-700 mb-2 font-medium">QR Code escaneado com sucesso!</p>
+                    <p className="text-xs text-yellow-600">Aguardando sincronização completa...</p>
+                    <div className="mt-4">
+                      <div className="text-xs text-gray-500 space-y-1">
+                        <p>✅ QR Code escaneado no iPhone</p>
+                        <p>🔄 Estabelecendo conexão segura</p>
+                        <p>⏳ Sincronizando mensagens</p>
+                      </div>
+                    </div>
                   </div>
                 ) : qrError ? (
                   <div className="py-8">
@@ -378,10 +442,12 @@ export const CRMInbox: React.FC = () => {
                     <div className="text-sm text-gray-600 space-y-2">
                       <p className="font-medium">📱 Como conectar:</p>
                       <ol className="text-left space-y-1 max-w-xs mx-auto">
-                        <li>1. Abra o WhatsApp no seu celular</li>
-                        <li>2. Toque em ⋮ (três pontos) → "Dispositivos conectados"</li>
-                        <li>3. Toque em "Conectar um dispositivo"</li>
-                        <li>4. Escaneie este QR code</li>
+                        <li className="bg-blue-50 p-2 rounded text-blue-800">1. Abra o WhatsApp no iPhone</li>
+                        <li className="bg-blue-50 p-2 rounded text-blue-800">2. Toque em "Configurações" (inferior direito)</li>
+                        <li className="bg-blue-50 p-2 rounded text-blue-800">3. Toque em "Dispositivos Conectados"</li>
+                        <li className="bg-blue-50 p-2 rounded text-blue-800">4. Toque em "Conectar um Dispositivo"</li>
+                        <li className="bg-green-50 p-2 rounded text-green-800 font-medium">5. Escaneie este QR code</li>
+                        <li className="bg-yellow-50 p-2 rounded text-yellow-800">6. Aguarde "Conectado" aparecer no iPhone</li>
                       </ol>
                     </div>
                     <div className="mt-4">
@@ -413,9 +479,19 @@ export const CRMInbox: React.FC = () => {
                   <h4 className="font-medium text-blue-900 mb-2">📊 Status da Conexão:</h4>
                   <div className="text-sm text-blue-800 space-y-1">
                     <div>Bot URL: <code className="bg-blue-100 px-1 rounded">{config.baseUrl}</code></div>
-                    <div>Status: <span className="font-medium">{botStatus.ready ? 'Conectado' : 'Aguardando QR'}</span></div>
+                    <div>Status: <span className="font-medium">
+                      {botStatus.ready ? '✅ Conectado e Operacional' : 
+                       botStatus.isConnecting ? '🔄 Conectando (QR escaneado)' : 
+                       '⏳ Aguardando QR Code'}
+                    </span></div>
+                    {botStatus.connectionAttempts > 0 && (
+                      <div>Tentativas: <span className="font-medium">{botStatus.connectionAttempts}</span></div>
+                    )}
                     {lastStatusCheck && (
                       <div>Última verificação: {lastStatusCheck.toLocaleTimeString('pt-BR')}</div>
+                    )}
+                    {connectionProgress && (
+                      <div className="text-yellow-700 font-medium">{connectionProgress}</div>
                     )}
                   </div>
                 </div>
