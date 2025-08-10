@@ -362,7 +362,7 @@ export const CRMInbox: React.FC = () => {
           </div>
         ) : !botStatus.ready ? (
           /* QR Code Pairing Interface */
-          <div className="flex-1 flex items-center justify-center p-6">
+          <div className="flex-1 flex items-center justify-center p-6 pt-16">
             <div className="text-center max-w-md">
               <div className={`p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center ${
                 botStatus?.isConnecting ? 'bg-yellow-100' : 'bg-green-100'
@@ -396,7 +396,7 @@ export const CRMInbox: React.FC = () => {
               )}
 
               {/* QR Code Display */}
-              <div className={`bg-white rounded-xl border p-6 shadow-sm ${
+              <div className={`bg-white rounded-xl border p-6 shadow-sm max-w-sm mx-auto ${
                 botStatus?.isConnecting ? 'border-yellow-300' : 'border-gray-200'
               }`}>
                 {qrLoading ? (
@@ -437,8 +437,7 @@ export const CRMInbox: React.FC = () => {
                     <img 
                       src={qrCode} 
                       alt="QR Code WhatsApp" 
-                      className="mx-auto mb-4 border border-gray-300 rounded-lg"
-                      style={{ width: '256px', height: '256px' }}
+                      className="mx-auto mb-4 border border-gray-300 rounded-lg w-full max-w-64 h-auto"
                     />
                     <div className="text-sm text-gray-600 space-y-2">
                       <p className="font-medium">📱 Como conectar:</p>
