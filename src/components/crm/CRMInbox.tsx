@@ -108,11 +108,17 @@ export const CRMInbox: React.FC = () => {
       
       console.log('QR Response:', qrResponse); // Debug log
       
-      // Only update QR if it's new (based on generatedAt timestamp)
-      if (qrResponse.dataUrl && qrResponse.generatedAt && qrResponse.generatedAt > lastQrGenerated) {
-        setQrDataUrl(qrResponse.dataUrl);
-        setLastQrGenerated(qrResponse.generatedAt);
-        console.log('📱 QR updated:', new Date(qrResponse.generatedAt).toLocaleTimeString('pt-BR'));
+      // Handle different QR response types
+      if (qrResponse.dataUrl) {
+        // QR code available
+        const responseGeneratedAt = qrResponse.generatedAt || Date.now();
+        
+        // Only update QR if it's new or we don't have one yet
+        if (!qrDataUrl || responseGeneratedAt > lastQrGenerated) {
+          setQrDataUrl(qrResponse.dataUrl);
+          setLastQrGenerated(responseGeneratedAt);
+          console.log('📱 QR updated:', new Date(responseGeneratedAt).toLocaleTimeString('pt-BR'));
+        }
       } else if (qrResponse.message === 'already_ready') {
         // Bot became ready, refresh status
         checkBotStatus();
@@ -120,7 +126,7 @@ export const CRMInbox: React.FC = () => {
         // QR not ready yet, continue polling
         console.log('⏳ QR not ready yet...');
       } else {
-        console.log('⏳ QR response:', qrResponse.message || 'unknown response');
+        console.log('⏳ Unexpected QR response:', qrResponse);
       }
     } catch (error) {
       console.error('Error fetching QR:', error);

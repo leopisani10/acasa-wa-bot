@@ -111,11 +111,17 @@ app.get('/status', auth, (req, res) => {
 
 app.get('/qr', auth, async (req, res) => {
   if (ready) {
-    return res.json({ message: 'already_ready' });
+    return res.json({ 
+      message: 'already_ready',
+      ready: true
+    });
   }
   
   if (!lastQrDataUrl) {
-    return res.json({ message: 'qr_not_ready' });
+    return res.json({ 
+      message: 'qr_not_ready',
+      ready: false
+    });
   }
   
   res.json({ 
