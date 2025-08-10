@@ -16,10 +16,10 @@ export const CRMInbox: React.FC = () => {
   const [qrError, setQrError] = useState<string | null>(null);
   
   // Chat interface state
-
-     checkBotStatus();
-   }
- }, [isConfigured, config]);
+    if (isConfigured) {
+      checkBotStatus();
+    }
+  }, [isConfigured, config]);
 
   // Auto-fetch QR when bot is offline
   useEffect(() => {

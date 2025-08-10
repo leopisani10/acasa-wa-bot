@@ -23,7 +23,6 @@ export const NFRDAForm: React.FC<NFRDAFormProps> = ({ entry, onClose, onSave }) 
   const [formData, setFormData] = useState<Omit<NFRDAEntry, 'id' | 'createdAt' | 'updatedAt' | 'lastUpdate'>>({
     contractorId: entry?.contractorId || '',
     contractorName: entry?.contractorName || '',
-    unit: entry?.unit || 'Botafogo I',
     unit: entry?.unit || 'Botafogo',
     referenceMonth: entry?.referenceMonth || new Date().getMonth() + 1,
     referenceYear: entry?.referenceYear || new Date().getFullYear(),

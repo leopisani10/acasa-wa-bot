@@ -15,7 +15,6 @@ export const CertificateForm: React.FC<CertificateFormProps> = ({ certificate, o
 
   const [formData, setFormData] = useState<Omit<Certificate, 'id' | 'createdAt' | 'updatedAt' | 'lastUpdate' | 'status'>>({
     service: certificate?.service || 'Dedetização',
-    unit: certificate?.unit || 'Botafogo I',
     unit: certificate?.unit || 'Botafogo',
     executedDate: certificate?.executedDate || '',
     expiryDate: certificate?.expiryDate || '',
