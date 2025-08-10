@@ -72,6 +72,7 @@ export const CRMInbox: React.FC = () => {
     }
   }, [isConfigured, botStatus]);
 
+  const checkBotStatus = async () => {
     if (!config.baseUrl || !config.token) return;
 
     try {
