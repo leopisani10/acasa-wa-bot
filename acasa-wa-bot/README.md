@@ -21,7 +21,7 @@ Bot de integração WhatsApp para o sistema CRM da ACASA Residencial Sênior.
 ### 1. Clone e instale dependências
 
 ```bash
-git clone <repository>
+git clone https://github.com/leopisani10/acasa-wa-bot.git
 cd acasa-wa-bot
 npm install
 ```
@@ -48,7 +48,12 @@ NODE_ENV=development
 
 ### 3. Execute a migração no Supabase
 
-No SQL Editor do Supabase, execute a migração que cria as tabelas CRM.
+No SQL Editor do Supabase, execute a migração que cria as tabelas CRM:
+- `units`
+- `contacts` 
+- `leads`
+- `activities`
+- `wa_messages`
 
 ### 4. Execute o bot
 
@@ -96,6 +101,15 @@ Envia mensagem WhatsApp:
 }
 ```
 
+### POST /webhook
+Recebe notificações do Hub ACASA:
+```json
+{
+  "event": "lead_stage_changed",
+  "data": { "leadId": "...", "newStage": "Visitou" }
+}
+```
+
 ## 🤖 Automações
 
 ### Mensagens Recebidas
@@ -115,21 +129,43 @@ Envia mensagem WhatsApp:
 
 ### 1. Conecte o repositório no Render
 
-### 2. Configure as variáveis de ambiente
+1. Acesse [Render.com](https://render.com)
+2. Clique em **"New" → "Web Service"**
+3. Conecte ao repositório `leopisani10/acasa-wa-bot`
 
-No painel do Render, adicione todas as variáveis do `.env.example`.
+### 2. Configure o serviço
 
-### 3. Configure o build
-
-- **Build Command**: `npm install`
-- **Start Command**: `npm start`
+- **Name**: `acasa-whatsapp-bot`
 - **Environment**: `Node`
+- **Region**: `Virginia (US East)`
+- **Build Command**: `npm ci`
+- **Start Command**: `npm start`
 
-### 4. Deploy e monitore
+### 3. Configure as variáveis de ambiente
 
-- O primeiro deploy pode demorar alguns minutos
-- Monitore logs para ver QR code ou status de conexão
-- Use a URL do Render para fazer chamadas à API
+No painel do Render, adicione:
+
+```env
+PORT=8080
+WHATSAPP_SESSION_DIR=/data/sessions
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_SERVICE_ROLE=eyJ...sua_service_role_key
+HUB_TOKEN=acasa_token_forte_e_unico_aqui
+HANDOFF_NUMBER=5521995138800
+NODE_ENV=production
+```
+
+### 4. Adicione disco persistente
+
+- **Mount Path**: `/data`
+- **Size**: `1 GB`
+- **Name**: `acasa-whatsapp-sessions`
+
+### 5. Deploy e monitore
+
+- Clique em **"Create Web Service"**
+- Monitore os logs para ver quando estiver pronto
+- Use a URL gerada para conectar com o Hub
 
 ## 🔧 Desenvolvimento Local
 
@@ -137,7 +173,7 @@ No painel do Render, adicione todas as variáveis do `.env.example`.
 # Instalar dependências
 npm install
 
-# Executar em modo desenvolvimento
+# Executar em modo desenvolvimento (auto-reload)
 npm run dev
 
 # Testar endpoints
@@ -146,38 +182,42 @@ curl -H "Authorization: Bearer seu_token" http://localhost:8080/status
 
 ## 📊 Integração com Hub ACASA
 
-### No frontend do Hub, configure:
+### Configure no frontend do Hub:
 
 ```env
-VITE_WHATSAPP_BOT_URL=https://seu-bot.render.com
+VITE_WHATSAPP_BOT_URL=https://seu-bot.onrender.com
 VITE_WHATSAPP_BOT_TOKEN=seu_hub_token
 ```
 
-### Use nas chamadas:
+### Exemplo de uso no Hub:
 
 ```javascript
-const response = await fetch(`${botUrl}/send`, {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${botToken}`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({ to: phone, message: text })
-});
+const sendWhatsApp = async (phone, message) => {
+  const response = await fetch(`${botUrl}/send`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${botToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ to: phone, message })
+  });
+  return response.json();
+};
 ```
 
 ## 🔒 Segurança
 
 - **HUB_TOKEN**: Use um token forte e único
 - **SERVICE_ROLE**: Mantenha a chave de serviço secreta
-- **CORS**: Configurado apenas para requisições do Hub
+- **CORS**: Configurado para aceitar requisições
 - **Rate limiting**: Considere implementar em produção
+- **Logs**: Dados sensíveis mascarados em produção
 
 ## 📝 Logs e Monitoramento
 
 - Logs estruturados com níveis
 - Dados sensíveis ocultados em produção
-- Health check endpoint para monitoring
+- Health check endpoint (`/health`) para monitoring
 - Graceful shutdown implementado
 
 ## 🛠️ Troubleshooting
@@ -187,7 +227,12 @@ const response = await fetch(`${botUrl}/send`, {
 - Confirme que não há outra sessão ativa
 - Delete pasta `sessions` e tente novamente
 
-### Erro de autenticação
+### Erro PGRST205 (tabela não encontrada)
+- Execute a migração CRM no Supabase
+- Verifique se as tabelas estão no schema `public`
+- Force refresh: `NOTIFY pgrst, 'reload schema';`
+
+### Erro de autenticação (401)
 - Verifique se o `HUB_TOKEN` está correto
 - Confirme que o header Authorization está sendo enviado
 
@@ -196,15 +241,45 @@ const response = await fetch(`${botUrl}/send`, {
 - Confirme que o WhatsApp Web está ativo
 - Teste com `GET /status` para ver se está conectado
 
+## 🧪 Testes
+
+```bash
+# Health check
+curl https://seu-bot.onrender.com/health
+
+# Status (sem token - deve retornar 401)
+curl https://seu-bot.onrender.com/status
+
+# Status (com token)
+curl -H "Authorization: Bearer seu_token" https://seu-bot.onrender.com/status
+
+# QR Code (enquanto não pareado)
+curl -H "Authorization: Bearer seu_token" https://seu-bot.onrender.com/qr
+
+# Enviar mensagem
+curl -X POST https://seu-bot.onrender.com/send \
+  -H "Authorization: Bearer seu_token" \
+  -H "Content-Type: application/json" \
+  -d '{"to":"5521999999999","message":"Teste do bot"}'
+```
+
 ## 📈 Próximas Funcionalidades (Etapa 2)
 
 - [ ] Interface de chat no Hub ACASA
-- [ ] Respostas automáticas inteligentes
+- [ ] Respostas automáticas inteligentes com OpenAI
 - [ ] Templates de mensagem
-- [ ] Webhooks para notificações
+- [ ] Webhooks bidirecionais
 - [ ] Analytics de conversação
 - [ ] Integração com IA para qualificação automática
+- [ ] Suporte a mídia (imagens, documentos)
+
+## 📞 Suporte
+
+Para suporte técnico ou dúvidas sobre integração:
+- Verifique os logs no Render
+- Teste endpoints com curl
+- Confirme configuração do Supabase
 
 ---
 
-**ACASA Residencial Sênior** | WhatsApp Business Integration
+**ACASA Residencial Sênior** | WhatsApp Business Integration v1.0
