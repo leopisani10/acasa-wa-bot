@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import qrcode from 'qrcode';
+import path from 'path';
 import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';
 
@@ -11,12 +12,14 @@ const { Client, LocalAuth } = wwebjs;
 
 dotenv.config();
 
-// --- QR Throttling ---
+// --- Session + QR Management ---
+const RAW_DIR = process.env.WHATSAPP_SESSION_DIR || '/data/wa-sessions';
+const SESSION_DIR = path.resolve(RAW_DIR); // garante caminho absoluto
 let ready = false;
 let lastQr = null;
 let lastQrDataUrl = null;
 let lastQrAt = 0;
-const QR_THROTTLE_MS = Number(process.env.QR_THROTTLE_MS || 30000); // 30s
+const QR_TTL_MS = Number(process.env.QR_THROTTLE_MS || 45000); // 45s
 
 // --- Auth por HUB_TOKEN (Bearer) ---
 const HUB_TOKEN = process.env.HUB_TOKEN || '';
@@ -73,7 +76,6 @@ app.use(cors({
 }));
 
 const PORT = process.env.PORT || 8080;
-const SESSION_DIR = process.env.WHATSAPP_SESSION_DIR || '/data/wa-sessions';
 const WA_WEB_REMOTE_PATH = process.env.WA_WEB_REMOTE_PATH || 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE;
@@ -112,23 +114,14 @@ app.get('/status', auth, (req, res) => {
 
 app.get('/qr', auth, async (req, res) => {
   if (ready) {
-    return res.json({ 
-      message: 'already_ready',
-      ready: true
-    });
+    return res.json({ message: 'already_ready', ready: true });
   }
   
   if (!lastQrDataUrl) {
-    return res.json({ 
-      message: 'qr_not_ready',
-      ready: false
-    });
+    return res.json({ message: 'qr_not_ready', ready: false });
   }
   
-  res.json({ 
-    dataUrl: lastQrDataUrl,
-    generatedAt: lastQrAt
-  });
+  res.json({ dataUrl: lastQrDataUrl, generatedAt: lastQrAt });
 });
 
 app.post('/send', auth, async (req, res) => {
@@ -157,7 +150,7 @@ if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
   client = new Client({
     authStrategy: new LocalAuth({ 
       dataPath: SESSION_DIR,
-      clientId: 'acasa-bot'
+      clientId: 'acasa-bot' // pasta estável: /data/wa-sessions/Default/acasa-bot
     }),
     puppeteer: {
       headless: true,
@@ -175,19 +168,17 @@ if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
     webVersionCache: {
       type: 'remote',
       remotePath: WA_WEB_REMOTE_PATH
-    }
+    },
+    takeoverOnConflict: true,
+    takeoverTimeoutMs: 60000
   });
 
   client.on('qr', async (qr) => {
     const now = Date.now();
-    const changed = qr !== lastQr;
-    const throttled = now - lastQrAt < QR_THROTTLE_MS;
+    const isNew = qr !== lastQr;
+    const ttlOk = now - lastQrAt > QR_TTL_MS;
 
-    // Ignore QR spam - only update if changed OR throttle time passed
-    if (!changed && throttled) {
-      console.log('🔄 QR ignored (throttled)');
-      return;
-    }
+    if (!isNew && !ttlOk) return; // ignora spam
 
     lastQr = qr;
     lastQrAt = now;
@@ -196,9 +187,13 @@ if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
       lastQrDataUrl = await qrcode.toDataURL(qr);
       ready = false;
       console.log('🔄 QR atualizado (debounced)', new Date().toLocaleTimeString('pt-BR'));
-    } catch (e) {
-      console.error('❌ QR generation error:', e);
+    } catch (error) {
+      console.error('❌ QR generation error:', error);
     }
+  });
+
+  client.on('authenticated', () => {
+    console.log('🔐 WhatsApp authenticated successfully');
   });
 
   client.on('ready', () => {
@@ -213,16 +208,6 @@ if (HUB_TOKEN || process.env.NODE_ENV === 'development') {
     ready = false;
     lastQrDataUrl = null;
     console.warn('🔌 WhatsApp disconnected:', reason, '- waiting for new QR...');
-  });
-
-  client.on('auth_failure', () => {
-    ready = false;
-    lastQrDataUrl = null;
-    console.error('❌ WhatsApp authentication failed');
-  });
-
-  client.on('authenticated', () => {
-    console.log('🔐 WhatsApp authenticated successfully');
   });
 
   client.on('auth_failure', (message) => {
@@ -253,7 +238,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🔗 Supabase: ${SUPABASE_URL ? 'configured' : 'not configured'}`);
   console.log(`🔑 HUB_TOKEN: ${HUB_TOKEN ? 'configured' : 'not configured'}`);
   console.log(`📂 Session directory: ${SESSION_DIR}`);
-  console.log(`⏱️  QR throttle: ${QR_THROTTLE_MS}ms`);
+  console.log(`⏱️  QR throttle: ${QR_TTL_MS}ms`);
   console.log(`🌐 WhatsApp Web version: ${WA_WEB_REMOTE_PATH}`);
   console.log(`✅ Ready to receive WhatsApp messages and API calls`);
 });
