@@ -8,6 +8,8 @@ interface GuestContextType {
   updateGuest: (id: string, guest: Partial<Guest>) => void;
   deleteGuest: (id: string) => void;
   getGuest: (id: string) => Guest | undefined;
+  loading: boolean;
+  error: string | null;
 }
 
 const GuestContext = createContext<GuestContextType | undefined>(undefined);
@@ -27,6 +29,7 @@ interface GuestProviderProps {
 export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);</thinking>
 
   useEffect(() => {
     fetchGuests();
@@ -297,6 +300,8 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
     updateGuest,
     deleteGuest,
     getGuest,
+    loading,
+    error,
   };
 
   return <GuestContext.Provider value={value}>{children}</GuestContext.Provider>;
