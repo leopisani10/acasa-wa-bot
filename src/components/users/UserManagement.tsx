@@ -314,10 +314,8 @@ export const UserManagement: React.FC = () => {
         {console.log('🔍 RENDER DEBUG: About to render cards for users:', filteredUsers)}
         {console.log('🔍 RENDER DEBUG: Map will execute', filteredUsers.length, 'times')}
         {filteredUsers.map((user) => (
-          {console.log('🔍 CARD DEBUG: Rendering card for user:', user)} ||
           <div key={user.id} className="bg-white rounded-lg border border-gray-100 hover:border-purple-500 hover:shadow-lg transition-all duration-300">
             <div className="p-6">
-              {console.log('🔍 CARD CONTENT DEBUG: User data in card:', { id: user.id, name: user.name, email: user.email })}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-bold text-gray-900 mb-1 truncate">{user.name}</h3>
