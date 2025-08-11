@@ -138,12 +138,15 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
 
       console.log('Syncing orphaned users...');
       
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users?action=sync-orphaned`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          action: 'sync-orphaned'
+        }),
       });
 
       const result = await response.json();
