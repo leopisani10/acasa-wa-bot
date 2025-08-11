@@ -385,49 +385,12 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
   const syncOrphanedUsers = async (): Promise<{ success: boolean; message?: string }> => {
     try {
       setError(null);
-      console.log('🔍 SIMPLE: Syncing orphaned users...');
-      
-      // Get all auth users
-      const { data: { users: authUsers }, error: authError } = await adminSupabase.auth.admin.listUsers();
-      if (authError) throw authError;
-      
-      // Get all profiles
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, email');
-      if (profileError) throw profileError;
-      
-      const profileIds = new Set(profiles?.map(p => p.id) || []);
-      const orphanedUsers = authUsers.filter(user => !profileIds.has(user.id));
-      
-      console.log('🔍 SIMPLE: Found', orphanedUsers.length, 'orphaned users');
-      
-      if (orphanedUsers.length === 0) {
-        await fetchUsers();
-        return { success: true, message: 'Nenhum usuário órfão encontrado' };
-      }
-      
-      // Create profiles for orphaned users
-      const profilesToCreate = orphanedUsers.map(user => ({
-        id: user.id,
-        email: user.email || '',
-        name: user.user_metadata?.name || user.email || 'Nome não informado',
-        position: user.user_metadata?.position || 'Não informado',
-        unit: user.user_metadata?.unit || 'Botafogo',
-        type: user.user_metadata?.type || 'matriz',
-        role: user.user_metadata?.role || 'staff',
-      }));
-      
-      const { error: insertError } = await supabase
-        .from('profiles')
-        .insert(profilesToCreate);
-      
-      if (insertError) throw insertError;
+      console.log('🔍 DIRECT: Refreshing user list...');
       
       await fetchUsers();
-      return { success: true, message: `${orphanedUsers.length} usuários sincronizados com sucesso!` };
+      return { success: true, message: 'Lista de usuários atualizada com sucesso!' };
     } catch (error) {
-      console.error('❌ SIMPLE: Error syncing users:', error);
+      console.error('❌ DIRECT: Error refreshing users:', error);
       return { success: false, message: 'Erro ao atualizar lista de usuários' };
     }
   };
