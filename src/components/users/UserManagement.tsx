@@ -9,6 +9,15 @@ import { UserPermissionsModal } from './UserPermissionsModal';
 export const UserManagement: React.FC = () => {
   const { users, loading, error, deleteUser, userPermissions, syncOrphanedUsers } = useUserManagement();
   const { user: currentUser } = useAuth();
+  
+  // Debug logs
+  console.log('🔍 USERS DEBUG: UserManagement render');
+  console.log('- users array:', users);
+  console.log('- users length:', users.length);
+  console.log('- loading:', loading);
+  console.log('- error:', error);
+  console.log('- currentUser:', currentUser);
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
