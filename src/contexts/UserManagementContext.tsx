@@ -190,47 +190,63 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
         };
       }
 
-      // Get current session for authorization
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        return { success: false, message: 'Usuário não autenticado' };
-      }
+      console.log('Creating user with data:', userData);
 
-      // Call Edge Function to create user
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
+      // Create user in Supabase Auth directly
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        return { success: false, message: result.error || 'Erro ao criar usuário' };
+      
+      console.log('Supabase auth response:', { data, error });
+      
+      if (error) {
+        console.error('Supabase auth error:', error);
+        throw error;
       }
-
-      if (result.success && result.user) {
+      
+      if (data.user) {
+        console.log('User created in auth, creating profile...');
+        
+        // Create profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: data.user.id,
+            email: userData.email,
+            name: userData.name,
+            position: userData.position,
+            unit: userData.unit,
+            type: userData.type,
+            role: userData.role,
+          }]);
+        
+        console.log('Profile creation result:', { profileError });
+        
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          throw profileError;
+        }
+        
         // Save user permissions
         const fixedModules = autoFixModuleSelection(userData.enabledModules);
         const newPermissions: UserPermissions = {
-          userId: result.user.id,
+          userId: data.user.id,
           enabledModules: fixedModules,
         };
 
         const updatedPermissions = {
           ...userPermissions,
-          [result.user.id]: newPermissions,
+          [data.user.id]: newPermissions,
         };
         saveUserPermissions(updatedPermissions);
 
+        console.log('User creation completed successfully');
         await fetchUsers();
-        return { success: true };
+        return { success: true, message: 'Usuário criado com sucesso!' };
       }
 
-      return { success: false, message: 'Erro ao criar usuário' };
+      return { success: false, message: 'Falha ao criar usuário - dados não retornados' };
     } catch (error) {
       console.error('Error creating user:', error);
       let message = 'Erro ao criar usuário';
@@ -255,30 +271,29 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
     try {
       setError(null);
       
-      // Get current session for authorization
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        return { success: false, message: 'Usuário não autenticado' };
-      }
-
-      // Call Edge Function to update user
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      const result = await response.json();
+      console.log('Updating user:', id, 'with data:', userData);
       
-      if (!response.ok) {
-        throw new Error(result.error || 'Erro ao atualizar usuário');
+      // Update profile in database
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          name: userData.name,
+          email: userData.email,
+          position: userData.position,
+          unit: userData.unit,
+          type: userData.type,
+          role: userData.role,
+        })
+        .eq('id', id);
+      
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        throw profileError;
       }
       
+      console.log('User updated successfully');
       await fetchUsers();
-      return { success: true };
+      return { success: true, message: 'Usuário atualizado com sucesso!' };
     } catch (error) {
       console.error('Error updating user:', error);
       
@@ -301,25 +316,14 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
     try {
       setError(null);
       
-      // Get current session for authorization
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        return { success: false, message: 'Usuário não autenticado' };
-      }
-
-      // Call Edge Function to delete user
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const result = await response.json();
+      console.log('Deleting user:', id);
       
-      if (!response.ok) {
-        throw new Error(result.error || 'Erro ao excluir usuário');
+      // Delete from auth (cascade will delete profile)
+      const { error } = await supabase.auth.admin.deleteUser(id);
+      
+      if (error) {
+        console.error('Delete user error:', error);
+        throw error;
       }
       
       // Remove permissions
@@ -327,8 +331,9 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       delete updatedPermissions[id];
       saveUserPermissions(updatedPermissions);
       
+      console.log('User deleted successfully');
       await fetchUsers();
-      return { success: true };
+      return { success: true, message: 'Usuário excluído com sucesso!' };
     } catch (error) {
       console.error('Error deleting user:', error);
       let message = 'Erro ao excluir usuário';

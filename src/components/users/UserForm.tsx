@@ -64,6 +64,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onClose, onSave }) => 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submission started');
     setIsLoading(true);
     setError(null);
 
@@ -83,9 +84,11 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onClose, onSave }) => 
         return;
       }
 
+      console.log('Validation passed, calling API...');
       let result;
       if (user) {
         // Update existing user
+        console.log('Updating existing user...');
         result = await updateUser(user.id, {
           name: formData.name,
           email: formData.email,
@@ -96,20 +99,26 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onClose, onSave }) => 
         });
       } else {
         // Create new user
+        console.log('Creating new user...');
         result = await addUser(formData);
       }
 
+      console.log('API call result:', result);
+
       if (result.success) {
+        console.log('User saved successfully');
         onSave();
         onClose();
       } else {
+        console.error('User save failed:', result.message);
         setError(result.message || 'Erro ao salvar usuário');
       }
     } catch (error) {
       console.error('Error in form submission:', error);
-      setError('Erro inesperado ao salvar usuário');
+      setError(`Erro inesperado: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setIsLoading(false);
+      console.log('Form submission completed');
     }
   };
 
