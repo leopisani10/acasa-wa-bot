@@ -85,18 +85,19 @@ Deno.serve(async (req) => {
         let authUser;
         let isUpdate = false;
         
-        // Check if user exists by email using listUsers and filtering
-        const { data: { users: existingUsers }, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers({
-          perPage: 1, // We only need to find one
-          page: 1,
-        });
-
-        const existingUser = existingUsers?.find(u => u.email === userData.email);
-
+        console.log('🔍 EDGE: Checking if user exists by email:', userData.email);
+        
+        // Get all users and filter by email (correct way to find user by email)
+        const { data: { users: allUsers }, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers();
+        
         if (listUsersError) {
           console.error('❌ EDGE: Error listing users:', listUsersError);
           throw listUsersError;
         }
+        
+        console.log('🔍 EDGE: Found', allUsers?.length || 0, 'total users');
+        const existingUser = allUsers?.find(u => u.email === userData.email);
+        console.log('🔍 EDGE: Existing user found:', !!existingUser, existingUser?.id);
 
         if (existingUser) {
             console.log('✅ EDGE: Found existing auth user:', existingUser.id);
