@@ -208,27 +208,66 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       if (data.user) {
         console.log('User created in auth, creating profile...');
         
-        // Create profile
-        const { error: profileError } = await supabase
+        // Check if profile already exists
+        const { data: existingProfile, error: checkError } = await supabase
           .from('profiles')
-          .insert([{
-            id: data.user.id,
-            email: userData.email,
-            name: userData.name,
-            position: userData.position,
-            unit: userData.unit,
-            type: userData.type,
-            role: userData.role,
-          }]);
+          .select('id')
+          .eq('id', data.user.id)
+          .single();
         
-        console.log('Profile creation result:', { profileError });
+        console.log('Profile check result:', { existingProfile, checkError });
         
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          throw profileError;
+        if (checkError && checkError.code !== 'PGRST116') {
+          // PGRST116 is "not found" error, which is expected for new users
+          console.error('Error checking existing profile:', checkError);
+          throw checkError;
         }
         
-        // Save user permissions
+        if (!existingProfile) {
+          // Profile doesn't exist, create it
+          console.log('Creating new profile for user:', data.user.id);
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([{
+              id: data.user.id,
+              email: userData.email,
+              name: userData.name,
+              position: userData.position,
+              unit: userData.unit,
+              type: userData.type,
+              role: userData.role,
+            }]);
+          
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+            throw profileError;
+          }
+          
+          console.log('Profile created successfully');
+        } else {
+          // Profile already exists, update it instead
+          console.log('Profile already exists, updating existing profile...');
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              email: userData.email,
+              name: userData.name,
+              position: userData.position,
+              unit: userData.unit,
+              type: userData.type,
+              role: userData.role,
+            })
+            .eq('id', data.user.id);
+          
+          if (updateError) {
+            console.error('Profile update error:', updateError);
+            throw updateError;
+          }
+          
+          console.log('Profile updated successfully');
+        }
+        
+        // Save user permissions (same for both new and existing profiles)
         const fixedModules = autoFixModuleSelection(userData.enabledModules);
         const newPermissions: UserPermissions = {
           userId: data.user.id,
@@ -241,7 +280,7 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
         };
         saveUserPermissions(updatedPermissions);
 
-        console.log('User creation completed successfully');
+        console.log('User creation/update completed successfully');
         await fetchUsers();
         return { success: true, message: 'Usuário criado com sucesso!' };
       }
@@ -275,14 +314,14 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       
       // Update profile in database
       const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          name: userData.name,
-          email: userData.email,
-          position: userData.position,
-          unit: userData.unit,
-          type: userData.type,
-          role: userData.role,
+          .from('profiles')
+          .insert([{
+            id: data.user.id,
+            email: userData.email,
+            name: userData.name,
+            position: userData.position,
+            unit: userData.unit,
+            type: userData.type,
         })
         .eq('id', id);
       
