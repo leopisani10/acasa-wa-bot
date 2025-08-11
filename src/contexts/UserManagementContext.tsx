@@ -1,7 +1,13 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { supabase, getCurrentUserId } from '../utils/supabase';
+import { supabase, getCurrentUserId, createClient } from '../utils/supabase';
 import { User } from '../types';
 import { UserPermissions, SYSTEM_MODULES, validateModuleSelection, autoFixModuleSelection } from '../types/modules';
+
+// Create admin client with service role key
+const adminSupabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+);
 
 interface UserManagementContextType {
   users: User[];
@@ -131,35 +137,39 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
 
       console.log('✅ SIMPLE: Module validation passed');
 
-      // Step 1: Create user in Supabase Auth
+      // Step 1: Create user using admin client
       console.log('🔍 SIMPLE: Creating auth user...');
-      const { data: authResult, error: authError } = await supabase.auth.signUp({
+      const { data: authResult, error: authError } = await adminSupabase.auth.admin.createUser({
         email: userData.email,
         password: userData.password,
-        options: {
-          data: {
-            name: userData.name,
-            position: userData.position,
-            unit: userData.unit,
-            type: userData.type,
-            role: userData.role,
-          }
-        }
+        email_confirm: true
       });
 
       if (authError) {
         console.error('❌ SIMPLE: Auth error:', authError);
         
         if (authError.message?.includes('User already registered')) {
-          // User exists, try to find in profiles
+          // User exists, get by email using admin client
           console.log('🔍 SIMPLE: User exists, checking profiles...');
+          
+          const { data: { users }, error: getUserError } = await adminSupabase.auth.admin.listUsers();
+          if (getUserError) throw getUserError;
+          
+          const existingAuthUser = users.find(u => u.email === userData.email);
+          if (!existingAuthUser) {
+            return { success: false, message: 'Usuário existe mas não foi encontrado' };
+          }
+          
+          console.log('✅ SIMPLE: Found existing auth user:', existingAuthUser.id);
+          
+          // Check if profile exists
           const { data: existingProfile } = await supabase
             .from('profiles')
             .select('*')
             .eq('email', userData.email)
-            .single();
+            .limit(1);
           
-          if (existingProfile) {
+          if (existingProfile && existingProfile.length > 0) {
             console.log('✅ SIMPLE: Found existing profile, updating...');
             const { error: updateError } = await supabase
               .from('profiles')
@@ -170,23 +180,52 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
                 type: userData.type,
                 role: userData.role,
               })
-              .eq('id', existingProfile.id);
+              .eq('id', existingProfile[0].id);
             
             if (updateError) throw updateError;
             
             // Save permissions
             const fixedModules = autoFixModuleSelection(userData.enabledModules);
             const newPermissions: UserPermissions = {
-              userId: existingProfile.id,
+              userId: existingProfile[0].id,
               enabledModules: fixedModules,
             };
             const updatedPermissions = { ...userPermissions, [existingProfile.id]: newPermissions };
+            const updatedPermissions = { ...userPermissions, [existingProfile[0].id]: newPermissions };
             saveUserPermissions(updatedPermissions);
             
             await fetchUsers();
             return { success: true, message: 'Usuário atualizado com sucesso!' };
           } else {
-            return { success: false, message: 'Este email já está cadastrado mas não foi possível encontrar o perfil' };
+            // User exists in auth but no profile - create profile
+            console.log('🔍 SIMPLE: Creating profile for existing auth user...');
+            const { data: newProfile, error: profileError } = await supabase
+              .from('profiles')
+              .insert({
+                id: existingAuthUser.id,
+                email: userData.email,
+                name: userData.name,
+                position: userData.position,
+                unit: userData.unit,
+                type: userData.type,
+                role: userData.role,
+              })
+              .select()
+              .single();
+            
+            if (profileError) throw profileError;
+            
+            // Save permissions
+            const fixedModules = autoFixModuleSelection(userData.enabledModules);
+            const newPermissions: UserPermissions = {
+              userId: existingAuthUser.id,
+              enabledModules: fixedModules,
+            };
+            const updatedPermissions = { ...userPermissions, [existingAuthUser.id]: newPermissions };
+            saveUserPermissions(updatedPermissions);
+            
+            await fetchUsers();
+            return { success: true, message: 'Perfil criado para usuário existente!' };
           }
         } else {
           throw authError;
@@ -268,7 +307,7 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       setError(null);
       console.log('🔍 SIMPLE: Updating user:', id, 'with data:', userData);
       
-      const { error } = await supabase
+      const { error } = await adminSupabase
         .from('profiles')
         .update({
           email: userData.email,
@@ -309,16 +348,19 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       setError(null);
       console.log('🔍 SIMPLE: Deleting user:', id);
       
-      // Delete from profiles (auth user will be handled by trigger)
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', id);
+      // Delete user using admin client (will cascade to profile)
+      const { error } = await adminSupabase.auth.admin.deleteUser(id);
       
       if (error) {
         console.error('❌ SIMPLE: Delete error:', error);
         throw error;
       }
+      
+      // Also clean up profile if it still exists
+      await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
       
       // Remove permissions
       const updatedPermissions = { ...userPermissions };
@@ -345,9 +387,45 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       setError(null);
       console.log('🔍 SIMPLE: Syncing orphaned users...');
       
-      // This is a simplified version - just refresh the user list
+      // Get all auth users
+      const { data: { users: authUsers }, error: authError } = await adminSupabase.auth.admin.listUsers();
+      if (authError) throw authError;
+      
+      // Get all profiles
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, email');
+      if (profileError) throw profileError;
+      
+      const profileIds = new Set(profiles?.map(p => p.id) || []);
+      const orphanedUsers = authUsers.filter(user => !profileIds.has(user.id));
+      
+      console.log('🔍 SIMPLE: Found', orphanedUsers.length, 'orphaned users');
+      
+      if (orphanedUsers.length === 0) {
+        await fetchUsers();
+        return { success: true, message: 'Nenhum usuário órfão encontrado' };
+      }
+      
+      // Create profiles for orphaned users
+      const profilesToCreate = orphanedUsers.map(user => ({
+        id: user.id,
+        email: user.email || '',
+        name: user.user_metadata?.name || user.email || 'Nome não informado',
+        position: user.user_metadata?.position || 'Não informado',
+        unit: user.user_metadata?.unit || 'Botafogo',
+        type: user.user_metadata?.type || 'matriz',
+        role: user.user_metadata?.role || 'staff',
+      }));
+      
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert(profilesToCreate);
+      
+      if (insertError) throw insertError;
+      
       await fetchUsers();
-      return { success: true, message: 'Lista de usuários atualizada' };
+      return { success: true, message: `${orphanedUsers.length} usuários sincronizados com sucesso!` };
     } catch (error) {
       console.error('❌ SIMPLE: Error syncing users:', error);
       return { success: false, message: 'Erro ao atualizar lista de usuários' };
