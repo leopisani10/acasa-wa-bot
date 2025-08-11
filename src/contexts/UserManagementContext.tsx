@@ -314,19 +314,16 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       setError(null);
       console.log('🔍 SIMPLE: Deleting user:', id);
       
-      // Delete user using admin client (will cascade to profile)
-      const { error } = await adminSupabase.auth.admin.deleteUser(id);
+      // Delete profile (user management simplified)
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
       
       if (error) {
         console.error('❌ SIMPLE: Delete error:', error);
         throw error;
       }
-      
-      // Also clean up profile if it still exists
-      await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', id);
       
       // Remove permissions
       const updatedPermissions = { ...userPermissions };
