@@ -37,44 +37,96 @@ Deno.serve(async (req) => {
       try {
         const userData = await req.json()
         
-        // Create user in Supabase Auth
-        const { data: newUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-          email: userData.email,
-          password: userData.password,
-          user_metadata: {
-            name: userData.name,
-            position: userData.position,
-            unit: userData.unit,
-            type: userData.type,
-            role: userData.role,
-          },
-          email_confirm: true,
-        })
-
-        if (authError) {
-          console.error('Auth error:', authError)
+        // First, check if user already exists by email
+        const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+        
+        if (listError) {
+          console.error('Error listing users:', listError)
           return new Response(
-            JSON.stringify({ error: authError.message }),
+            JSON.stringify({ error: listError.message }),
             {
               status: 400,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             }
           )
         }
-
-        if (!newUser.user) {
-          return new Response(
-            JSON.stringify({ error: 'Failed to create user' }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        
+        const existingUser = existingUsers.users.find(u => u.email === userData.email)
+        
+        let targetUserId: string
+        let isNewUser = false
+        
+        if (existingUser) {
+          // User exists in auth, use existing ID
+          console.log('User already exists in auth:', existingUser.id)
+          targetUserId = existingUser.id
+          
+          // Update user metadata in auth
+          const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+            user_metadata: {
+              name: userData.name,
+              position: userData.position,
+              unit: userData.unit,
+              type: userData.type,
+              role: userData.role,
             }
-          )
+          })
+          
+          if (updateAuthError) {
+            console.error('Error updating auth user metadata:', updateAuthError)
+          }
+        } else {
+          // Create new user in Supabase Auth
+          const { data: newUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email: userData.email,
+            password: userData.password,
+            user_metadata: {
+              name: userData.name,
+              position: userData.position,
+              unit: userData.unit,
+              type: userData.type,
+              role: userData.role,
+            },
+            email_confirm: true,
+          })
+
+          if (authError) {
+            console.error('Auth error:', authError)
+            return new Response(
+              JSON.stringify({ error: authError.message }),
+              {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              }
+            )
+          }
+
+          if (!newUser.user) {
+            return new Response(
+              JSON.stringify({ error: 'Failed to create user' }),
+              {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              }
+            )
+          }
+          
+          targetUserId = newUser.user.id
+          isNewUser = true
+          console.log('New user created in auth:', targetUserId)
         }
 
-        // Create profile
+        // Check if profile already exists
+        const { data: existingProfile, error: checkProfileError } = await supabaseAdmin
+          .from('profiles')
+          .select('id')
+          .eq('id', targetUserId)
+          .single()
+        
+        console.log('Profile check result:', { existingProfile, checkProfileError })
+        
         const profileData = {
-          id: newUser.user.id,
+          id: targetUserId,
           email: userData.email,
           name: userData.name,
           position: userData.position,
@@ -84,15 +136,42 @@ Deno.serve(async (req) => {
           created_by: user.id,
         }
 
-        const { error: profileError } = await supabaseAdmin
-          .from('profiles')
-          .insert(profileData)
+        let profileError: any = null
+        
+        if (checkProfileError && checkProfileError.code === 'PGRST116') {
+          // Profile doesn't exist, create it
+          console.log('Creating new profile for user:', targetUserId)
+          const { error } = await supabaseAdmin
+            .from('profiles')
+            .insert(profileData)
+          profileError = error
+        } else if (existingProfile) {
+          // Profile exists, update it
+          console.log('Updating existing profile for user:', targetUserId)
+          const { error } = await supabaseAdmin
+            .from('profiles')
+            .update({
+              email: userData.email,
+              name: userData.name,
+              position: userData.position,
+              unit: userData.unit,
+              type: userData.type,
+              role: userData.role,
+            })
+            .eq('id', targetUserId)
+          profileError = error
+        } else {
+          // Other error occurred during profile check
+          profileError = checkProfileError
+        }
 
         if (profileError) {
           console.error('Profile creation error:', profileError)
           
-          // Clean up auth user if profile creation failed
-          await supabaseAdmin.auth.admin.deleteUser(newUser.user.id)
+          // Clean up auth user if profile creation failed and it's a new user
+          if (isNewUser) {
+            await supabaseAdmin.auth.admin.deleteUser(targetUserId)
+          }
           
           return new Response(
             JSON.stringify({ error: 'Failed to create user profile' }),
@@ -106,8 +185,9 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             success: true, 
+            message: existingProfile ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!',
             user: {
-              id: newUser.user.id,
+              id: targetUserId,
               email: userData.email,
               name: userData.name,
               role: userData.role,

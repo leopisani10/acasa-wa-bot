@@ -192,111 +192,55 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
 
       console.log('Creating user with data:', userData);
 
-      // Create user in Supabase Auth directly
-      const { data, error } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password,
+      // Use admin edge function to handle user creation with upsert logic
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        return { success: false, message: 'Usuário não autenticado' };
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
       });
+
+      const result = await response.json();
       
-      console.log('Supabase auth response:', { data, error });
-      
-      if (error) {
-        console.error('Supabase auth error:', error);
-        throw error;
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao criar usuário');
       }
       
-      if (data.user) {
-        console.log('User created in auth, creating profile...');
-        
-        // Check if profile already exists
-        const { data: existingProfile, error: checkError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', data.user.id)
-          .single();
-        
-        console.log('Profile check result:', { existingProfile, checkError });
-        
-        if (checkError && checkError.code !== 'PGRST116') {
-          // PGRST116 is "not found" error, which is expected for new users
-          console.error('Error checking existing profile:', checkError);
-          throw checkError;
-        }
-        
-        if (!existingProfile) {
-          // Profile doesn't exist, create it
-          console.log('Creating new profile for user:', data.user.id);
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([{
-              id: data.user.id,
-              email: userData.email,
-              name: userData.name,
-              position: userData.position,
-              unit: userData.unit,
-              type: userData.type,
-              role: userData.role,
-            }]);
-          
-          if (profileError) {
-            console.error('Profile creation error:', profileError);
-            throw profileError;
-          }
-          
-          console.log('Profile created successfully');
-        } else {
-          // Profile already exists, update it instead
-          console.log('Profile already exists, updating existing profile...');
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({
-              email: userData.email,
-              name: userData.name,
-              position: userData.position,
-              unit: userData.unit,
-              type: userData.type,
-              role: userData.role,
-            })
-            .eq('id', data.user.id);
-          
-          if (updateError) {
-            console.error('Profile update error:', updateError);
-            throw updateError;
-          }
-          
-          console.log('Profile updated successfully');
-        }
-        
-        // Save user permissions (same for both new and existing profiles)
+      console.log('User creation result:', result);
+      
+      if (result.user) {
+        // Save user permissions
         const fixedModules = autoFixModuleSelection(userData.enabledModules);
         const newPermissions: UserPermissions = {
-          userId: data.user.id,
+          userId: result.user.id,
           enabledModules: fixedModules,
         };
 
         const updatedPermissions = {
           ...userPermissions,
-          [data.user.id]: newPermissions,
+          [result.user.id]: newPermissions,
         };
         saveUserPermissions(updatedPermissions);
 
-        console.log('User creation/update completed successfully');
         await fetchUsers();
-        return { success: true, message: 'Usuário criado com sucesso!' };
+        return { success: true, message: result.message || 'Usuário processado com sucesso!' };
       }
 
-      return { success: false, message: 'Falha ao criar usuário - dados não retornados' };
+      return { success: false, message: 'Falha ao processar usuário' };
     } catch (error) {
       console.error('Error creating user:', error);
       let message = 'Erro ao criar usuário';
       
       if (error && typeof error === 'object' && 'message' in error) {
-        if (error.message.includes('duplicate key') || error.message.includes('already registered')) {
-          message = 'Este email já está cadastrado';
-        } else if (error.message.includes('weak password')) {
+        if (error.message.includes('weak password')) {
           message = 'Senha muito fraca. Use pelo menos 6 caracteres';
-        } else if (error.message.includes('Insufficient permissions')) {
-          message = 'Você não tem permissão para criar usuários';
         } else {
           message = `Erro: ${error.message}`;
         }
