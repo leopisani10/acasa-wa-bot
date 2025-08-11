@@ -10,145 +10,170 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split('/').filter(Boolean);
+  
   try {
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const authHeader = req.headers.get('Authorization')!
-    const token = authHeader.replace('Bearer ', '')
-    
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
+    // Validate authorization
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     
     if (userError || !user) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: corsHeaders }
+      );
     }
 
-    const url = new URL(req.url)
-    const method = req.method
-    const action = url.searchParams.get('action')
+    // Check if user is admin
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-    // Handle POST requests for creating users
-    if (method === 'POST' && !action) {
-      try {
-        const userData = await req.json()
-        
-        // First, check if user already exists by email
-        const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers()
-        
-        if (listError) {
-          console.error('Error listing users:', listError)
-          return new Response(
-            JSON.stringify({ error: listError.message }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          )
-        }
-        
-        const existingUser = existingUsers.users.find(u => u.email === userData.email)
-        
-        let targetUserId: string
-        let isNewUser = false
-        
-        if (existingUser) {
-          // User exists in auth, use existing ID
-          console.log('User already exists in auth:', existingUser.id)
-          targetUserId = existingUser.id
-          
-          // Update user metadata in auth
-          const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
-            user_metadata: {
-              name: userData.name,
-              position: userData.position,
-              unit: userData.unit,
-              type: userData.type,
-              role: userData.role,
-            }
-          })
-          
-          if (updateAuthError) {
-            console.error('Error updating auth user metadata:', updateAuthError)
-          }
-        } else {
-          // Create new user in Supabase Auth
-          const { data: newUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-            email: userData.email,
-            password: userData.password,
-            user_metadata: {
-              name: userData.name,
-              position: userData.position,
-              unit: userData.unit,
-              type: userData.type,
-              role: userData.role,
-            },
-            email_confirm: true,
-          })
+    if (!profile || profile.role !== 'admin') {
+      return new Response(
+        JSON.stringify({ error: 'Admin access required' }),
+        { status: 403, headers: corsHeaders }
+      );
+    }
 
-          if (authError) {
-            console.error('Auth error:', authError)
-            return new Response(
-              JSON.stringify({ error: authError.message }),
-              {
-                status: 400,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              }
-            )
-          }
-
-          if (!newUser.user) {
-            return new Response(
-              JSON.stringify({ error: 'Failed to create user' }),
-              {
-                status: 400,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              }
-            )
-          }
-          
-          targetUserId = newUser.user.id
-          isNewUser = true
-          console.log('New user created in auth:', targetUserId)
-        }
-
-        // Check if profile already exists
-        const { data: existingProfile, error: checkProfileError } = await supabaseAdmin
+    // Handle different routes and methods
+    if (req.method === 'GET') {
+      const action = url.searchParams.get('action');
+      
+      if (action === 'list-orphaned') {
+        // List orphaned auth users (users in auth but not in profiles)
+        const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const { data: profiles } = await supabaseAdmin
           .from('profiles')
-          .select('id')
-          .eq('id', targetUserId)
-          .single()
+          .select('id');
+
+        const profileIds = new Set(profiles?.map(p => p.id) || []);
+        const orphanedUsers = authUsers.users.filter(user => !profileIds.has(user.id));
         
-        console.log('Profile check result:', { existingProfile, checkProfileError })
+        return new Response(
+          JSON.stringify({ authUsers: orphanedUsers }),
+          { headers: corsHeaders }
+        );
+      }
+    }
+
+    if (req.method === 'POST') {
+      const body = await req.json();
+      const action = body.action;
+      
+      if (action === 'create-or-update') {
+        const { userData } = body;
+        console.log('🔍 EDGE: Creating/updating user with data:', userData);
         
+        // Try to get existing user by email first
+        let authUser;
+        let isUpdate = false;
+        
+        try {
+          const { data: existingUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail(userData.email);
+          
+          if (existingUser && !getUserError) {
+            console.log('✅ EDGE: Found existing auth user:', existingUser.id);
+            authUser = existingUser;
+            isUpdate = true;
+            
+            // Update user metadata
+            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+              authUser.id,
+              {
+                user_metadata: {
+                  name: userData.name,
+                  position: userData.position,
+                  unit: userData.unit,
+                  type: userData.type,
+                  role: userData.role,
+                }
+              }
+            );
+            
+            if (updateError) {
+              console.error('❌ EDGE: Error updating user metadata:', updateError);
+            }
+          } else {
+            console.log('🔍 EDGE: User not found, creating new one...');
+            // Create new user
+            const { data: newUser, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
+              email: userData.email,
+              password: userData.password,
+              email_confirm: true, // Auto-confirm email
+              user_metadata: {
+                name: userData.name,
+                position: userData.position,
+                unit: userData.unit,
+                type: userData.type,
+                role: userData.role,
+              }
+            });
+            
+            if (signUpError) {
+              console.error('❌ EDGE: Error creating auth user:', signUpError);
+              throw signUpError;
+            }
+            
+            console.log('✅ EDGE: Created new auth user:', newUser.user.id);
+            authUser = newUser.user;
+            isUpdate = false;
+          }
+        } catch (error) {
+          console.error('❌ EDGE: Error in user creation/lookup:', error);
+          throw error;
+        }
+        
+        // Now handle the profile
         const profileData = {
-          id: targetUserId,
+          id: authUser.id,
           email: userData.email,
           name: userData.name,
           position: userData.position,
           unit: userData.unit,
           type: userData.type,
           role: userData.role,
-          created_by: user.id,
-        }
-
-        let profileError: any = null
+        };
         
-        if (checkProfileError && checkProfileError.code === 'PGRST116') {
+        console.log('🔍 EDGE: Handling profile for user:', authUser.id);
+        
+        // Check if profile exists
+        const { data: existingProfile, error: checkError } = await supabaseAdmin
+          .from('profiles')
+          .select('id')
+          .eq('id', authUser.id)
+          .single();
+        
+        let profileResult;
+        
+        if (checkError && checkError.code === 'PGRST116') {
           // Profile doesn't exist, create it
-          console.log('Creating new profile for user:', targetUserId)
-          const { error } = await supabaseAdmin
+          console.log('🔍 EDGE: Creating new profile...');
+          profileResult = await supabaseAdmin
             .from('profiles')
             .insert(profileData)
-          profileError = error
+            .select()
+            .single();
         } else if (existingProfile) {
           // Profile exists, update it
-          console.log('Updating existing profile for user:', targetUserId)
-          const { error } = await supabaseAdmin
+          console.log('🔍 EDGE: Updating existing profile...');
+          profileResult = await supabaseAdmin
             .from('profiles')
             .update({
               email: userData.email,
@@ -158,350 +183,134 @@ Deno.serve(async (req) => {
               type: userData.type,
               role: userData.role,
             })
-            .eq('id', targetUserId)
-          profileError = error
+            .eq('id', authUser.id)
+            .select()
+            .single();
         } else {
-          // Other error occurred during profile check
-          profileError = checkProfileError
+          console.error('❌ EDGE: Unexpected profile check result:', checkError);
+          throw checkError;
         }
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError)
-          
-          // Clean up auth user if profile creation failed and it's a new user
-          if (isNewUser) {
-            await supabaseAdmin.auth.admin.deleteUser(targetUserId)
-          }
-          
-          return new Response(
-            JSON.stringify({ error: 'Failed to create user profile' }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          )
+        
+        if (profileResult.error) {
+          console.error('❌ EDGE: Profile operation failed:', profileResult.error);
+          throw profileResult.error;
         }
-
+        
+        console.log('✅ EDGE: Profile operation successful');
+        
         return new Response(
           JSON.stringify({ 
-            success: true, 
-            message: existingProfile ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!',
-            user: {
-              id: targetUserId,
-              email: userData.email,
-              name: userData.name,
-              role: userData.role,
-              position: userData.position,
-              unit: userData.unit,
-              type: userData.type,
-            }
+            user: profileResult.data,
+            isUpdate 
           }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
-      } catch (error) {
-        console.error('Error creating user:', error)
-        return new Response(
-          JSON.stringify({ error: 'Internal server error' }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
+          { headers: corsHeaders }
+        );
       }
-    }
-
-    // Handle GET requests for listing orphaned users
-    if (method === 'GET' && action === 'list-orphaned') {
-      try {
-        const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers()
-        
-        if (authError) {
-          return new Response(
-            JSON.stringify({ error: authError.message }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
-        const { data: profiles, error: profilesError } = await supabaseAdmin
+      
+      if (action === 'sync-orphaned') {
+        // Sync orphaned users
+        const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const { data: profiles } = await supabaseAdmin
           .from('profiles')
-          .select('id')
+          .select('id');
 
-        if (profilesError) {
-          return new Response(
-            JSON.stringify({ error: profilesError.message }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
-        const existingProfileIds = new Set(profiles.map(p => p.id))
-        const orphanedUsers = authUsers.users.filter(authUser => 
-          !existingProfileIds.has(authUser.id)
-        )
-
-        return new Response(
-          JSON.stringify({ 
-            authUsers: orphanedUsers,
-            totalOrphaned: orphanedUsers.length 
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
-      } catch (error) {
-        console.error('Error listing auth users:', error)
-        return new Response(
-          JSON.stringify({ error: 'Failed to list auth users' }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
-      }
-    }
-
-    // Handle POST requests for syncing orphaned users
-    if (method === 'POST' && action === 'sync-orphaned') {
-      try {
-        const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers()
+        const profileIds = new Set(profiles?.map(p => p.id) || []);
+        const orphanedUsers = authUsers.users.filter(user => !profileIds.has(user.id));
         
-        if (authError) {
-          return new Response(
-            JSON.stringify({ error: authError.message }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
-        const { data: profiles, error: profilesError } = await supabaseAdmin
-          .from('profiles')
-          .select('id')
-
-        if (profilesError) {
-          return new Response(
-            JSON.stringify({ error: profilesError.message }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
-        const existingProfileIds = new Set(profiles.map(p => p.id))
-        const orphanedUsers = authUsers.users.filter(authUser => 
-          !existingProfileIds.has(authUser.id)
-        )
-
-        let syncedCount = 0
-        const errors: string[] = []
-
+        let syncedCount = 0;
         for (const authUser of orphanedUsers) {
           try {
-            const userMetadata = authUser.user_metadata || {}
-            
-            const profileData = {
-              id: authUser.id,
-              email: authUser.email || 'email@unknown.com',
-              name: userMetadata.name || authUser.email?.split('@')[0] || 'Usuário',
-              position: userMetadata.position || 'A definir',
-              unit: userMetadata.unit || 'Botafogo',
-              type: userMetadata.type || 'matriz',
-              role: userMetadata.role || 'staff',
-              created_by: user.id,
-            }
-
-            const { error: insertError } = await supabaseAdmin
+            await supabaseAdmin
               .from('profiles')
-              .insert(profileData)
-
-            if (insertError) {
-              console.error('Error creating profile for user:', authUser.id, insertError)
-              errors.push(`${authUser.email}: ${insertError.message}`)
-            } else {
-              syncedCount++
-              console.log('Successfully synced user:', authUser.email)
-            }
+              .insert({
+                id: authUser.id,
+                email: authUser.email || '',
+                name: authUser.user_metadata?.name || authUser.email || 'Usuário',
+                position: authUser.user_metadata?.position || 'Não definido',
+                unit: authUser.user_metadata?.unit || 'Não definido',
+                type: authUser.user_metadata?.type || 'matriz',
+                role: authUser.user_metadata?.role || 'staff',
+              });
+            syncedCount++;
           } catch (error) {
-            console.error('Error processing user:', authUser.id, error)
-            errors.push(`${authUser.email}: Erro inesperado`)
+            console.error('Error syncing user:', authUser.id, error);
           }
         }
 
         return new Response(
-          JSON.stringify({ 
-            success: true,
-            syncedCount,
-            totalOrphaned: orphanedUsers.length,
-            errors: errors.length > 0 ? errors : undefined
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
-      } catch (error) {
-        console.error('Error syncing orphaned users:', error)
-        return new Response(
-          JSON.stringify({ error: 'Failed to sync orphaned users' }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
+          JSON.stringify({ syncedCount }),
+          { headers: corsHeaders }
+        );
       }
     }
 
-    // Handle PUT requests for updating users
-    if (method === 'PUT') {
-      try {
-        const userId = url.pathname.split('/').pop()
-        const userData = await req.json()
-
-        if (!userId) {
-          return new Response(
-            JSON.stringify({ error: 'User ID is required' }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
-        // Update profile in database
-        const { error: profileError } = await supabaseAdmin
-          .from('profiles')
-          .update({
-            name: userData.name,
-            position: userData.position,
-            unit: userData.unit,
-            type: userData.type,
-            role: userData.role,
-          })
-          .eq('id', userId)
-
-        if (profileError) {
-          console.error('Profile update error:', profileError)
-          return new Response(
-            JSON.stringify({ error: 'Failed to update user profile' }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
-        // Update user metadata in auth
-        if (userData.email) {
-          const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-            email: userData.email,
-            user_metadata: {
-              name: userData.name,
-              position: userData.position,
-              unit: userData.unit,
-              type: userData.type,
-              role: userData.role,
-            }
-          })
-
-          if (authError) {
-            console.error('Auth update error:', authError)
-            // Continue even if auth update fails
-          }
-        }
-
-        return new Response(
-          JSON.stringify({ success: true }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
-      } catch (error) {
-        console.error('Error updating user:', error)
-        return new Response(
-          JSON.stringify({ error: 'Internal server error' }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
+    if (req.method === 'PUT') {
+      // Update user by ID
+      const userId = pathParts[pathParts.length - 1]; // Get ID from URL path
+      const userData = await req.json();
+      
+      console.log('🔍 EDGE: Updating user:', userId, 'with data:', userData);
+      
+      // Update profile in database
+      const { data: updatedProfile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          email: userData.email,
+          name: userData.name,
+          position: userData.position,
+          unit: userData.unit,
+          type: userData.type,
+          role: userData.role,
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+      
+      if (profileError) {
+        console.error('❌ EDGE: Profile update error:', profileError);
+        throw profileError;
       }
+      
+      console.log('✅ EDGE: User updated successfully');
+      
+      return new Response(
+        JSON.stringify({ user: updatedProfile }),
+        { headers: corsHeaders }
+      );
     }
 
-    // Handle DELETE requests for deleting users
-    if (method === 'DELETE') {
-      try {
-        const userId = url.pathname.split('/').pop()
-
-        if (!userId) {
-          return new Response(
-            JSON.stringify({ error: 'User ID is required' }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
-        // Delete user from auth (this will cascade to profile due to FK constraint)
-        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
-
-        if (authError) {
-          console.error('Auth delete error:', authError)
-          return new Response(
-            JSON.stringify({ error: 'Failed to delete user' }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
-        return new Response(
-          JSON.stringify({ success: true }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
-      } catch (error) {
-        console.error('Error deleting user:', error)
-        return new Response(
-          JSON.stringify({ error: 'Internal server error' }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
+    if (req.method === 'DELETE') {
+      // Delete user by ID
+      const userId = pathParts[pathParts.length - 1]; // Get ID from URL path
+      
+      console.log('🔍 EDGE: Deleting user:', userId);
+      
+      // Delete from auth (cascade will delete profile)
+      const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      
+      if (error) {
+        console.error('❌ EDGE: Delete user error:', error);
+        throw error;
       }
+      
+      console.log('✅ EDGE: User deleted successfully');
+      
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: corsHeaders }
+      );
     }
 
     return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { 
-        status: 405, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
+      JSON.stringify({ error: 'Invalid action or method' }),
+      { status: 400, headers: corsHeaders }
+    );
+
   } catch (error) {
-    console.error('Unhandled error:', error)
+    console.error('❌ EDGE: Error in admin-users function:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+      JSON.stringify({ error: error.message || 'Internal server error' }),
+      { status: 500, headers: corsHeaders }
+    );
   }
-})
+});
