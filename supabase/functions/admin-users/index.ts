@@ -85,32 +85,26 @@ Deno.serve(async (req) => {
         let authUser;
         let isUpdate = false;
         
-        try {
-          const { data: existingUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail(userData.email);
-          
-          if (existingUser && !getUserError) {
+        // Check if user exists by email using listUsers and filtering
+        const { data: { users: existingUsers }, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers({
+          perPage: 1, // We only need to find one
+          page: 1,
+        });
+
+        const existingUser = existingUsers?.find(u => u.email === userData.email);
+
+        if (listUsersError) {
+          console.error('❌ EDGE: Error listing users:', listUsersError);
+          throw listUsersError;
+        }
+
+        if (existingUser) {
             console.log('✅ EDGE: Found existing auth user:', existingUser.id);
-            authUser = existingUser;
+            authUser = existingUser; // Use the found user
             isUpdate = true;
             
-            // Update user metadata
-            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-              authUser.id,
-              {
-                user_metadata: {
-                  name: userData.name,
-                  position: userData.position,
-                  unit: userData.unit,
-                  type: userData.type,
-                  role: userData.role,
-                }
-              }
-            );
-            
-            if (updateError) {
-              console.error('❌ EDGE: Error updating user metadata:', updateError);
-            }
-          } else {
+            // Update user metadata (if needed, this is handled by updateUserById below)
+        } else {
             console.log('🔍 EDGE: User not found, creating new one...');
             // Create new user
             const { data: newUser, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
@@ -134,10 +128,18 @@ Deno.serve(async (req) => {
             console.log('✅ EDGE: Created new auth user:', newUser.user.id);
             authUser = newUser.user;
             isUpdate = false;
+        }
+
+        // If it's an update, update the user's metadata in auth.users
+        if (isUpdate && authUser) {
+          const { error: updateAuthUserError } = await supabaseAdmin.auth.admin.updateUserById(
+            authUser.id,
+            { user_metadata: { name: userData.name, position: userData.position, unit: userData.unit, type: userData.type, role: userData.role } }
+          );
+          if (updateAuthUserError) {
+            console.error('❌ EDGE: Error updating auth user metadata:', updateAuthUserError);
+            throw updateAuthUserError;
           }
-        } catch (error) {
-          console.error('❌ EDGE: Error in user creation/lookup:', error);
-          throw error;
         }
         
         // Now handle the profile
