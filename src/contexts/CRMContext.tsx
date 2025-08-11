@@ -75,10 +75,20 @@ export const CRMProvider: React.FC<CRMProviderProps> = ({ children }) => {
       ]);
     } catch (error) {
       console.error('Error fetching CRM data:', error);
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      
+      // Check if error is related to missing tables
+      if (error && typeof error === 'object' && 'code' in error) {
+        if (error.code === 'PGRST205' || error.code === 'PGRST116') {
+          setError('Tabelas do CRM não encontradas. Execute a migração CRM no Supabase SQL Editor para criar as tabelas necessárias (units, contacts, leads, activities, wa_messages).');
+        } else if (error.code === '42P01') {
+          setError('Tabelas do CRM não existem. Por favor, execute a migração CRM no banco de dados.');
+        } else {
+          setError(`Erro no banco de dados: ${error.message || 'Erro desconhecido'}`);
+        }
+      } else if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
         setError('Erro de conexão: Verifique sua conexão com a internet e se o Supabase está configurado corretamente');
       } else {
-        setError('Erro ao carregar dados do CRM');
+        setError('Erro ao carregar dados do CRM. Verifique se as tabelas CRM foram criadas no banco.');
       }
     } finally {
       setLoading(false);
@@ -96,7 +106,16 @@ export const CRMProvider: React.FC<CRMProviderProps> = ({ children }) => {
       setUnits(data || []);
     } catch (error) {
       console.error('Error fetching units:', error);
+      // Set empty array and let parent handle the error
       setUnits([]);
+      
+      // Only throw if it's not a "table doesn't exist" error
+      if (error && typeof error === 'object' && 'code' in error) {
+        if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.code === '42P01') {
+          console.log('Units table does not exist - this is expected if CRM migration has not been run');
+          return; // Don't throw, just return empty array
+        }
+      }
       throw error;
     }
   };
@@ -116,6 +135,14 @@ export const CRMProvider: React.FC<CRMProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error fetching contacts:', error);
       setContacts([]);
+      
+      // Only throw if it's not a "table doesn't exist" error
+      if (error && typeof error === 'object' && 'code' in error) {
+        if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.code === '42P01') {
+          console.log('Contacts table does not exist - this is expected if CRM migration has not been run');
+          return;
+        }
+      }
       throw error;
     }
   };
@@ -136,6 +163,14 @@ export const CRMProvider: React.FC<CRMProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error fetching leads:', error);
       setLeads([]);
+      
+      // Only throw if it's not a "table doesn't exist" error
+      if (error && typeof error === 'object' && 'code' in error) {
+        if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.code === '42P01') {
+          console.log('Leads table does not exist - this is expected if CRM migration has not been run');
+          return;
+        }
+      }
       throw error;
     }
   };
@@ -177,6 +212,14 @@ export const CRMProvider: React.FC<CRMProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error fetching activities:', error);
       setActivities([]);
+      
+      // Only throw if it's not a "table doesn't exist" error
+      if (error && typeof error === 'object' && 'code' in error) {
+        if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.code === '42P01') {
+          console.log('Activities table does not exist - this is expected if CRM migration has not been run');
+          return;
+        }
+      }
       throw error;
     }
   };
