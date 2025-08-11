@@ -273,7 +273,7 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       setError(null);
       console.log('🔍 SIMPLE: Updating user:', id, 'with data:', userData);
       
-      const { error } = await adminSupabase
+      const { error } = await supabase
         .from('profiles')
         .update({
           email: userData.email,
