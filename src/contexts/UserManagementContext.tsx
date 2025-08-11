@@ -190,7 +190,6 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
               userId: existingProfile[0].id,
               enabledModules: fixedModules,
             };
-            const updatedPermissions = { ...userPermissions, [existingProfile.id]: newPermissions };
             const updatedPermissions = { ...userPermissions, [existingProfile[0].id]: newPermissions };
             saveUserPermissions(updatedPermissions);
             
