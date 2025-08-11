@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { supabase, getCurrentUserId, createClient } from '../utils/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { supabase, getCurrentUserId } from '../utils/supabase';
 import { User } from '../types';
 import { UserPermissions, SYSTEM_MODULES, validateModuleSelection, autoFixModuleSelection } from '../types/modules';
 
