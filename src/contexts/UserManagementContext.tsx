@@ -314,14 +314,14 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       
       // Update profile in database
       const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: data.user.id,
-            email: userData.email,
-            name: userData.name,
-            position: userData.position,
-            unit: userData.unit,
-            type: userData.type,
+        .from('profiles')
+        .update({
+          email: userData.email,
+          name: userData.name,
+          position: userData.position,
+          unit: userData.unit,
+          type: userData.type,
+          role: userData.role,
         })
         .eq('id', id);
       
