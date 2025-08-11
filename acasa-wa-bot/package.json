@@ -9,7 +9,10 @@
   },
   "scripts": {
     "start": "node index.js",
-    "dev": "node index.js"
+    "dev": "node index.js",
+    "build": "echo 'No build step required for Node.js bot - files are ready to run'",
+    "install": "npm ci",
+    "test": "echo 'No tests specified' && exit 0"
   },
   "keywords": ["whatsapp", "bot", "crm", "acasa"],
   "author": "ACASA Residencial Sênior",
