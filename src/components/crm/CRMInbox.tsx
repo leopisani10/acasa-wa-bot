@@ -76,7 +76,7 @@ export const CRMInbox: React.FC = () => {
     if (!config.baseUrl || !config.token) return;
 
     try {
-      console.log('Checking bot status...', config.baseUrl);
+      console.log('Checking bot status at:', config.baseUrl);
       const status = await getStatus(config.baseUrl, config.token);
       console.log('Bot status response:', status);
       setBotStatus(status);
@@ -98,18 +98,31 @@ export const CRMInbox: React.FC = () => {
       }
     } catch (error) {
       console.error('Error checking bot status:', error);
-      setBotStatus({ ready: false, isConnecting: false, error: error.message });
+      // Set specific error status based on error type
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        setBotStatus({ 
+          ready: false, 
+          isConnecting: false, 
+          error: '🔗 Bot não encontrado. Verifique configuração.' 
+        });
+      } else {
+        setBotStatus({ 
+          ready: false, 
+          isConnecting: false, 
+          error: error.message 
+        });
+      }
     }
   };
 
   const fetchQrCode = async () => {
     if (!config.baseUrl || !config.token || botStatus?.ready) return;
 
-    console.log('Fetching QR code...', config.baseUrl);
     setQrLoading(true);
     setQrError(null);
     
     try {
+      console.log('Fetching QR code from:', config.baseUrl);
       const response = await getQr(config.baseUrl, config.token);
       console.log('QR response:', response);
       
@@ -129,7 +142,14 @@ export const CRMInbox: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching QR:', error);
-      setQrError(`Erro: ${error.message || 'Falha na conexão'}`);
+      // More specific error messages based on error type
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        setQrError(`🔗 Não foi possível conectar ao bot. Verifique:\n• O bot está rodando?\n• URL correta: ${config.baseUrl}\n• Rede/firewall bloqueando?`);
+      } else if (error.name === 'AbortError') {
+        setQrError('⏱️ Timeout: Bot demorou para responder. Tente novamente.');
+      } else {
+        setQrError(`❌ ${error.message || 'Erro desconhecido na conexão'}`);
+      }
     } finally {
       setQrLoading(false);
     }
@@ -138,6 +158,14 @@ export const CRMInbox: React.FC = () => {
   const handleSaveConfig = () => {
     if (!configForm.baseUrl || !configForm.token) {
       alert('URL e Token são obrigatórios');
+      return;
+    }
+    
+    // Validate URL format
+    try {
+      new URL(configForm.baseUrl.startsWith('http') ? configForm.baseUrl : `https://${configForm.baseUrl}`);
+    } catch {
+      alert('URL inválida. Use formato: https://seu-bot.render.com');
       return;
     }
     
@@ -424,7 +452,16 @@ export const CRMInbox: React.FC = () => {
                 ) : qrError ? (
                   <div className="py-8">
                     <AlertTriangle className="mx-auto h-8 w-8 text-red-500 mb-4" />
-                    <p className="text-sm text-red-600 mb-4">{qrError}</p>
+                    <div className="text-sm text-red-600 mb-4 whitespace-pre-line max-w-xs mx-auto text-left">
+                      {qrError}
+                    </div>
+                    <div className="text-xs text-gray-600 mb-4 bg-gray-50 p-3 rounded border-l-4 border-blue-500">
+                      <strong>💡 Solução:</strong><br/>
+                      1. Verifique se o bot está rodando<br/>
+                      2. Confirme a URL (ex: https://seu-bot.onrender.com)<br/>
+                      3. Verifique o token de autenticação<br/>
+                      4. Teste a URL no navegador
+                    </div>
                     <button
                       onClick={fetchQrCode}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
