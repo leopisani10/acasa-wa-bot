@@ -64,7 +64,9 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
   const fetchUsers = async () => {
     try {
       setError(null);
-      console.log('🔍 DIRECT: Fetching users from profiles table...');
+      setLoading(true);
+      console.log('🔍 DEBUG: Starting fetchUsers...');
+      console.log('🔍 DEBUG: Supabase client:', supabase);
       
       // Get all profiles
       const { data, error } = await supabase
@@ -72,15 +74,24 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
         .select('*')
         .order('name');
       
-      console.log('🔍 DIRECT: Profiles query result:', { data, error });
+      console.log('🔍 DEBUG: Raw Supabase response:');
+      console.log('- Data:', data);
+      console.log('- Error:', error);
+      console.log('- Data length:', data?.length);
       
       if (error) {
-        console.error('❌ DIRECT: Database error:', error);
+        console.error('❌ DEBUG: Supabase error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw error;
       }
       
       const profiles = data || [];
-      console.log('🔍 DIRECT: Found', profiles.length, 'profiles');
+      console.log('🔍 DEBUG: Found profiles:', profiles.length);
+      console.log('🔍 DEBUG: First few profiles:', profiles.slice(0, 3));
       
       // Transform profiles directly to User objects
       const transformedUsers: User[] = profiles.map(profile => ({
@@ -93,14 +104,18 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
         type: profile.type,
       }));
       
-      console.log('✅ DIRECT: Transformed users from profiles:', transformedUsers.length);
-      console.log('✅ DIRECT: User data:', transformedUsers);
+      console.log('🔍 DEBUG: Transformed users:', transformedUsers.length);
+      console.log('🔍 DEBUG: Sample transformed user:', transformedUsers[0]);
+      console.log('🔍 DEBUG: All transformed users:', transformedUsers);
+      
       setUsers(transformedUsers);
+      console.log('✅ DEBUG: Users state updated successfully');
     } catch (error) {
-      console.error('❌ DIRECT: Error fetching users:', error);
-      setError('Erro ao carregar usuários. Verifique se as chaves do Supabase estão corretas.');
+      console.error('❌ DEBUG: Complete error details:', error);
+      setError(`Erro ao carregar usuários: ${error.message}`);
     } finally {
       setLoading(false);
+      console.log('🔍 DEBUG: fetchUsers completed, loading set to false');
     }
   };
 
