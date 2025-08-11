@@ -61,6 +61,78 @@ No SQL Editor do Supabase, execute a migração que cria as tabelas CRM:
 npm start
 ```
 
+## 🛍️ Módulo Comercial
+
+O bot agora inclui funcionalidades comerciais completas:
+
+### Funcionalidades Implementadas
+
+- **📋 Catálogo de Produtos**: Exibição automática de produtos e serviços
+- **🛒 Carrinho de Compras**: Sistema de carrinho via WhatsApp
+- **💳 Processamento de Pedidos**: Workflow completo de vendas
+- **💰 Integração de Pagamento**: PIX, Cartão e Boleto
+- **📦 Gestão de Estoque**: Controle básico de inventário
+- **📊 Logs de Atividade**: Rastreamento de interações comerciais
+
+### Comandos do Cliente
+
+```
+catálogo         - Ver produtos disponíveis
+produtos         - Alias para catálogo
+cardápio         - Ver opções de alimentação
+preços          - Consultar tabela de preços
+pedido [item] [qtd] - Adicionar ao carrinho
+carrinho         - Ver itens no carrinho
+finalizar        - Finalizar pedido
+pagar [método]   - Processar pagamento
+informações      - Info sobre serviços
+emergência       - Contatos de emergência
+```
+
+### Exemplos de Uso
+
+**Cliente:** `catálogo`
+**Bot:** _Exibe lista completa de produtos com preços e descrições_
+
+**Cliente:** `pedido fraldas 30`
+**Bot:** _Adiciona 30 fraldas ao carrinho_
+
+**Cliente:** `finalizar`
+**Bot:** _Mostra resumo do pedido e opções de pagamento_
+
+**Cliente:** `pagar pix`
+**Bot:** _Gera instruções de pagamento PIX com 5% desconto_
+
+### Configuração do Módulo
+
+1. **Execute a migração do banco:**
+```sql
+-- No SQL Editor do Supabase, execute:
+-- supabase/migrations/create_commerce_tables.sql
+```
+
+2. **Configure variáveis de pagamento** (opcional):
+```env
+# Para integração com gateway de pagamento
+STRIPE_SECRET_KEY=sk_test_...
+PAGSEGURO_TOKEN=...
+```
+
+3. **Teste o módulo:**
+```bash
+# Envie mensagem via API
+curl -X POST https://seu-bot.onrender.com/send \
+  -H "Authorization: Bearer seu_token" \
+  -H "Content-Type: application/json" \
+  -d '{"to":"5521999999999","message":"catálogo"}'
+```
+
+### Gestão via Dashboard
+
+**Produtos:** Adicione produtos na tabela `products` via Supabase Dashboard
+**Pedidos:** Monitore pedidos na tabela `orders`
+**Analytics:** Acompanhe atividades na tabela `commerce_logs`
+
 ## 📱 Primeira Configuração
 
 1. **Inicie o bot**: `npm start`

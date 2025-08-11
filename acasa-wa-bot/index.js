@@ -5,6 +5,7 @@ import qrcode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';
+import { CommerceModule } from './modules/commerce.js';
 
 // IMPORT CORRETO DO WWEBJS (CJS EM AMBIENTE ESM)
 import wwebjs from 'whatsapp-web.js';
@@ -97,6 +98,12 @@ const WA_WEB_REMOTE_PATH = process.env.WA_WEB_REMOTE_PATH || 'https://raw.github
 const HUB_URL = process.env.HUB_URL || 'http://localhost:5173';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE;
+
+// Initialize Commerce Module
+let commerceModule = null;
+if (SUPABASE_URL && SUPABASE_SERVICE_ROLE) {
+  commerceModule = new CommerceModule(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
+}
 
 // Initialize Supabase with service role for admin access
 const supabase = SUPABASE_URL && SUPABASE_SERVICE_ROLE ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE) : null;
@@ -278,6 +285,11 @@ if (HUB_TOKEN) {
     lastQrDataUrl = null;
     lastQrAt = 0;
     console.log('✅ WhatsApp READY');
+    
+    // Initialize commerce module when WhatsApp is ready
+    if (commerceModule) {
+      commerceModule.initialize().catch(console.error);
+    }
   });
 
   client.on('disconnected', (reason) => {
@@ -298,6 +310,55 @@ if (HUB_TOKEN) {
     console.log('🔄 WhatsApp state changed:', state);
   });
 
+  // Handle incoming messages
+  client.on('message', async (message) => {
+    try {
+      // Skip messages from self and groups
+      if (message.fromMe || message.from.includes('@g.us')) return;
+      
+      const from = message.from.replace('@c.us', '');
+      const messageBody = message.body || '';
+      
+      console.log(`📨 Message from ${from}: ${messageBody}`);
+      
+      // Try commerce module first
+      if (commerceModule) {
+        const handled = await commerceModule.handleMessage(messageBody, from, client);
+        if (handled) {
+          console.log('🛍️ Commerce module handled the message');
+          return;
+        }
+      }
+      
+      // Auto-reply for unhandled messages
+      const autoReply = `
+🤖 *ACASA Residencial Sênior - Atendimento Automático*
+
+Olá! Recebi sua mensagem: "${messageBody}"
+
+*🛍️ Para compras e serviços:*
+Digite *catálogo* ou *produtos*
+
+*🏠 Para informações sobre residência:*
+Digite *informações* ou *serviços*
+
+*📞 Atendimento humano:*
+(21) 2543-2880 - Botafogo
+(21) 2234-5670 - Tijuca
+
+*🕐 Horário de atendimento:*
+Segunda a Sexta: 8h às 18h
+
+Como posso ajudá-lo?
+      `.trim();
+
+      await client.sendMessage(message.from, autoReply);
+      
+    } catch (error) {
+      console.error('❌ Error handling message:', error);
+    }
+  });
+
   client.on('loading_screen', (percent, message) => {
     console.log('📱 WhatsApp loading:', percent + '%', message);
   });
@@ -305,6 +366,83 @@ if (HUB_TOKEN) {
   client.initialize();
 } else {
   console.warn('⚠️  HUB_TOKEN not configured - WhatsApp client not initialized');
+}
+
+// Commerce API endpoints
+app.get('/commerce/products', auth, async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ error: 'Database not configured' });
+    }
+
+    const { data: products, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('active', true)
+      .order('category');
+
+    if (error) throw error;
+
+    res.json({ products: products || [] });
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
+app.get('/commerce/orders', auth, async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ error: 'Database not configured' });
+    }
+
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+
+    res.json({ orders: orders || [] });
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
+app.post('/commerce/order/:orderId/status', auth, async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ error: 'Database not configured' });
+    }
+
+    const { orderId } = req.params;
+    const { status, notes } = req.body;
+
+    const { error } = await supabase
+      .from('orders')
+      .update({ 
+        status, 
+        notes: notes || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId);
+
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    res.status(500).json({ error: 'Failed to update order' });
+  }
+});
+
+// Cleanup carts every hour
+if (commerceModule) {
+  setInterval(() => {
+    commerceModule.cleanupOldCarts();
+  }, 60 * 60 * 1000); // 1 hour
 }
 
 // Start server
