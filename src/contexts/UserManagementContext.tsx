@@ -64,8 +64,18 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
   const fetchUsers = async () => {
     try {
       setError(null);
-      console.log('🔍 SIMPLE: Fetching users from profiles table...');
+      console.log('🔍 SIMPLE: Fetching users from profiles + auth.users...');
       
+      // Get all users from Supabase Auth
+      const { data: { users: authUsers }, error: authError } = await adminSupabase.auth.admin.listUsers();
+      if (authError) {
+        console.error('❌ SIMPLE: Auth users error:', authError);
+        throw authError;
+      }
+      
+      console.log('🔍 SIMPLE: Found', authUsers.length, 'auth users');
+      
+      // Get all profiles
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -78,27 +88,43 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
         throw error;
       }
       
-      if (!data || data.length === 0) {
-        console.log('⚠️ SIMPLE: No profiles found');
-        setUsers([]);
-        return;
-      }
+      const profiles = data || [];
+      console.log('🔍 SIMPLE: Found', profiles.length, 'profiles');
       
-      const transformedUsers: User[] = data.map(profile => ({
-        id: profile.id,
-        email: profile.email,
-        name: profile.name,
-        role: profile.role,
-        position: profile.position,
-        unit: profile.unit,
-        type: profile.type,
-      }));
+      // Merge auth users with profiles
+      const transformedUsers: User[] = authUsers.map(authUser => {
+        const profile = profiles.find(p => p.id === authUser.id);
+        
+        if (profile) {
+          // User has both auth and profile
+          return {
+            id: profile.id,
+            email: profile.email,
+            name: profile.name,
+            role: profile.role,
+            position: profile.position,
+            unit: profile.unit,
+            type: profile.type,
+          };
+        } else {
+          // Orphaned auth user (no profile)
+          return {
+            id: authUser.id,
+            email: authUser.email || 'Email não disponível',
+            name: authUser.user_metadata?.name || authUser.email || 'Nome não disponível',
+            role: authUser.user_metadata?.role || 'staff',
+            position: authUser.user_metadata?.position || 'Posição não definida',
+            unit: authUser.user_metadata?.unit || 'Botafogo',
+            type: authUser.user_metadata?.type || 'matriz',
+          };
+        }
+      });
       
-      console.log('✅ SIMPLE: Transformed users:', transformedUsers.length);
+      console.log('✅ SIMPLE: Transformed users from auth+profiles:', transformedUsers.length);
       setUsers(transformedUsers);
     } catch (error) {
       console.error('❌ SIMPLE: Error fetching users:', error);
-      setError('Erro ao carregar usuários');
+      setError('Erro ao carregar usuários. Verifique se as chaves do Supabase estão corretas.');
     } finally {
       setLoading(false);
     }
