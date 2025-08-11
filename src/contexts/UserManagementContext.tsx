@@ -374,11 +374,7 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       await fetchUsers();
       return { success: true, message: 'Usuário excluído com sucesso!' };
     } catch (error) {
-      console.error('
-      )
-    }
-  }
-}Error deleting user:', error);
+      console.error('Error deleting user:', error);
       let message = 'Erro ao excluir usuário';
       
       if (error && typeof error === 'object' && 'message' in error) {
