@@ -66,6 +66,7 @@ export const CRMProvider: React.FC<CRMProviderProps> = ({ children }) => {
   const fetchAllData = async () => {
     try {
       setError(null);
+      setLoading(true);
       await Promise.all([
         fetchUnits(),
         fetchContacts(),
@@ -74,77 +75,110 @@ export const CRMProvider: React.FC<CRMProviderProps> = ({ children }) => {
       ]);
     } catch (error) {
       console.error('Error fetching CRM data:', error);
-      setError('Erro ao carregar dados do CRM');
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        setError('Erro de conexão: Verifique sua conexão com a internet e se o Supabase está configurado corretamente');
+      } else {
+        setError('Erro ao carregar dados do CRM');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const fetchUnits = async () => {
-    const { data, error } = await supabase
-      .from('units')
-      .select('*')
-      .order('name');
-    
-    if (error) throw error;
-    setUnits(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('units')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      setUnits(data || []);
+    } catch (error) {
+      console.error('Error fetching units:', error);
+      setUnits([]);
+      throw error;
+    }
   };
 
   const fetchContacts = async () => {
-    const { data, error } = await supabase
-      .from('contacts')
-      .select(`
-        *,
-        unit:units(*)
-      `)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    setContacts(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select(`
+          *,
+          unit:units(*)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setContacts(data || []);
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
+      setContacts([]);
+      throw error;
+    }
   };
 
   const fetchLeads = async () => {
-    const { data, error } = await supabase
-      .from('leads')
-      .select(`
-        *,
-        contact:contacts(*),
-        owner:profiles!leads_owner_id_fkey(id, name)
-      `)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    setLeads(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select(`
+          *,
+          contact:contacts(*),
+          owner:profiles!leads_owner_id_fkey(id, name)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setLeads(data || []);
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+      setLeads([]);
+      throw error;
+    }
   };
 
   const fetchActivities = async () => {
-    const { data, error } = await supabase
-      .from('activities')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    
-    // Fetch creator information separately since foreign key might not exist
-    const activitiesWithCreator = await Promise.all(
-      (data || []).map(async (activity) => {
-        if (activity.created_by) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id, name')
-            .eq('id', activity.created_by)
-            .single();
-          
-          return {
-            ...activity,
-            creator: profile
-          };
-        }
-        return activity;
-      })
-    );
-    
-    setActivities(activitiesWithCreator);
+    try {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Fetch creator information separately since foreign key might not exist
+      const activitiesWithCreator = await Promise.all(
+        (data || []).map(async (activity) => {
+          if (activity.created_by) {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('id, name')
+                .eq('id', activity.created_by)
+                .single();
+              
+              return {
+                ...activity,
+                creator: profile
+              };
+            } catch (error) {
+              console.warn('Could not fetch creator profile for activity:', activity.id);
+              return activity;
+            }
+          }
+          return activity;
+        })
+      );
+      
+      setActivities(activitiesWithCreator);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      setActivities([]);
+      throw error;
+    }
   };
 
   const addLead = async (
