@@ -29,7 +29,7 @@ interface GuestProviderProps {
 export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);</thinking>
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchGuests();
