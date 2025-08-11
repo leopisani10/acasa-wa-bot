@@ -180,67 +180,196 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
   const addUser = async (userData: CreateUserData): Promise<{ success: boolean; message?: string }> => {
     try {
       setError(null);
+      console.log('🔍 DEBUG: Starting addUser process...');
+      console.log('🔍 DEBUG: User data received:', userData);
       
       // Validate module dependencies
       const validationResult = validateModuleSelection(userData.enabledModules);
       if (!validationResult.isValid) {
+        console.log('❌ DEBUG: Module validation failed:', validationResult.warnings);
         return {
           success: false,
           message: `Dependências não atendidas: ${validationResult.warnings.join(', ')}`
         };
       }
 
-      console.log('Creating user with data:', userData);
+      console.log('✅ DEBUG: Module validation passed');
+      console.log('🔍 DEBUG: Getting current session...');
 
-      // Use admin edge function to handle user creation with upsert logic
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
+        console.log('❌ DEBUG: No session found');
         return { success: false, message: 'Usuário não autenticado' };
       }
 
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
+      console.log('✅ DEBUG: Session found, user:', session.user.email);
+      console.log('🔍 DEBUG: Attempting direct Supabase auth creation...');
+
+      // Try direct approach instead of edge function
+      let authResult;
+      try {
+        authResult = await supabase.auth.signUp({
+          email: userData.email,
+          password: userData.password,
+          options: {
+            data: {
+              name: userData.name,
+              position: userData.position,
+              unit: userData.unit,
+              type: userData.type,
+              role: userData.role,
+            }
+          }
+        });
+        
+        console.log('🔍 DEBUG: Auth signup result:', authResult);
+      } catch (authError) {
+        console.error('❌ DEBUG: Auth signup error:', authError);
+        
+        // If user already exists, try to find them
+        if (authError.message?.includes('User already registered')) {
+          console.log('🔍 DEBUG: User already exists, attempting to find existing user...');
+          
+          // Get the existing user using admin client
+          try {
+            const { data: existingUser, error: getUserError } = await supabase.auth.admin.getUserByEmail(userData.email);
+            
+            if (getUserError) {
+              console.error('❌ DEBUG: Error getting existing user:', getUserError);
+              throw getUserError;
+            }
+            
+            console.log('✅ DEBUG: Found existing user:', existingUser);
+            authResult = { data: { user: existingUser }, error: null };
+          } catch (adminError) {
+            console.error('❌ DEBUG: Admin getUserByEmail failed:', adminError);
+            return { success: false, message: 'Este email já está cadastrado e não foi possível acessar os dados' };
+          }
+        } else {
+          throw authError;
+        }
+      }
+      
+      if (authResult.error) {
+        console.error('❌ DEBUG: Auth result has error:', authResult.error);
+        throw authResult.error;
+      }
+      
+      if (!authResult.data?.user) {
+        console.error('❌ DEBUG: No user in auth result');
+        return { success: false, message: 'Falha na criação do usuário' };
+      }
+      
+      const userId = authResult.data.user.id;
+      console.log('✅ DEBUG: Auth user ID:', userId);
+      console.log('🔍 DEBUG: Checking if profile exists...');
+      
+      // Check if profile already exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
+      
+      console.log('🔍 DEBUG: Profile check result:', { existingProfile, checkError });
+      
+      const profileData = {
+        id: userId,
+        email: userData.email,
+        name: userData.name,
+        position: userData.position,
+        unit: userData.unit,
+        type: userData.type,
+        role: userData.role,
+      };
+      
+      let profileResult;
+      let isUpdate = false;
+      
+      if (checkError && checkError.code === 'PGRST116') {
+        // Profile doesn't exist, create it
+        console.log('🔍 DEBUG: Creating new profile...');
+        profileResult = await supabase
+          .from('profiles')
+          .insert(profileData)
+          .select()
+          .single();
+      } else if (existingProfile) {
+        // Profile exists, update it
+        console.log('🔍 DEBUG: Updating existing profile...');
+        profileResult = await supabase
+          .from('profiles')
+          .update({
+            email: userData.email,
+            name: userData.name,
+            position: userData.position,
+            unit: userData.unit,
+            type: userData.type,
+            role: userData.role,
+          })
+          .eq('id', userId)
+          .select()
+          .single();
+        isUpdate = true;
+      } else {
+        console.error('❌ DEBUG: Unexpected profile check result:', checkError);
+        throw checkError;
+      }
+      
+      console.log('🔍 DEBUG: Profile operation result:', profileResult);
+      
+      if (profileResult.error) {
+        console.error('❌ DEBUG: Profile operation failed:', profileResult.error);
+        throw profileResult.error;
+      }
+      
+      console.log('✅ DEBUG: Profile saved successfully');
+      
+      // Save user permissions
+      const fixedModules = autoFixModuleSelection(userData.enabledModules);
+      const newPermissions: UserPermissions = {
+        userId: userId,
+        enabledModules: fixedModules,
+      };
+
+      const updatedPermissions = {
+        ...userPermissions,
+        [userId]: newPermissions,
+      };
+      saveUserPermissions(updatedPermissions);
+      
+      console.log('✅ DEBUG: Permissions saved');
+      console.log('🔍 DEBUG: Refreshing user list...');
+
+      await fetchUsers();
+      
+      console.log('✅ DEBUG: User creation process completed successfully');
+      return { 
+        success: true, 
+        message: isUpdate ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!' 
+      };
+      
+    } catch (error) {
+      console.error('❌ DEBUG: Error in addUser process:', error);
+      console.error('❌ DEBUG: Error details:', {
+        name: error?.name,
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint
       });
 
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Erro ao criar usuário');
-      }
-      
-      console.log('User creation result:', result);
-      
-      if (result.user) {
-        // Save user permissions
-        const fixedModules = autoFixModuleSelection(userData.enabledModules);
-        const newPermissions: UserPermissions = {
-          userId: result.user.id,
-          enabledModules: fixedModules,
-        };
-
-        const updatedPermissions = {
-          ...userPermissions,
-          [result.user.id]: newPermissions,
-        };
-        saveUserPermissions(updatedPermissions);
-
-        await fetchUsers();
-        return { success: true, message: result.message || 'Usuário processado com sucesso!' };
-      }
-
-      return { success: false, message: 'Falha ao processar usuário' };
-    } catch (error) {
-      console.error('Error creating user:', error);
       let message = 'Erro ao criar usuário';
       
       if (error && typeof error === 'object' && 'message' in error) {
-        if (error.message.includes('weak password')) {
+        if (error.message?.includes('User already registered')) {
+          message = 'Este email já está cadastrado no sistema';
+        } else if (error.message?.includes('weak password')) {
           message = 'Senha muito fraca. Use pelo menos 6 caracteres';
+        } else if (error.message?.includes('Invalid email')) {
+          message = 'Email inválido. Verifique o formato do email';
+        } else if (error.message?.includes('duplicate key value violates unique constraint')) {
+          message = 'Dados duplicados encontrados. Este usuário pode já existir';
         } else {
           message = `Erro: ${error.message}`;
         }
