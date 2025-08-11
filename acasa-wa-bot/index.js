@@ -94,6 +94,7 @@ app.use(cors({
 
 const PORT = process.env.PORT || 8080;
 const WA_WEB_REMOTE_PATH = process.env.WA_WEB_REMOTE_PATH || 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html';
+const HUB_URL = process.env.HUB_URL || 'http://localhost:5173';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE;
 
@@ -109,6 +110,47 @@ try {
 }
 
 let client = null;
+
+// Funções utilitárias para comunicação com o Hub
+async function sendQRToHub(qrDataUrl) {
+  if (!HUB_URL || !HUB_TOKEN) {
+    console.warn('HUB_URL ou HUB_TOKEN não configurados para enviar QR para o Hub.');
+    return;
+  }
+  try {
+    await fetch(`${HUB_URL}/api/qr-update`, {
+      method: 'POST',
+      headers: { 
+        'Authorization': `Bearer ${HUB_TOKEN}`, 
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify({ dataUrl: qrDataUrl })
+    });
+    console.log('📤 QR code enviado para o Hub com sucesso.');
+  } catch (error) {
+    console.error('❌ Erro ao enviar QR para o Hub:', error);
+  }
+}
+
+async function updateHubStatus(status) {
+  if (!HUB_URL || !HUB_TOKEN) {
+    console.warn('HUB_URL ou HUB_TOKEN não configurados para atualizar status do Hub.');
+    return;
+  }
+  try {
+    await fetch(`${HUB_URL}/api/bot-status`, {
+      method: 'POST',
+      headers: { 
+        'Authorization': `Bearer ${HUB_TOKEN}`, 
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify({ whatsapp: status })
+    });
+    console.log(`📤 Status do bot (${status}) enviado para o Hub com sucesso.`);
+  } catch (error) {
+    console.error('❌ Erro ao atualizar status do Hub:', error);
+  }
+}
 
 // Rotas HTTP
 app.get('/health', (req, res) => {
