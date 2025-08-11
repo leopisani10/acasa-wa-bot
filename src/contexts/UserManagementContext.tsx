@@ -106,7 +106,7 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       }
 
       // Call edge function to get auth users
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users?action=list-auth-users`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users?action=list-orphaned`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -202,139 +202,52 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
         return { success: false, message: 'Usuário não autenticado' };
       }
 
-      console.log('✅ DEBUG: Session found, user:', session.user.email);
-      console.log('🔍 DEBUG: Attempting direct Supabase auth creation...');
+      console.log('✅ DEBUG: Session found, calling edge function...');
 
-      // Try direct approach instead of edge function
-      let authResult;
-      try {
-        authResult = await supabase.auth.signUp({
-          email: userData.email,
-          password: userData.password,
-          options: {
-            data: {
-              name: userData.name,
-              position: userData.position,
-              unit: userData.unit,
-              type: userData.type,
-              role: userData.role,
-            }
-          }
-        });
-        
-        console.log('🔍 DEBUG: Auth signup result:', authResult);
-      } catch (authError) {
-        console.error('❌ DEBUG: Auth signup error:', authError);
-        
-        // If user already exists, try to find them
-        if (authError.message?.includes('User already registered')) {
-          console.log('🔍 DEBUG: User already exists, attempting to find existing user...');
-          
-          // Get the existing user using admin client
-          try {
-            const { data: existingUser, error: getUserError } = await supabase.auth.admin.getUserByEmail(userData.email);
-            
-            if (getUserError) {
-              console.error('❌ DEBUG: Error getting existing user:', getUserError);
-              throw getUserError;
-            }
-            
-            console.log('✅ DEBUG: Found existing user:', existingUser);
-            authResult = { data: { user: existingUser }, error: null };
-          } catch (adminError) {
-            console.error('❌ DEBUG: Admin getUserByEmail failed:', adminError);
-            return { success: false, message: 'Este email já está cadastrado e não foi possível acessar os dados' };
-          }
-        } else {
-          throw authError;
-        }
-      }
-      
-      if (authResult.error) {
-        console.error('❌ DEBUG: Auth result has error:', authResult.error);
-        throw authResult.error;
-      }
-      
-      if (!authResult.data?.user) {
-        console.error('❌ DEBUG: No user in auth result');
-        return { success: false, message: 'Falha na criação do usuário' };
-      }
-      
-      const userId = authResult.data.user.id;
-      console.log('✅ DEBUG: Auth user ID:', userId);
-      console.log('🔍 DEBUG: Checking if profile exists...');
-      
-      // Check if profile already exists
-      const { data: existingProfile, error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', userId)
-        .single();
-      
-      console.log('🔍 DEBUG: Profile check result:', { existingProfile, checkError });
-      
-      const profileData = {
-        id: userId,
-        email: userData.email,
-        name: userData.name,
-        position: userData.position,
-        unit: userData.unit,
-        type: userData.type,
-        role: userData.role,
-      };
-      
-      let profileResult;
-      let isUpdate = false;
-      
-      if (checkError && checkError.code === 'PGRST116') {
-        // Profile doesn't exist, create it
-        console.log('🔍 DEBUG: Creating new profile...');
-        profileResult = await supabase
-          .from('profiles')
-          .insert(profileData)
-          .select()
-          .single();
-      } else if (existingProfile) {
-        // Profile exists, update it
-        console.log('🔍 DEBUG: Updating existing profile...');
-        profileResult = await supabase
-          .from('profiles')
-          .update({
+      // Call edge function to handle user creation/update
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'create-or-update',
+          userData: {
             email: userData.email,
+            password: userData.password,
             name: userData.name,
             position: userData.position,
             unit: userData.unit,
             type: userData.type,
             role: userData.role,
-          })
-          .eq('id', userId)
-          .select()
-          .single();
-        isUpdate = true;
-      } else {
-        console.error('❌ DEBUG: Unexpected profile check result:', checkError);
-        throw checkError;
+          }
+        }),
+      });
+
+      console.log('🔍 DEBUG: Edge function response status:', response.status);
+      
+      const result = await response.json();
+      console.log('🔍 DEBUG: Edge function result:', result);
+      
+      if (!response.ok) {
+        console.error('❌ DEBUG: Edge function failed:', result);
+        throw new Error(result.error || 'Erro ao processar usuário');
       }
       
-      console.log('🔍 DEBUG: Profile operation result:', profileResult);
-      
-      if (profileResult.error) {
-        console.error('❌ DEBUG: Profile operation failed:', profileResult.error);
-        throw profileResult.error;
-      }
-      
-      console.log('✅ DEBUG: Profile saved successfully');
+      const { user, isUpdate } = result;
+      console.log('✅ DEBUG: Edge function succeeded:', { user, isUpdate });
       
       // Save user permissions
       const fixedModules = autoFixModuleSelection(userData.enabledModules);
       const newPermissions: UserPermissions = {
-        userId: userId,
+        userId: user.id,
         enabledModules: fixedModules,
       };
 
       const updatedPermissions = {
         ...userPermissions,
-        [userId]: newPermissions,
+        [user.id]: newPermissions,
       };
       saveUserPermissions(updatedPermissions);
       
@@ -362,14 +275,10 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       let message = 'Erro ao criar usuário';
       
       if (error && typeof error === 'object' && 'message' in error) {
-        if (error.message?.includes('User already registered')) {
-          message = 'Este email já está cadastrado no sistema';
-        } else if (error.message?.includes('weak password')) {
+        if (error.message?.includes('weak password')) {
           message = 'Senha muito fraca. Use pelo menos 6 caracteres';
         } else if (error.message?.includes('Invalid email')) {
           message = 'Email inválido. Verifique o formato do email';
-        } else if (error.message?.includes('duplicate key value violates unique constraint')) {
-          message = 'Dados duplicados encontrados. Este usuário pode já existir';
         } else {
           message = `Erro: ${error.message}`;
         }
@@ -383,27 +292,38 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
     try {
       setError(null);
       
-      console.log('Updating user:', id, 'with data:', userData);
+      console.log('🔍 DEBUG: Updating user:', id, 'with data:', userData);
       
-      // Update profile in database
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        return { success: false, message: 'Usuário não autenticado' };
+      }
+
+      // Call edge function to handle user update
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           email: userData.email,
           name: userData.name,
           position: userData.position,
           unit: userData.unit,
           type: userData.type,
           role: userData.role,
-        })
-        .eq('id', id);
+        }),
+      });
       
-      if (profileError) {
-        console.error('Profile update error:', profileError);
-        throw profileError;
+      const result = await response.json();
+      
+      if (!response.ok) {
+        console.error('❌ DEBUG: Edge function update failed:', result);
+        throw new Error(result.error || 'Erro ao atualizar usuário');
       }
       
-      console.log('User updated successfully');
+      console.log('✅ DEBUG: User updated successfully');
       await fetchUsers();
       return { success: true, message: 'Usuário atualizado com sucesso!' };
     } catch (error) {
@@ -428,14 +348,27 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
     try {
       setError(null);
       
-      console.log('Deleting user:', id);
+      console.log('🔍 DEBUG: Deleting user:', id);
       
-      // Delete from auth (cascade will delete profile)
-      const { error } = await supabase.auth.admin.deleteUser(id);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        return { success: false, message: 'Usuário não autenticado' };
+      }
+
+      // Call edge function to handle user deletion
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
       
-      if (error) {
-        console.error('Delete user error:', error);
-        throw error;
+      const result = await response.json();
+      
+      if (!response.ok) {
+        console.error('❌ DEBUG: Edge function delete failed:', result);
+        throw new Error(result.error || 'Erro ao excluir usuário');
       }
       
       // Remove permissions
@@ -443,7 +376,7 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       delete updatedPermissions[id];
       saveUserPermissions(updatedPermissions);
       
-      console.log('User deleted successfully');
+      console.log('✅ DEBUG: User deleted successfully');
       await fetchUsers();
       return { success: true, message: 'Usuário excluído com sucesso!' };
     } catch (error) {
