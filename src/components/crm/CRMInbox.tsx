@@ -310,7 +310,7 @@ export const CRMInbox: React.FC = () => {
                   value={configForm.baseUrl}
                   onChange={(e) => setConfigForm(prev => ({ ...prev, baseUrl: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="https://seu-bot.onrender.com"
+                  placeholder="http://localhost:8080"
                 />
               </div>
               
@@ -330,9 +330,10 @@ export const CRMInbox: React.FC = () => {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h4 className="font-medium text-blue-900 mb-2">ℹ️ Como configurar:</h4>
                 <ul className="text-sm text-blue-800 space-y-1">
-                  <li>1. Acesse seu bot no Render</li>
-                  <li>2. Copie a URL (ex: https://acasa-wa-bot.onrender.com)</li>
+                  <li>1. Para desenvolvimento local: http://localhost:8080</li>
+                  <li>2. Para produção: https://acasa-wa-bot.onrender.com</li>
                   <li>3. Use o mesmo HUB_TOKEN das variáveis de ambiente</li>
+                  <li>4. URLs locais devem usar http:// (não https://)</li>
                 </ul>
               </div>
             </div>
