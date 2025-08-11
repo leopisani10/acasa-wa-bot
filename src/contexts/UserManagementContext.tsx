@@ -57,20 +57,23 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
   const fetchUsers = async () => {
     try {
       setError(null);
-      console.log('Fetching users from profiles table...');
+      console.log('🔍 SIMPLE: Fetching users from profiles table...');
       
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .order('name');
       
-      console.log('Profiles query result:', { data, error });
+      console.log('🔍 SIMPLE: Profiles query result:', { data, error });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ SIMPLE: Database error:', error);
+        throw error;
+      }
       
       if (!data || data.length === 0) {
-        console.log('No profiles found, checking for orphaned auth users...');
-        await checkForOrphanedUsers();
+        console.log('⚠️ SIMPLE: No profiles found');
+        setUsers([]);
         return;
       }
       
@@ -84,83 +87,13 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
         type: profile.type,
       }));
       
-      console.log('Transformed users:', transformedUsers);
+      console.log('✅ SIMPLE: Transformed users:', transformedUsers.length);
       setUsers(transformedUsers);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('❌ SIMPLE: Error fetching users:', error);
       setError('Erro ao carregar usuários');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const checkForOrphanedUsers = async () => {
-    try {
-      console.log('Checking for orphaned auth users...');
-      
-      // Get current session for admin access
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('No session found for orphaned user check');
-        return;
-      }
-
-      // Call edge function to get auth users
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users?action=list-orphaned`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Auth users found:', result);
-        
-        if (result.authUsers && result.authUsers.length > 0) {
-          setError(`Encontrados ${result.authUsers.length} usuários órfãos na autenticação. Use a função "Sincronizar Usuários" para corrigi-los.`);
-        }
-      }
-    } catch (error) {
-      console.error('Error checking orphaned users:', error);
-    }
-  };
-
-  const syncOrphanedUsers = async (): Promise<{ success: boolean; message?: string }> => {
-    try {
-      setError(null);
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        return { success: false, message: 'Usuário não autenticado' };
-      }
-
-      console.log('Syncing orphaned users...');
-      
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'sync-orphaned'
-        }),
-      });
-
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Erro ao sincronizar usuários');
-      }
-      
-      console.log('Sync result:', result);
-      await fetchUsers();
-      return { success: true, message: `${result.syncedCount || 0} usuários sincronizados com sucesso` };
-    } catch (error) {
-      console.error('Error syncing orphaned users:', error);
-      return { success: false, message: 'Erro ao sincronizar usuários órfãos' };
     }
   };
 
@@ -183,98 +116,135 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
   const addUser = async (userData: CreateUserData): Promise<{ success: boolean; message?: string }> => {
     try {
       setError(null);
-      console.log('🔍 DEBUG: Starting addUser process...');
-      console.log('🔍 DEBUG: User data received:', userData);
+      console.log('🔍 SIMPLE: Starting user creation process...');
+      console.log('🔍 SIMPLE: User data:', userData);
       
       // Validate module dependencies
       const validationResult = validateModuleSelection(userData.enabledModules);
       if (!validationResult.isValid) {
-        console.log('❌ DEBUG: Module validation failed:', validationResult.warnings);
+        console.log('❌ SIMPLE: Module validation failed:', validationResult.warnings);
         return {
           success: false,
           message: `Dependências não atendidas: ${validationResult.warnings.join(', ')}`
         };
       }
 
-      console.log('✅ DEBUG: Module validation passed');
-      console.log('🔍 DEBUG: Getting current session...');
+      console.log('✅ SIMPLE: Module validation passed');
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('❌ DEBUG: No session found');
-        return { success: false, message: 'Usuário não autenticado' };
-      }
-
-      console.log('✅ DEBUG: Session found, calling edge function...');
-
-      // Call edge function to handle user creation/update
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'create-or-update',
-          userData: {
-            email: userData.email,
-            password: userData.password,
+      // Step 1: Create user in Supabase Auth
+      console.log('🔍 SIMPLE: Creating auth user...');
+      const { data: authResult, error: authError } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          data: {
             name: userData.name,
             position: userData.position,
             unit: userData.unit,
             type: userData.type,
             role: userData.role,
           }
-        }),
+        }
       });
 
-      console.log('🔍 DEBUG: Edge function response status:', response.status);
-      
-      const result = await response.json();
-      console.log('🔍 DEBUG: Edge function result:', result);
-      
-      if (!response.ok) {
-        console.error('❌ DEBUG: Edge function failed:', result);
-        throw new Error(result.error || 'Erro ao processar usuário');
+      if (authError) {
+        console.error('❌ SIMPLE: Auth error:', authError);
+        
+        if (authError.message?.includes('User already registered')) {
+          // User exists, try to find in profiles
+          console.log('🔍 SIMPLE: User exists, checking profiles...');
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', userData.email)
+            .single();
+          
+          if (existingProfile) {
+            console.log('✅ SIMPLE: Found existing profile, updating...');
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({
+                name: userData.name,
+                position: userData.position,
+                unit: userData.unit,
+                type: userData.type,
+                role: userData.role,
+              })
+              .eq('id', existingProfile.id);
+            
+            if (updateError) throw updateError;
+            
+            // Save permissions
+            const fixedModules = autoFixModuleSelection(userData.enabledModules);
+            const newPermissions: UserPermissions = {
+              userId: existingProfile.id,
+              enabledModules: fixedModules,
+            };
+            const updatedPermissions = { ...userPermissions, [existingProfile.id]: newPermissions };
+            saveUserPermissions(updatedPermissions);
+            
+            await fetchUsers();
+            return { success: true, message: 'Usuário atualizado com sucesso!' };
+          } else {
+            return { success: false, message: 'Este email já está cadastrado mas não foi possível encontrar o perfil' };
+          }
+        } else {
+          throw authError;
+        }
       }
-      
-      const { user, isUpdate } = result;
-      console.log('✅ DEBUG: Edge function succeeded:', { user, isUpdate });
-      
-      // Save user permissions
+
+      if (!authResult.user) {
+        console.error('❌ SIMPLE: No user returned from auth');
+        return { success: false, message: 'Erro ao criar usuário na autenticação' };
+      }
+
+      console.log('✅ SIMPLE: Auth user created:', authResult.user.id);
+
+      // Step 2: Create profile
+      console.log('🔍 SIMPLE: Creating profile...');
+      const { data: profileResult, error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authResult.user.id,
+          email: userData.email,
+          name: userData.name,
+          position: userData.position,
+          unit: userData.unit,
+          type: userData.type,
+          role: userData.role,
+        })
+        .select()
+        .single();
+
+      if (profileError) {
+        console.error('❌ SIMPLE: Profile error:', profileError);
+        throw profileError;
+      }
+
+      console.log('✅ SIMPLE: Profile created:', profileResult);
+
+      // Step 3: Save permissions
+      console.log('🔍 SIMPLE: Saving permissions...');
       const fixedModules = autoFixModuleSelection(userData.enabledModules);
       const newPermissions: UserPermissions = {
-        userId: user.id,
+        userId: authResult.user.id,
         enabledModules: fixedModules,
       };
-
-      const updatedPermissions = {
-        ...userPermissions,
-        [user.id]: newPermissions,
-      };
+      const updatedPermissions = { ...userPermissions, [authResult.user.id]: newPermissions };
       saveUserPermissions(updatedPermissions);
       
-      console.log('✅ DEBUG: Permissions saved');
-      console.log('🔍 DEBUG: Refreshing user list...');
+      console.log('✅ SIMPLE: Permissions saved');
 
+      // Step 4: Refresh user list
+      console.log('🔍 SIMPLE: Refreshing user list...');
       await fetchUsers();
       
-      console.log('✅ DEBUG: User creation process completed successfully');
-      return { 
-        success: true, 
-        message: isUpdate ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!' 
-      };
+      console.log('✅ SIMPLE: User creation completed successfully');
+      return { success: true, message: 'Usuário criado com sucesso!' };
       
     } catch (error) {
-      console.error('❌ DEBUG: Error in addUser process:', error);
-      console.error('❌ DEBUG: Error details:', {
-        name: error?.name,
-        message: error?.message,
-        code: error?.code,
-        details: error?.details,
-        hint: error?.hint
-      });
-
+      console.error('❌ SIMPLE: Error in addUser process:', error);
+      
       let message = 'Erro ao criar usuário';
       
       if (error && typeof error === 'object' && 'message' in error) {
@@ -282,6 +252,8 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
           message = 'Senha muito fraca. Use pelo menos 6 caracteres';
         } else if (error.message?.includes('Invalid email')) {
           message = 'Email inválido. Verifique o formato do email';
+        } else if (error.message?.includes('duplicate key') || error.message?.includes('unique constraint')) {
+          message = 'Este email já está sendo usado por outro usuário';
         } else {
           message = `Erro: ${error.message}`;
         }
@@ -294,50 +266,35 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
   const updateUser = async (id: string, userData: Partial<User>): Promise<{ success: boolean; message?: string }> => {
     try {
       setError(null);
+      console.log('🔍 SIMPLE: Updating user:', id, 'with data:', userData);
       
-      console.log('🔍 DEBUG: Updating user:', id, 'with data:', userData);
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        return { success: false, message: 'Usuário não autenticado' };
-      }
-
-      // Call edge function to handle user update
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { error } = await supabase
+        .from('profiles')
+        .update({
           email: userData.email,
           name: userData.name,
           position: userData.position,
           unit: userData.unit,
           type: userData.type,
           role: userData.role,
-        }),
-      });
+        })
+        .eq('id', id);
       
-      const result = await response.json();
-      
-      if (!response.ok) {
-        console.error('❌ DEBUG: Edge function update failed:', result);
-        throw new Error(result.error || 'Erro ao atualizar usuário');
+      if (error) {
+        console.error('❌ SIMPLE: Update error:', error);
+        throw error;
       }
       
-      console.log('✅ DEBUG: User updated successfully');
+      console.log('✅ SIMPLE: User updated successfully');
       await fetchUsers();
       return { success: true, message: 'Usuário atualizado com sucesso!' };
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error('❌ SIMPLE: Error updating user:', error);
       
       let message = 'Erro ao atualizar usuário';
       if (error && typeof error === 'object' && 'message' in error) {
         if (error.message.includes('unique constraint') || error.message.includes('duplicate key')) {
           message = 'Este email já está sendo usado por outro usuário';
-        } else if (error.message.includes('Insufficient permissions')) {
-          message = 'Você não tem permissão para atualizar usuários';
         } else {
           message = `Erro: ${error.message}`;
         }
@@ -350,28 +307,17 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
   const deleteUser = async (id: string): Promise<{ success: boolean; message?: string }> => {
     try {
       setError(null);
+      console.log('🔍 SIMPLE: Deleting user:', id);
       
-      console.log('🔍 DEBUG: Deleting user:', id);
+      // Delete from profiles (auth user will be handled by trigger)
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        return { success: false, message: 'Usuário não autenticado' };
-      }
-
-      // Call edge function to handle user deletion
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        console.error('❌ DEBUG: Edge function delete failed:', result);
-        throw new Error(result.error || 'Erro ao excluir usuário');
+      if (error) {
+        console.error('❌ SIMPLE: Delete error:', error);
+        throw error;
       }
       
       // Remove permissions
@@ -379,22 +325,32 @@ export const UserManagementProvider: React.FC<UserManagementProviderProps> = ({ 
       delete updatedPermissions[id];
       saveUserPermissions(updatedPermissions);
       
-      console.log('✅ DEBUG: User deleted successfully');
+      console.log('✅ SIMPLE: User deleted successfully');
       await fetchUsers();
       return { success: true, message: 'Usuário excluído com sucesso!' };
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error('❌ SIMPLE: Error deleting user:', error);
       let message = 'Erro ao excluir usuário';
       
       if (error && typeof error === 'object' && 'message' in error) {
-        if (error.message.includes('Insufficient permissions')) {
-          message = 'Você não tem permissão para excluir usuários';
-        } else {
-          message = `Erro: ${error.message}`;
-        }
+        message = `Erro: ${error.message}`;
       }
       
       return { success: false, message };
+    }
+  };
+
+  const syncOrphanedUsers = async (): Promise<{ success: boolean; message?: string }> => {
+    try {
+      setError(null);
+      console.log('🔍 SIMPLE: Syncing orphaned users...');
+      
+      // This is a simplified version - just refresh the user list
+      await fetchUsers();
+      return { success: true, message: 'Lista de usuários atualizada' };
+    } catch (error) {
+      console.error('❌ SIMPLE: Error syncing users:', error);
+      return { success: false, message: 'Erro ao atualizar lista de usuários' };
     }
   };
 
