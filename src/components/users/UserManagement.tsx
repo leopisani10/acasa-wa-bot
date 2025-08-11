@@ -378,6 +378,11 @@ export const UserManagement: React.FC = () => {
       </div>
 
       {filteredUsers.length === 0 && (
+        <div>
+          {console.log('🔍 EMPTY: No users to display')}
+          {console.log('- users.length:', users.length)}
+          {console.log('- filteredUsers.length:', filteredUsers.length)}
+          {console.log('- Current filters:', { searchTerm, roleFilter, unitFilter })}
         <div className="text-center py-12">
           <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum usuário encontrado</h3>
@@ -395,6 +400,7 @@ export const UserManagement: React.FC = () => {
               Adicionar Usuário
             </button>
           )}
+        </div>
         </div>
       )}
 
