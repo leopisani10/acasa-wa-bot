@@ -11,6 +11,7 @@
     "start": "node index.js",
     "dev": "node index.js",
     "build": "echo 'No build step required for Node.js bot - files are ready to run'",
+    "lint": "echo 'No linter configured for bot - use main project lint'",
     "install": "npm ci",
     "test": "echo 'No tests specified' && exit 0"
   },
