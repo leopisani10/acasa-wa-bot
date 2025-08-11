@@ -193,6 +193,47 @@ app.get('/qr', auth, async (req, res) => {
   res.json({ dataUrl: lastQrDataUrl, generatedAt: lastQrAt });
 });
 
+// Novo endpoint para resetar sessão
+app.post('/reset-session', auth, async (req, res) => {
+  try {
+    console.log('🔄 Resetando sessão WhatsApp via API...');
+    
+    if (client) {
+      await client.destroy();
+      console.log('✅ Cliente WhatsApp destruído');
+    }
+    
+    // Limpar pasta de sessão
+    try {
+      fs.rmSync(SESSION_DIR, { recursive: true, force: true });
+      fs.mkdirSync(SESSION_DIR, { recursive: true });
+      console.log('✅ Pasta de sessão limpa');
+    } catch (error) {
+      console.error('❌ Erro ao limpar pasta:', error);
+    }
+    
+    // Resetar variáveis de estado
+    ready = false;
+    lastQr = null;
+    lastQrDataUrl = null;
+    lastQrAt = 0;
+    connectionAttempts = 0;
+    isConnecting = false;
+    connectionStartTime = null;
+    
+    // Reinicializar cliente
+    setTimeout(() => {
+      console.log('🚀 Reinicializando cliente WhatsApp...');
+      client.initialize();
+    }, 2000);
+    
+    res.json({ success: true, message: 'Sessão resetada com sucesso' });
+  } catch (error) {
+    console.error('❌ Erro ao resetar sessão:', error);
+    res.status(500).json({ error: 'Erro ao resetar sessão' });
+  }
+});
+
 app.post('/send', auth, async (req, res) => {
   try {
     const { to, message } = req.body || {};
