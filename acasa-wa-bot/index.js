@@ -312,6 +312,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Supabase: ${SUPABASE_URL ? 'configured' : 'not configured'}`);
   console.log(`🔑 HUB_TOKEN: ${HUB_TOKEN ? 'configured' : 'not configured'}`);
+  console.log(`🏠 HUB_URL: ${HUB_URL ? 'configured' : 'not configured'}`);
   console.log(`📂 Session directory: ${SESSION_DIR}`);
   console.log(`⏱️  QR throttle: ${QR_TTL_MS}ms`);
   console.log(`🌐 WhatsApp Web version: ${WA_WEB_REMOTE_PATH}`);
