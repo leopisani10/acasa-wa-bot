@@ -36,6 +36,8 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   const [scheduleData, setScheduleData] = useState<Record<string, Record<number, ShiftType | null>>>({});
   const [localSubstitutions, setLocalSubstitutions] = useState<Record<string, Record<number, ScheduleSubstitution>>>({});
   const [emptyPositions, setEmptyPositions] = useState<EmptyPosition[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [showEmployeeSelection, setShowEmployeeSelection] = useState(false);
   const [showSubstituteModal, setShowSubstituteModal] = useState(false);
   const [showAddPositionModal, setShowAddPositionModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<{ employeeId: string; day: number } | null>(null);
@@ -55,9 +57,16 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   const daysInMonth = new Date(year, month, 0).getDate();
   const sobreavisoList = getSobreavisoByUnit(unit);
 
-  // Combinar funcionários reais com posições vazias
-  const allEmployees = [...employees, ...emptyPositions];
+  // Combinar funcionários selecionados com posições vazias
+  const filteredEmployees = employees.filter(emp => selectedEmployees.includes(emp.id));
+  const allEmployees = [...filteredEmployees, ...emptyPositions];
 
+  // Inicializar funcionários selecionados na primeira renderização
+  useEffect(() => {
+    if (selectedEmployees.length === 0 && employees.length > 0) {
+      setSelectedEmployees(employees.map(emp => emp.id));
+    }
+  }, [employees]);
   useEffect(() => {
     // Carregar dados da escala
     const data: Record<string, Record<number, ShiftType | null>> = {};
@@ -91,6 +100,21 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
     setLocalSubstitutions(substitutionData);
   }, [allEmployees, monthSchedules, monthSubstitutions, month, year]);
 
+  const handleEmployeeToggle = (employeeId: string) => {
+    setSelectedEmployees(prev => 
+      prev.includes(employeeId)
+        ? prev.filter(id => id !== employeeId)
+        : [...prev, employeeId]
+    );
+  };
+
+  const handleSelectAllEmployees = () => {
+    setSelectedEmployees(employees.map(emp => emp.id));
+  };
+
+  const handleDeselectAllEmployees = () => {
+    setSelectedEmployees([]);
+  };
   // Função para ordenar funcionários por cargo
   const sortEmployeesByPosition = () => {
     const priorityOrder = [
@@ -337,11 +361,19 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
             <div className="text-center text-white flex-1">
               <h2 className="text-xl font-bold">Escala de {scheduleType}</h2>
               <p className="text-purple-100">
-                {unit} • {monthNames[month - 1]} {year} • {employees.length} funcionários + {emptyPositions.length} posições vazias
+                {unit} • {monthNames[month - 1]} {year} • {filteredEmployees.length} funcionários + {emptyPositions.length} posições vazias
                 {uniquePositions > 1 && ` • ${uniquePositions} áreas`}
               </p>
             </div>
             <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowEmployeeSelection(true)}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                title="Selecionar quais funcionários aparecerão na escala"
+              >
+                <Users size={16} className="mr-2" />
+                Selecionar Funcionários
+              </button>
               <button
                 onClick={() => setShowAddPositionModal(true)}
                 className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -558,6 +590,97 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
         </div>
       </div>
 
+      {/* Modal de Seleção de Funcionários */}
+      {showEmployeeSelection && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                  <Users className="mr-2 text-blue-600" size={24} />
+                  Selecionar Funcionários para a Escala
+                </h2>
+                <p className="text-gray-600 mt-1">
+                  {scheduleType} • {unit} • {monthNames[month - 1]} {year}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowEmployeeSelection(false)}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto max-h-[calc(90vh-180px)] p-6">
+              <div className="space-y-6">
+                {/* Controls */}
+                <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div>
+                    <p className="font-medium text-blue-900">
+                      {selectedEmployees.length} de {employees.length} funcionários selecionados
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      Apenas os funcionários marcados aparecerão na grade da escala
+                    </p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleSelectAllEmployees}
+                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Marcar Todos
+                    </button>
+                    <button
+                      onClick={handleDeselectAllEmployees}
+                      className="px-3 py-1 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                      Desmarcar Todos
+                    </button>
+                  </div>
+                </div>
+
+                {/* Employee List */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {employees.map(employee => (
+                    <div key={employee.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedEmployees.includes(employee.id)}
+                          onChange={() => handleEmployeeToggle(employee.id)}
+                          className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{employee.name}</div>
+                          <div className="text-sm text-gray-600">{employee.position}</div>
+                          <div className="text-xs text-gray-500 font-mono">{employee.cpf}</div>
+                        </div>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end space-x-4 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowEmployeeSelection(false)}
+                className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Fechar
+              </button>
+              <button
+                onClick={() => setShowEmployeeSelection(false)}
+                className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Users size={16} className="mr-2" />
+                Aplicar Seleção ({selectedEmployees.length} funcionários)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Modal para Adicionar Posições */}
       {showAddPositionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -757,7 +880,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
           unit={unit}
           month={month}
           year={year}
-          employees={employees}
+          employees={filteredEmployees}
           onClose={() => setShowMonthlyReport(false)}
         />
       )}
@@ -821,6 +944,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
         <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h4 className="font-semibold text-blue-900 mb-2">💡 Como usar as Posições Vazias:</h4>
           <ul className="text-sm text-blue-800 space-y-1">
+            <li>• <strong>Selecionar Funcionários:</strong> Clique no botão azul para escolher quais funcionários aparecerão na escala</li>
             <li>• <strong>Adicionar Posição:</strong> Clique no botão verde para criar posições vazias (ex: "Técnico 1", "Cuidador 2")</li>
             <li>• <strong>Definir Escalas:</strong> Marque turnos 24h ou 12h nas posições vazias para criar o padrão do mês</li>
             <li>• <strong>Preencher com Curingas:</strong> Durante o mês, clique em "+ Curinga" para definir quem vai cobrir cada plantão</li>
