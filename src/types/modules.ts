@@ -227,7 +227,7 @@ export const SYSTEM_MODULES: Record<string, SystemModule> = {
     id: 'talent-bank',
     name: 'Banco de Talentos',
     description: 'Gestão de candidatos e processos seletivos',
-    icon: 'UserPlus',
+    icon: 'Users',
     category: 'administrative',
     dependencies: [],
     requiredBy: [],
