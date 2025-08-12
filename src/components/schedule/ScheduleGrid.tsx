@@ -194,81 +194,8 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
 
   // Função para preencher automaticamente dias sequenciais
   const fillAutomaticDays = useCallback((employeeId: string, startDay: number, shiftType: ShiftType) => {
-    if (shiftType !== '24' && shiftType !== '12') return {};
-    
-    const interval = shiftType === '24' ? 3 : 2;
-    let nextWorkDay = startDay + interval;
-    const updates: Record<number, ShiftType> = {};
-    
-    while (nextWorkDay <= daysInMonth) {
-      updates[nextWorkDay] = shiftType;
-      nextWorkDay += interval;
-    }
-    
-    return updates;
-  }, [daysInMonth]);
-
-  const sortedEmployees = sortEmployeesByPosition();
-
-  // Função melhorada para lidar com mudanças de turno
-  const handleShiftChangeWithAutoFill = useCallback(async (employeeId: string, day: number, shift: ShiftType | null) => {
-    // Atualizar o dia atual
-    setScheduleData(prev => ({
-      ...prev,
-      [employeeId]: {
-        ...prev[employeeId],
-        [day]: shift,
-      }
-    }));
-    
-    // Se é 24h ou 12h, preencher automaticamente os próximos dias
-    if (shift === '24' || shift === '12') {
-      const automaticUpdates = fillAutomaticDays(employeeId, day, shift);
-      
-      if (Object.keys(automaticUpdates).length > 0) {
-        // Atualizar estado local com os dias automáticos
-        setScheduleData(prev => ({
-          ...prev,
-          [employeeId]: {
-            ...prev[employeeId],
-            ...automaticUpdates,
-          }
-        }));
-        
-        // Se for funcionário real, salvar no banco
-        const isEmptyPosition = employeeId.startsWith('empty-');
-        if (!isEmptyPosition) {
-          // Salvar cada dia no banco
-          try {
-            await updateScheduleDay(employeeId, scheduleType, unit, month, year, day, shift);
-            
-            // Salvar dias automáticos
-            for (const [dayStr, shiftType] of Object.entries(automaticUpdates)) {
-              await updateScheduleDay(employeeId, scheduleType, unit, month, year, parseInt(dayStr), shiftType);
-            }
-          } catch (error) {
-            console.error('Error saving schedule with auto-fill:', error);
-          }
-        }
-      }
-    } else {
-      // Para outros tipos de turno, salvar apenas o dia atual
-      const isEmptyPosition = employeeId.startsWith('empty-');
-      if (!isEmptyPosition) {
-        try {
-          await updateScheduleDay(employeeId, scheduleType, unit, month, year, day, shift);
-        } catch (error) {
-          console.error('Error saving schedule:', error);
-        }
-      }
-    }
-  }, [scheduleType, unit, month, year, updateScheduleDay, fillAutomaticDays]);
-
   const handleShiftChange = (employeeId: string, day: number, shift: ShiftType | null) => {
-    handleShiftChangeWithAutoFill(employeeId, day, shift);
-  };
-
-  const handleOriginalShiftChange = (employeeId: string, day: number, shift: ShiftType | null) => {
+    // Atualizar estado local
     // Atualizar estado local primeiro
     setScheduleData(prev => ({
       ...prev,
@@ -277,6 +204,13 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
         [day]: shift,
       }
     }));
+    
+    // Salvar no banco se for funcionário real
+    const isEmptyPosition = employeeId.startsWith('empty-');
+    if (!isEmptyPosition) {
+      updateScheduleDay(employeeId, scheduleType, unit, month, year, day, shift)
+        .catch(error => console.error('Error saving schedule:', error));
+    }
   };
 
   const handleClearSchedule = async () => {
