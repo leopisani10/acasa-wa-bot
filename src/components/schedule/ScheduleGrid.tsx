@@ -435,7 +435,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
                             <select
                               value={scheduleData[employee.id]?.[day] || ''}
                               onChange={async (e) => {
-                                const shift = e.target.value as ShiftType || null;
+                                const shift = e.target.value === '' ? null : e.target.value as ShiftType;
                                 handleShiftChange(employee.id, day, shift);
                                 
                                 // Verificar se é uma posição vazia antes de salvar
