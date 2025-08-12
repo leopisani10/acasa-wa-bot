@@ -42,6 +42,9 @@ import { TalentBankProvider } from './contexts/TalentBankContext';
 import { CandidateList } from './components/talent-bank/CandidateList';
 import { TalentBankPipeline } from './components/talent-bank/TalentBankPipeline';
 import { TalentBankReports } from './components/talent-bank/TalentBankReports';
+import { PublicCandidateForm } from './components/talent-bank/PublicCandidateForm';
+import { CandidateFormModal } from './components/talent-bank/CandidateFormModal';
+import { CandidateDrawer } from './components/talent-bank/CandidateDrawer';
 import { Guest, Employee, DocumentTemplate, Certificate, NFRDAEntry, SobreavisoEmployee } from './types';
 
 function App() {
