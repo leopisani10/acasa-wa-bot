@@ -221,7 +221,7 @@ function App() {
                         <UserManagementProvider>
                         <CRMProvider>
                         <TalentBankProvider>
-                        <div className="min-h-screen bg-gray-50 lg:flex lg:overflow-hidden">
+                          <div className="min-h-screen bg-gray-50 lg:flex lg:overflow-hidden">
                           <div className={`lg:flex-shrink-0 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'}`}>
                             <Header 
                               activeView={activeView} 
@@ -281,65 +281,65 @@ function App() {
                               {activeView === 'talent-reports' && <TalentBankReports />}
                             </main>
                           </div>
-                        </div>
+                          </div>
 
-                        {showGuestForm && (
-                          <GuestForm
-                            guest={editingGuest}
-                            onClose={handleCloseGuestForm}
-                            onSave={handleSaveGuest}
-                          />
-                        )}
+                          {showGuestForm && (
+                            <GuestForm
+                              guest={editingGuest}
+                              onClose={handleCloseGuestForm}
+                              onSave={handleSaveGuest}
+                            />
+                          )}
 
-                        {showEmployeeForm && (
-                          <EmployeeForm
-                            employee={editingEmployee}
-                            onClose={handleCloseEmployeeForm}
-                            onSave={handleSaveEmployee}
-                          />
-                        )}
+                          {showEmployeeForm && (
+                            <EmployeeForm
+                              employee={editingEmployee}
+                              onClose={handleCloseEmployeeForm}
+                              onSave={handleSaveEmployee}
+                            />
+                          )}
 
-                        {showDocumentForm && (
-                          <DocumentForm
-                            document={editingDocument}
-                            onClose={handleCloseDocumentForm}
-                            onSave={handleSaveDocument}
-                          />
-                        )}
+                          {showDocumentForm && (
+                            <DocumentForm
+                              document={editingDocument}
+                              onClose={handleCloseDocumentForm}
+                              onSave={handleSaveDocument}
+                            />
+                          )}
 
-                        {showRevisionForm && revisionDocument && (
-                          <RevisionForm
-                            document={revisionDocument}
-                            onClose={handleCloseRevisionForm}
-                            onSave={handleSaveDocument}
-                          />
-                        )}
+                          {showRevisionForm && revisionDocument && (
+                            <RevisionForm
+                              document={revisionDocument}
+                              onClose={handleCloseRevisionForm}
+                              onSave={handleSaveDocument}
+                            />
+                          )}
 
-                        {showCertificateForm && (
-                          <CertificateForm
-                            certificate={editingCertificate}
-                            onClose={handleCloseCertificateForm}
-                            onSave={handleSaveCertificate}
-                          />
-                        )}
+                          {showCertificateForm && (
+                            <CertificateForm
+                              certificate={editingCertificate}
+                              onClose={handleCloseCertificateForm}
+                              onSave={handleSaveCertificate}
+                            />
+                          )}
 
-                        {showNFRDAForm && (
-                          <NFRDAForm
-                            entry={editingNFRDA}
-                            onClose={handleCloseNFRDAForm}
-                            onSave={handleSaveNFRDA}
-                          />
-                        )}
+                          {showNFRDAForm && (
+                            <NFRDAForm
+                              entry={editingNFRDA}
+                              onClose={handleCloseNFRDAForm}
+                              onSave={handleSaveNFRDA}
+                            />
+                          )}
 
-                        {showSobreavisoForm && (
-                          <SobreavisoForm
-                            employee={editingSobreaviso}
-                            onClose={handleCloseSobreavisoForm}
-                            onSave={handleSaveSobreaviso}
-                          />
-                        )}
-                        </CRMProvider>
+                          {showSobreavisoForm && (
+                            <SobreavisoForm
+                              employee={editingSobreaviso}
+                              onClose={handleCloseSobreavisoForm}
+                              onSave={handleSaveSobreaviso}
+                            />
+                          )}
                         </TalentBankProvider>
+                        </CRMProvider>
                         </UserManagementProvider>
                       </CardapioProvider>
                     </AgravosProvider>
