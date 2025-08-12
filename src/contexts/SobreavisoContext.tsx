@@ -52,6 +52,7 @@ export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children
           const stored = localStorage.getItem('sobreavisoEmployees');
           const localData = stored ? JSON.parse(stored) : [];
           setSobreavisoEmployees(localData);
+          setLoading(false);
           return;
         }
         throw error;
@@ -81,12 +82,13 @@ export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children
           const stored = localStorage.getItem('sobreavisoEmployees');
           const localData = stored ? JSON.parse(stored) : [];
           setSobreavisoEmployees(localData);
+          setLoading(false);
           return;
         }
       }
       
-      // Only set error for actual database errors, not missing table
-      if (error instanceof Error) {
+      // Only log actual errors, not missing table errors
+      if (error instanceof Error && !(error && typeof error === 'object' && 'code' in error && error.code === 'PGRST205')) {
         console.error('Error fetching sobreaviso employees:', error);
         setError(error.message);
       }

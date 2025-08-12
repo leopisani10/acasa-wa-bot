@@ -111,12 +111,14 @@ export const TalentBankProvider: React.FC<TalentBankProviderProps> = ({ children
       // Only throw if it's not a "table doesn't exist" error
       if (error && typeof error === 'object' && 'code' in error) {
         if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.code === '42P01') {
-          console.log('Candidates table does not exist - this is expected if talent bank migration has not been run');
+          // Table doesn't exist - this is expected, don't log as error
           return;
         }
       }
-      console.error('Error fetching candidates:', error);
-      // Don't throw the error, just log it
+      // Only log actual errors, not missing table errors
+      if (!(error && typeof error === 'object' && 'code' in error && error.code === 'PGRST205')) {
+        console.error('Error fetching candidates:', error);
+      }
       return;
     }
   };
@@ -139,12 +141,14 @@ export const TalentBankProvider: React.FC<TalentBankProviderProps> = ({ children
       // Only throw if it's not a "table doesn't exist" error
       if (error && typeof error === 'object' && 'code' in error) {
         if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.code === '42P01') {
-          console.log('Candidate activities table does not exist - this is expected if talent bank migration has not been run');
+          // Table doesn't exist - this is expected, don't log as error
           return;
         }
       }
-      console.error('Error fetching candidate activities:', error);
-      // Don't throw the error, just log it
+      // Only log actual errors, not missing table errors
+      if (!(error && typeof error === 'object' && 'code' in error && error.code === 'PGRST205')) {
+        console.error('Error fetching candidate activities:', error);
+      }
       return;
     }
   };
