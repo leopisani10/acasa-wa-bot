@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, AlertCircle, Trash2, UserPlus, Edit3, FileText } from 'lucide-react';
+import { Save, AlertCircle, Trash2, UserPlus, Edit3, FileText, Plus, Users } from 'lucide-react';
 import { useSchedule } from '../../contexts/ScheduleContext';
 import { useSobreaviso } from '../../contexts/SobreavisoContext';
 import { ScheduleEmployee, ShiftType, ScheduleSubstitution } from '../../types';
@@ -14,6 +14,15 @@ interface ScheduleGridProps {
   monthNames: string[];
 }
 
+interface EmptyPosition {
+  id: string;
+  name: string;
+  position: string;
+  cpf: string;
+  unit: string;
+  isEmptyPosition: true;
+}
+
 export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   scheduleType,
   unit,
@@ -26,12 +35,18 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   const { getSobreavisoByUnit } = useSobreaviso();
   const [scheduleData, setScheduleData] = useState<Record<string, Record<number, ShiftType | null>>>({});
   const [localSubstitutions, setLocalSubstitutions] = useState<Record<string, Record<number, ScheduleSubstitution>>>({});
+  const [emptyPositions, setEmptyPositions] = useState<EmptyPosition[]>([]);
   const [showSubstituteModal, setShowSubstituteModal] = useState(false);
+  const [showAddPositionModal, setShowAddPositionModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<{ employeeId: string; day: number } | null>(null);
   const [substituteForm, setSubstituteForm] = useState({
     substituteId: '',
     substituteName: '',
     reason: 'Substituição',
+  });
+  const [newPositionForm, setNewPositionForm] = useState({
+    position: 'Técnico de Enfermagem',
+    quantity: 1,
   });
   const [showMonthlyReport, setShowMonthlyReport] = useState(false);
 
@@ -40,11 +55,14 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   const daysInMonth = new Date(year, month, 0).getDate();
   const sobreavisoList = getSobreavisoByUnit(unit);
 
+  // Combinar funcionários reais com posições vazias
+  const allEmployees = [...employees, ...emptyPositions];
+
   useEffect(() => {
     // Carregar dados da escala
     const data: Record<string, Record<number, ShiftType | null>> = {};
     
-    employees.forEach(employee => {
+    allEmployees.forEach(employee => {
       data[employee.id] = {};
       
       const employeeSchedule = monthSchedules.find(s => s.employeeId === employee.id);
@@ -71,7 +89,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
       substitutionData[sub.employeeId][sub.day] = sub;
     });
     setLocalSubstitutions(substitutionData);
-  }, [employees, monthSchedules, monthSubstitutions, month, year]);
+  }, [allEmployees, monthSchedules, monthSubstitutions, month, year]);
 
   // Função para ordenar funcionários por cargo
   const sortEmployeesByPosition = () => {
@@ -89,7 +107,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
       'Professora de Yoga'
     ];
     
-    return employees.sort((a, b) => {
+    return allEmployees.sort((a, b) => {
       const aIndex = priorityOrder.indexOf(a.position);
       const bIndex = priorityOrder.indexOf(b.position);
       
@@ -112,6 +130,9 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   const sortedEmployees = sortEmployeesByPosition();
 
   const handleShiftChange = (employeeId: string, day: number, shift: ShiftType | null) => {
+    // Verificar se é uma posição vazia
+    const isEmptyPosition = employeeId.startsWith('empty-');
+    
     // Primeiro, definir o turno principal
     setScheduleData(prev => ({
       ...prev,
@@ -121,10 +142,51 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
       }
     }));
 
-    // Depois, aplicar lógica automática se necessário
+    // Se for posição vazia, não salvar no banco - apenas manter no estado local
+    if (isEmptyPosition) {
+      // Para posições vazias, aplicar lógica automática apenas localmente
+      if (shift === '24') {
+        let nextWorkDay = day + 3;
+        const updates: Record<number, ShiftType> = {};
+        
+        while (nextWorkDay <= daysInMonth) {
+          updates[nextWorkDay] = '24';
+          nextWorkDay += 3;
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          setScheduleData(prev => ({
+            ...prev,
+            [employeeId]: {
+              ...prev[employeeId],
+              ...updates,
+            }
+          }));
+        }
+      } else if (shift === '12') {
+        let nextWorkDay = day + 2;
+        const updates: Record<number, ShiftType> = {};
+        
+        while (nextWorkDay <= daysInMonth) {
+          updates[nextWorkDay] = '12';
+          nextWorkDay += 2;
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          setScheduleData(prev => ({
+            ...prev,
+            [employeeId]: {
+              ...prev[employeeId],
+              ...updates,
+            }
+          }));
+        }
+      }
+      return; // Não continuar para salvar no banco
+    }
+
+    // Depois, aplicar lógica automática para funcionários reais
     if (shift === '24') {
-      // Escala 24h48h: trabalha 1 dia, descansa 2 dias (ciclo de 3 dias)
-      // Aplicar padrão para todo o mês
       let nextWorkDay = day + 3;
       const updates: Record<number, ShiftType> = {};
       
@@ -143,8 +205,6 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
         }));
       }
     } else if (shift === '12') {
-      // Escala 12h36h: trabalha 1 dia, descansa 1 dia (ciclo de 2 dias)
-      // Aplicar padrão para todo o mês
       let nextWorkDay = day + 2;
       const updates: Record<number, ShiftType> = {};
       
@@ -171,7 +231,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
         await clearScheduleForMonth(scheduleType, unit, month, year);
         // Limpar dados locais também
         const clearedData: Record<string, Record<number, ShiftType | null>> = {};
-        employees.forEach(employee => {
+        allEmployees.forEach(employee => {
           clearedData[employee.id] = {};
           for (let day = 1; day <= 31; day++) {
             clearedData[employee.id][day] = null;
@@ -216,6 +276,9 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   const handleSaveSubstitute = async () => {
     if (!selectedDay || !substituteForm.substituteName.trim()) return;
 
+    // Se for posição vazia, apenas adicionar ao estado local
+    const isEmptyPosition = selectedDay.employeeId.startsWith('empty-');
+    
     const substitutionData: Omit<ScheduleSubstitution, 'id' | 'createdAt'> = {
       employeeId: selectedDay.employeeId,
       scheduleType,
@@ -229,7 +292,23 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
     };
 
     try {
-      await addSubstitution(substitutionData);
+      if (!isEmptyPosition) {
+        // Apenas salvar no banco se for funcionário real
+        await addSubstitution(substitutionData);
+      } else {
+        // Para posições vazias, apenas atualizar estado local
+        setLocalSubstitutions(prev => ({
+          ...prev,
+          [selectedDay.employeeId]: {
+            ...prev[selectedDay.employeeId],
+            [selectedDay.day]: {
+              ...substitutionData,
+              id: `local-${Date.now()}`,
+              createdAt: new Date().toISOString(),
+            }
+          }
+        }));
+      }
 
       setShowSubstituteModal(false);
       setSelectedDay(null);
@@ -246,11 +325,65 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
 
   const handleRemoveSubstitute = async (employeeId: string, day: number) => {
     try {
-      await removeSubstitution(employeeId, scheduleType, unit, month, year, day);
+      const isEmptyPosition = employeeId.startsWith('empty-');
+      
+      if (!isEmptyPosition) {
+        await removeSubstitution(employeeId, scheduleType, unit, month, year, day);
+      } else {
+        // Para posições vazias, apenas remover do estado local
+        setLocalSubstitutions(prev => {
+          const updated = { ...prev };
+          if (updated[employeeId] && updated[employeeId][day]) {
+            delete updated[employeeId][day];
+            if (Object.keys(updated[employeeId]).length === 0) {
+              delete updated[employeeId];
+            }
+          }
+          return updated;
+        });
+      }
     } catch (error) {
       console.error('Error removing substitution:', error);
       alert('Erro ao remover substituição. Tente novamente.');
     }
+  };
+
+  const handleAddEmptyPositions = () => {
+    const { position, quantity } = newPositionForm;
+    const newPositions: EmptyPosition[] = [];
+    
+    for (let i = 1; i <= quantity; i++) {
+      newPositions.push({
+        id: `empty-${position}-${i}-${Date.now()}-${i}`,
+        name: `${position} ${i} - Não Preenchido`,
+        position: position,
+        cpf: 'Vago',
+        unit: unit,
+        isEmptyPosition: true,
+      });
+    }
+    
+    setEmptyPositions(prev => [...prev, ...newPositions]);
+    setShowAddPositionModal(false);
+    setNewPositionForm({ position: 'Técnico de Enfermagem', quantity: 1 });
+  };
+
+  const handleRemoveEmptyPosition = (positionId: string) => {
+    setEmptyPositions(prev => prev.filter(pos => pos.id !== positionId));
+    
+    // Remover também do scheduleData
+    setScheduleData(prev => {
+      const updated = { ...prev };
+      delete updated[positionId];
+      return updated;
+    });
+    
+    // Remover substituições
+    setLocalSubstitutions(prev => {
+      const updated = { ...prev };
+      delete updated[positionId];
+      return updated;
+    });
   };
 
   const getShiftColor = (shift: ShiftType | null) => {
@@ -265,7 +398,19 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   };
 
   const shiftOptions: (ShiftType | null)[] = [null, 'SD', 'DR', '12', '24', '6h'];
-  const uniquePositions = new Set(employees.map(emp => emp.position)).size;
+  const uniquePositions = new Set(allEmployees.map(emp => emp.position)).size;
+
+  const positionOptions = [
+    'Técnico de Enfermagem',
+    'Cuidador de Idosos',
+    'Enfermeira',
+    'Auxiliar de Serviços Gerais',
+    'Cozinheira',
+    'Nutricionista',
+    'Fisioterapeuta',
+    'Médico',
+    'Outro'
+  ];
 
   return (
     <div className="space-y-4">
@@ -277,26 +422,36 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
             <div className="text-center text-white flex-1">
               <h2 className="text-xl font-bold">Escala de {scheduleType}</h2>
               <p className="text-purple-100">
-                {unit} • {monthNames[month - 1]} {year} • {employees.length} colaboradores
+                {unit} • {monthNames[month - 1]} {year} • {employees.length} funcionários + {emptyPositions.length} posições vazias
                 {uniquePositions > 1 && ` • ${uniquePositions} áreas`}
               </p>
             </div>
-            <button
-              onClick={handleClearSchedule}
-              className="ml-4 flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              title="Limpar toda a escala do mês"
-            >
-              <Trash2 size={16} className="mr-2" />
-              Limpar Escala
-            </button>
-            <button
-              onClick={() => setShowMonthlyReport(true)}
-              className="ml-2 flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              title="Gerar relatório mensal"
-            >
-              <FileText size={16} className="mr-2" />
-              Relatório Mensal
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowAddPositionModal(true)}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                title="Adicionar posições vazias para preenchimento posterior"
+              >
+                <Plus size={16} className="mr-2" />
+                Adicionar Posição
+              </button>
+              <button
+                onClick={handleClearSchedule}
+                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                title="Limpar toda a escala do mês"
+              >
+                <Trash2 size={16} className="mr-2" />
+                Limpar Escala
+              </button>
+              <button
+                onClick={() => setShowMonthlyReport(true)}
+                className="flex items-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                title="Gerar relatório mensal"
+              >
+                <FileText size={16} className="mr-2" />
+                Relatório Mensal
+              </button>
+            </div>
           </div>
         </div>
 
@@ -322,100 +477,117 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
 
             {/* Table Body */}
             <tbody>
-              {sortedEmployees.map((employee, employeeIndex) => (
-                <tr key={employee.id} className={`border-b border-gray-200 ${employeeIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                  {/* Employee Info */}
-                  <td className="px-4 py-3 border-r border-gray-200">
-                    <div>
-                      <div className="font-medium text-gray-900">{employee.name}</div>
-                      <div className="text-xs text-gray-600">{employee.position}</div>
-                    </div>
-                  </td>
-                  <td className="px-2 py-3 border-r border-gray-200">
-                    <div className="text-xs text-gray-600 font-sans">
-                      {employee.professionalRegistry || employee.cpf}
-                    </div>
-                  </td>
-                  
-                  {/* Days */}
-                  {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
-                    const hasShift = scheduleData[employee.id]?.[day];
-                    const hasSubstitution = localSubstitutions[employee.id]?.[day];
+              {sortedEmployees.map((employee, employeeIndex) => {
+                const isEmptyPosition = 'isEmptyPosition' in employee && employee.isEmptyPosition;
+                
+                return (
+                  <tr key={employee.id} className={`border-b border-gray-200 ${employeeIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${isEmptyPosition ? 'bg-yellow-50' : ''}`}>
+                    {/* Employee Info */}
+                    <td className="px-4 py-3 border-r border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className={`font-medium ${isEmptyPosition ? 'text-gray-500 italic' : 'text-gray-900'}`}>
+                            {employee.name}
+                          </div>
+                          <div className="text-xs text-gray-600">{employee.position}</div>
+                        </div>
+                        {isEmptyPosition && (
+                          <button
+                            onClick={() => handleRemoveEmptyPosition(employee.id)}
+                            className="text-red-600 hover:text-red-800 transition-colors"
+                            title="Remover posição vazia"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-2 py-3 border-r border-gray-200">
+                      <div className="text-xs text-gray-600 font-sans">
+                        {isEmptyPosition ? 'Vago' : (employee.professionalRegistry || employee.cpf)}
+                      </div>
+                    </td>
                     
-                    return (
-                      <td key={day} className="px-1 py-2 border-r border-gray-200">
-                        <div className="space-y-1">
-                          {/* Turno Original */}
-                          <select
-                            value={scheduleData[employee.id]?.[day] || ''}
-                            onChange={async (e) => {
-                              const shift = e.target.value as ShiftType || null;
-                              handleShiftChange(employee.id, day, shift);
-                              
-                              // Salvar automaticamente no banco
-                              try {
-                                await updateScheduleDay(employee.id, scheduleType, unit, month, year, day, shift);
+                    {/* Days */}
+                    {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+                      const hasShift = scheduleData[employee.id]?.[day];
+                      const hasSubstitution = localSubstitutions[employee.id]?.[day];
+                      
+                      return (
+                        <td key={day} className="px-1 py-2 border-r border-gray-200">
+                          <div className="space-y-1">
+                            {/* Turno Original */}
+                            <select
+                              value={scheduleData[employee.id]?.[day] || ''}
+                              onChange={async (e) => {
+                                const shift = e.target.value as ShiftType || null;
+                                handleShiftChange(employee.id, day, shift);
                                 
-                                // Se é escala automática, salvar também todos os próximos dias do padrão
-                                if (shift === '24') {
-                                  let nextWorkDay = day + 3;
-                                  while (nextWorkDay <= daysInMonth) {
-                                    await updateScheduleDay(employee.id, scheduleType, unit, month, year, nextWorkDay, '24');
-                                    handleShiftChange(employee.id, nextWorkDay, '24');
-                                    nextWorkDay += 3;
-                                  }
-                                } else if (shift === '12') {
-                                  let nextWorkDay = day + 2;
-                                  while (nextWorkDay <= daysInMonth) {
-                                    await updateScheduleDay(employee.id, scheduleType, unit, month, year, nextWorkDay, '12');
-                                    handleShiftChange(employee.id, nextWorkDay, '12');
-                                    nextWorkDay += 2;
+                                // Salvar automaticamente no banco apenas para funcionários reais
+                                if (!isEmptyPosition) {
+                                  try {
+                                    await updateScheduleDay(employee.id, scheduleType, unit, month, year, day, shift);
+                                    
+                                    // Se é escala automática, salvar também todos os próximos dias do padrão
+                                    if (shift === '24') {
+                                      let nextWorkDay = day + 3;
+                                      while (nextWorkDay <= daysInMonth) {
+                                        await updateScheduleDay(employee.id, scheduleType, unit, month, year, nextWorkDay, '24');
+                                        nextWorkDay += 3;
+                                      }
+                                    } else if (shift === '12') {
+                                      let nextWorkDay = day + 2;
+                                      while (nextWorkDay <= daysInMonth) {
+                                        await updateScheduleDay(employee.id, scheduleType, unit, month, year, nextWorkDay, '12');
+                                        nextWorkDay += 2;
+                                      }
+                                    }
+                                  } catch (error) {
+                                    console.error('Error saving schedule:', error);
                                   }
                                 }
-                              } catch (error) {
-                                console.error('Error saving schedule:', error);
-                              }
-                            }}
-                            className={`w-full px-1 py-1 text-xs border rounded text-center ${getShiftColor(scheduleData[employee.id]?.[day] || null)}`}
-                          >
-                            <option value="">-</option>
-                            <option value="SD">SD</option>
-                            <option value="DR">DR</option>
-                            <option value="12">12</option>
-                            <option value="24">24</option>
-                            <option value="6h">6h</option>
-                          </select>
-                          
-                          {/* Substituição */}
-                          {hasSubstitution ? (
-                            <div className="bg-orange-100 border border-orange-300 rounded px-1 py-0.5 text-xs text-orange-700">
-                              <div className="flex items-center justify-between">
-                                <span>⚡ {hasSubstitution.substituteName.split(' ')[0]}</span>
-                                <button
-                                  onClick={() => handleRemoveSubstitute(employee.id, day)}
-                                  className="text-orange-600 hover:text-orange-800 ml-1"
-                                  title="Remover substituição"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                              <div className="text-xs text-orange-600">{hasSubstitution.reason}</div>
-                            </div>
-                          ) : hasShift && (
-                            <button
-                              onClick={() => handleAddSubstitute(employee.id, day)}
-                              className="w-full bg-orange-100 border border-orange-300 rounded px-1 py-0.5 text-xs text-orange-600 hover:bg-orange-200 transition-colors"
-                              title="Adicionar substituição/curinga"
+                              }}
+                              className={`w-full px-1 py-1 text-xs border rounded text-center ${getShiftColor(scheduleData[employee.id]?.[day] || null)} ${isEmptyPosition ? 'italic' : ''}`}
                             >
-                              + Curinga
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+                              <option value="">-</option>
+                              <option value="SD">SD</option>
+                              <option value="DR">DR</option>
+                              <option value="12">12</option>
+                              <option value="24">24</option>
+                              <option value="6h">6h</option>
+                            </select>
+                            
+                            {/* Substituição */}
+                            {hasSubstitution ? (
+                              <div className="bg-orange-100 border border-orange-300 rounded px-1 py-0.5 text-xs text-orange-700">
+                                <div className="flex items-center justify-between">
+                                  <span>⚡ {hasSubstitution.substituteName.split(' ')[0]}</span>
+                                  <button
+                                    onClick={() => handleRemoveSubstitute(employee.id, day)}
+                                    className="text-orange-600 hover:text-orange-800 ml-1"
+                                    title="Remover substituição"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                                <div className="text-xs text-orange-600">{hasSubstitution.reason}</div>
+                              </div>
+                            ) : hasShift && (
+                              <button
+                                onClick={() => handleAddSubstitute(employee.id, day)}
+                                className="w-full bg-orange-100 border border-orange-300 rounded px-1 py-0.5 text-xs text-orange-600 hover:bg-orange-200 transition-colors"
+                                title="Adicionar substituição/curinga"
+                              >
+                                + Curinga
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -444,6 +616,94 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
         </div>
       </div>
 
+      {/* Modal para Adicionar Posições */}
+      {showAddPositionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                <Users className="mr-2 text-green-600" size={20} />
+                Adicionar Posições Vazias
+              </h2>
+              <button
+                onClick={() => setShowAddPositionModal(false)}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-4">
+                  Adicione posições vazias na escala que serão preenchidas com curingas durante o mês.
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de Cargo *
+                  </label>
+                  <select
+                    value={newPositionForm.position}
+                    onChange={(e) => setNewPositionForm(prev => ({ ...prev, position: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    required
+                  >
+                    {positionOptions.map(pos => (
+                      <option key={pos} value={pos}>{pos}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Quantidade de Posições *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={newPositionForm.quantity}
+                    onChange={(e) => setNewPositionForm(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ex: Se precisar de 3 técnicos, digite 3
+                  </p>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-700">
+                    <strong>Resultado:</strong> Serão criadas {newPositionForm.quantity} posição(ões): 
+                    "{newPositionForm.position} 1", "{newPositionForm.position} 2", etc.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end space-x-4 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowAddPositionModal(false)}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAddEmptyPositions}
+                disabled={newPositionForm.quantity < 1}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus size={16} className="mr-2" />
+                Criar {newPositionForm.quantity} Posição(ões)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Substituição */}
       {showSubstituteModal && selectedDay && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -461,7 +721,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
             <div className="p-6">
               <div className="mb-4">
                 <p className="text-sm text-gray-600 mb-2">
-                  <strong>Colaborador original:</strong> {employees.find(e => e.id === selectedDay.employeeId)?.name}
+                  <strong>Posição:</strong> {allEmployees.find(e => e.id === selectedDay.employeeId)?.name}
                 </p>
                 <p className="text-sm text-gray-600 mb-4">
                   <strong>Dia:</strong> {selectedDay.day} de {monthNames[month - 1]} {year}
@@ -548,7 +808,6 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
         </div>
       )}
 
-      {/* Legend */}
       {/* Monthly Report Modal */}
       {showMonthlyReport && (
         <MonthlyReport
@@ -561,10 +820,15 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
         />
       )}
 
+      {/* Legend */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Legenda</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Legenda e Instruções</h3>
           <div className="flex items-center space-x-4 text-sm text-gray-600">
+            <div className="flex items-center">
+              <div className="w-4 h-4 bg-yellow-50 border border-yellow-300 rounded mr-2"></div>
+              <span>= Posição Vazia</span>
+            </div>
             <div className="flex items-center">
               <div className="w-4 h-4 bg-orange-100 border border-orange-300 rounded mr-2"></div>
               <span>⚡ = Substituição/Curinga</span>
@@ -611,7 +875,121 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
             <span className="text-sm text-gray-700">Plantão 6h</span>
           </div>
         </div>
+
+        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 className="font-semibold text-blue-900 mb-2">💡 Como usar as Posições Vazias:</h4>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• <strong>Adicionar Posição:</strong> Clique no botão verde para criar posições vazias (ex: "Técnico 1", "Cuidador 2")</li>
+            <li>• <strong>Definir Escalas:</strong> Marque turnos 24h ou 12h nas posições vazias para criar o padrão do mês</li>
+            <li>• <strong>Preencher com Curingas:</strong> Durante o mês, clique em "+ Curinga" para definir quem vai cobrir cada plantão</li>
+            <li>• <strong>Escala Automática:</strong> Turnos 24h repetem a cada 3 dias, turnos 12h a cada 2 dias</li>
+          </ul>
+        </div>
       </div>
+
+      {/* Modal de Substituição */}
+      {showSubstituteModal && selectedDay && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900">Adicionar Substituição</h2>
+              <button
+                onClick={() => setShowSubstituteModal(false)}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  <strong>Posição:</strong> {allEmployees.find(e => e.id === selectedDay.employeeId)?.name}
+                </p>
+                <p className="text-sm text-gray-600 mb-4">
+                  <strong>Dia:</strong> {selectedDay.day} de {monthNames[month - 1]} {year}
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Selecionar Curinga/Substituto *
+                  </label>
+                  <select
+                    value={substituteForm.substituteId}
+                    onChange={(e) => handleSubstituteChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-acasa-purple focus:border-transparent"
+                    required
+                  >
+                    <option value="">Selecione um colaborador...</option>
+                    {sobreavisoList.map(emp => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.fullName} ({emp.position})
+                      </option>
+                    ))}
+                    <option value="custom">✏️ Digitar nome manualmente</option>
+                  </select>
+                  
+                  {substituteForm.substituteId === 'custom' && (
+                    <input
+                      type="text"
+                      value={substituteForm.substituteName}
+                      onChange={(e) => setSubstituteForm(prev => ({ ...prev, substituteName: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-acasa-purple focus:border-transparent mt-2"
+                      placeholder="Digite o nome do substituto..."
+                      required
+                    />
+                  )}
+                  
+                  {sobreavisoList.length === 0 && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Nenhum colaborador de sobreaviso cadastrado. Cadastre primeiro na seção "Sobreaviso".
+                    </p>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Motivo da Substituição
+                  </label>
+                  <select
+                    value={substituteForm.reason}
+                    onChange={(e) => setSubstituteForm(prev => ({ ...prev, reason: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-acasa-purple focus:border-transparent"
+                  >
+                    <option value="Substituição">Substituição</option>
+                    <option value="Falta">Falta</option>
+                    <option value="Atestado">Atestado</option>
+                    <option value="Férias">Férias</option>
+                    <option value="Licença">Licença</option>
+                    <option value="Curinga">Curinga</option>
+                    <option value="Emergência">Emergência</option>
+                    <option value="Outro">Outro</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end space-x-4 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowSubstituteModal(false)}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveSubstitute}
+                disabled={!substituteForm.substituteName.trim() || (!substituteForm.substituteId && !substituteForm.substituteName.trim())}
+                className="flex items-center px-4 py-2 bg-acasa-purple text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <UserPlus size={16} className="mr-2" />
+                Adicionar Substituição
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Print Styles */}
       <style>{`
