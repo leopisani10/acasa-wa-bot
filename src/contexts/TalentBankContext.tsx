@@ -75,7 +75,7 @@ export const TalentBankProvider: React.FC<TalentBankProviderProps> = ({ children
         fetchActivities(),
       ]);
     } catch (error) {
-      console.error('Error fetching talent bank data:', error);
+      console.log('Some talent bank tables are missing - this is expected if migration has not been run');
       
       // Check if error is related to missing tables
       if (error && typeof error === 'object' && 'code' in error) {
@@ -106,7 +106,6 @@ export const TalentBankProvider: React.FC<TalentBankProviderProps> = ({ children
       if (error) throw error;
       setCandidates(data || []);
     } catch (error) {
-      console.error('Error fetching candidates:', error);
       setCandidates([]);
       
       // Only throw if it's not a "table doesn't exist" error
@@ -116,7 +115,9 @@ export const TalentBankProvider: React.FC<TalentBankProviderProps> = ({ children
           return;
         }
       }
-      throw error;
+      console.error('Error fetching candidates:', error);
+      // Don't throw the error, just log it
+      return;
     }
   };
 
@@ -133,7 +134,6 @@ export const TalentBankProvider: React.FC<TalentBankProviderProps> = ({ children
       if (error) throw error;
       setActivities(data || []);
     } catch (error) {
-      console.error('Error fetching candidate activities:', error);
       setActivities([]);
       
       // Only throw if it's not a "table doesn't exist" error
@@ -143,7 +143,9 @@ export const TalentBankProvider: React.FC<TalentBankProviderProps> = ({ children
           return;
         }
       }
-      throw error;
+      console.error('Error fetching candidate activities:', error);
+      // Don't throw the error, just log it
+      return;
     }
   };
 

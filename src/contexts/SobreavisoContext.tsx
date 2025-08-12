@@ -48,11 +48,10 @@ export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children
       
       if (error) {
         // If table doesn't exist, fall back to localStorage
-        if (error.code === 'PGRST205') {
+        if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.code === '42P01') {
           const stored = localStorage.getItem('sobreavisoEmployees');
           const localData = stored ? JSON.parse(stored) : [];
           setSobreavisoEmployees(localData);
-          setLoading(false);
           return;
         }
         throw error;
@@ -75,8 +74,19 @@ export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children
       
       setSobreavisoEmployees(transformedEmployees);
     } catch (error) {
+      // Handle missing table errors gracefully
+      if (error && typeof error === 'object' && 'code' in error) {
+        if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.code === '42P01') {
+          // Table doesn't exist - use localStorage fallback
+          const stored = localStorage.getItem('sobreavisoEmployees');
+          const localData = stored ? JSON.parse(stored) : [];
+          setSobreavisoEmployees(localData);
+          return;
+        }
+      }
+      
       // Only set error for actual database errors, not missing table
-      if (error instanceof Error && !error.message.includes('PGRST205')) {
+      if (error instanceof Error) {
         console.error('Error fetching sobreaviso employees:', error);
         setError(error.message);
       }
