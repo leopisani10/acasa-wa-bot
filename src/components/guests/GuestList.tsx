@@ -13,6 +13,7 @@ export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest })
   const { guests, deleteGuest } = useGuests();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Ativo' | 'Inativo'>('all');
+  const [unitFilter, setUnitFilter] = useState<'all' | 'Botafogo' | 'Tijuca'>('all');
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [showImport, setShowImport] = useState(false);
 
@@ -21,7 +22,8 @@ export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest })
                          guest.cpf.includes(searchTerm) ||
                          guest.roomNumber.includes(searchTerm);
     const matchesStatus = statusFilter === 'all' || guest.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesUnit = unitFilter === 'all' || guest.unit === unitFilter;
+    return matchesSearch && matchesStatus && matchesUnit;
   });
 
   const handleDelete = (guest: Guest) => {
@@ -91,6 +93,15 @@ export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest })
           <option value="all">Todos os Status</option>
           <option value="Ativo">Ativo</option>
           <option value="Inativo">Inativo</option>
+        </select>
+        <select
+          value={unitFilter}
+          onChange={(e) => setUnitFilter(e.target.value as 'all' | 'Botafogo' | 'Tijuca')}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-sans"
+        >
+          <option value="all">Todas as Unidades</option>
+          <option value="Botafogo">Botafogo</option>
+          <option value="Tijuca">Tijuca</option>
         </select>
       </div>
 
