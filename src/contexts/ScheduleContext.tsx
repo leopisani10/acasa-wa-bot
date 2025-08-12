@@ -182,7 +182,9 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
     if (scheduleType === 'Enfermagem') {
       return employees.filter(emp => 
         emp.unit === unit && 
-        (emp.position === 'Enfermeira' || emp.position === 'Técnico de Enfermagem')
+        (emp.position === 'Enfermeira' || 
+         emp.position === 'Técnico de Enfermagem' || 
+         emp.position === 'Cuidador de Idosos')
       );
     }
     
