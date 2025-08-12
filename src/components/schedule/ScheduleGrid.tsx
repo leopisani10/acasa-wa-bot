@@ -353,52 +353,52 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Action Buttons - Moved outside for better UX */}
+      <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border border-gray-200 p-4">
+        <button
+          onClick={() => setShowEmployeeSelection(true)}
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          title="Selecionar quais funcionários aparecerão na escala"
+        >
+          <Users size={16} className="mr-2" />
+          Selecionar Funcionários ({selectedEmployees.length})
+        </button>
+        <button
+          onClick={() => setShowAddPositionModal(true)}
+          className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          title="Adicionar posições vazias para preenchimento posterior"
+        >
+          <Plus size={16} className="mr-2" />
+          Adicionar Posição ({emptyPositions.length})
+        </button>
+        <button
+          onClick={handleClearSchedule}
+          className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          title="Limpar toda a escala do mês"
+        >
+          <Trash2 size={16} className="mr-2" />
+          Limpar Escala
+        </button>
+        <button
+          onClick={() => setShowMonthlyReport(true)}
+          className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          title="Gerar relatório mensal"
+        >
+          <FileText size={16} className="mr-2" />
+          Relatório Mensal
+        </button>
+      </div>
+
       {/* Schedule Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
         {/* Header */}
         <div className="bg-acasa-purple p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-center text-white flex-1">
-              <h2 className="text-xl font-bold">Escala de {scheduleType}</h2>
-              <p className="text-purple-100">
-                {unit} • {monthNames[month - 1]} {year} • {filteredEmployees.length} funcionários + {emptyPositions.length} posições vazias
-                {uniquePositions > 1 && ` • ${uniquePositions} áreas`}
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setShowEmployeeSelection(true)}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                title="Selecionar quais funcionários aparecerão na escala"
-              >
-                <Users size={16} className="mr-2" />
-                Selecionar Funcionários
-              </button>
-              <button
-                onClick={() => setShowAddPositionModal(true)}
-                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                title="Adicionar posições vazias para preenchimento posterior"
-              >
-                <Plus size={16} className="mr-2" />
-                Adicionar Posição
-              </button>
-              <button
-                onClick={handleClearSchedule}
-                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                title="Limpar toda a escala do mês"
-              >
-                <Trash2 size={16} className="mr-2" />
-                Limpar Escala
-              </button>
-              <button
-                onClick={() => setShowMonthlyReport(true)}
-                className="flex items-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
-                title="Gerar relatório mensal"
-              >
-                <FileText size={16} className="mr-2" />
-                Relatório Mensal
-              </button>
-            </div>
+          <div className="text-center text-white">
+            <h2 className="text-xl font-bold">Escala de {scheduleType}</h2>
+            <p className="text-purple-100">
+              {unit} • {monthNames[month - 1]} {year} • {filteredEmployees.length} funcionários + {emptyPositions.length} posições vazias
+              {uniquePositions > 1 && ` • ${uniquePositions} áreas`}
+            </p>
           </div>
         </div>
 
