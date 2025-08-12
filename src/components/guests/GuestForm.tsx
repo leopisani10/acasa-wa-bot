@@ -79,7 +79,17 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
   });
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Clear exit fields when status changes to 'Ativo'
+      if (field === 'status' && value === 'Ativo') {
+        newData.exitReason = undefined;
+        newData.exitDate = '';
+      }
+      
+      return newData;
+    });
   };
 
   const addVaccine = () => {
