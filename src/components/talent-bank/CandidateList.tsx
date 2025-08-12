@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Phone, Mail, User, Calendar, Eye, Edit, Trash2, UserPlus, MapPin, Building } from 'lucide-react';
+import { Plus, Search, Filter, Phone, Mail, User, Calendar, Eye, Edit, Trash2, UserPlus, MapPin, Building, Database } from 'lucide-react';
 import { useTalentBank } from '../../contexts/TalentBankContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Candidate, CandidateFilters } from '../../types/talentBank';
@@ -14,7 +14,8 @@ export const CandidateList: React.FC = () => {
     deleteCandidate, 
     setFilters, 
     filters, 
-    loading 
+    loading,
+    error 
   } = useTalentBank();
   const { user } = useAuth();
   
@@ -54,16 +55,8 @@ export const CandidateList: React.FC = () => {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Banco de Talentos</h2>
-          <p className="text-gray-600">Gerencie candidatos e processos seletivos</p>
-        </div>
-        <button
-          onClick={() => {
+  if (error) {
+    return (
       <div className="text-center py-12 max-w-2xl mx-auto">
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
           <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-yellow-100 rounded-full">
@@ -91,6 +84,28 @@ export const CandidateList: React.FC = () => {
             Recarregar Página
           </button>
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Banco de Talentos</h2>
+          <p className="text-gray-600">Gerencie candidatos e processos seletivos</p>
+        </div>
+        <button
+          onClick={() => {
+            setEditingCandidate(null);
+            setShowForm(true);
+          }}
+          className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          <Plus size={20} className="mr-2" />
+          Novo Candidato
+        </button>
       </div>
 
       {/* Filters */}
