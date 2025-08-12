@@ -302,7 +302,24 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
       });
     }
     
-    setEmptyPositions(prev => [...prev, ...newPositions]);
+    setEmptyPositions(prev => {
+      const updated = [...prev, ...newPositions];
+      
+      // Inicializar scheduleData para as novas posições
+      setScheduleData(prevSchedule => {
+        const updatedSchedule = { ...prevSchedule };
+        newPositions.forEach(position => {
+          updatedSchedule[position.id] = {};
+          for (let day = 1; day <= daysInMonth; day++) {
+            updatedSchedule[position.id][day] = null;
+          }
+        });
+        return updatedSchedule;
+      });
+      
+      return updated;
+    });
+    
     setShowAddPositionModal(false);
     setNewPositionForm({ position: 'Técnico de Enfermagem', quantity: 1 });
   };
