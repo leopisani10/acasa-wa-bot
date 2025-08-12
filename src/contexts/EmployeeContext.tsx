@@ -83,6 +83,8 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
           licenseNumber: '',
           expiryDate: '',
         },
+        exitDate: employee.exit_date,
+        exitReason: employee.exit_reason,
         employmentType: employee.employment_type,
         cltData: employee.clt_data || {
           ctps: '',
@@ -188,6 +190,8 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
           professional_license_council: employeeData.professionalLicense?.council || 'Não Possui',
           professional_license_number: employeeData.professionalLicense?.licenseNumber,
           professional_license_expiry_date: employeeData.professionalLicense?.expiryDate || null,
+          exit_date: employeeData.exitDate || null,
+          exit_reason: employeeData.exitReason || null,
           employment_type: employeeData.employmentType,
           clt_data: employeeData.cltData,
           contract_data: employeeData.contractData,
@@ -284,6 +288,8 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
       if (employeeData.cltData !== undefined) updateData.clt_data = employeeData.cltData;
       if (employeeData.contractData !== undefined) updateData.contract_data = employeeData.contractData;
       if (employeeData.outsourcedData !== undefined) updateData.outsourced_data = employeeData.outsourcedData;
+      if (employeeData.exitDate !== undefined) updateData.exit_date = employeeData.exitDate || null;
+      if (employeeData.exitReason !== undefined) updateData.exit_reason = employeeData.exitReason || null;
       
       const { error } = await supabase
         .from('employees')

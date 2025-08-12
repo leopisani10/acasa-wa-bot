@@ -143,6 +143,10 @@ export interface Employee {
   contractData?: ContractData;
   outsourcedData?: OutsourcedData;
   
+  // Campos de saída (quando status = Inativo)
+  exitDate?: string;
+  exitReason?: 'Rescisão' | 'Demissão' | 'Pedido de Demissão';
+  
   createdAt: string;
   updatedAt: string;
 }

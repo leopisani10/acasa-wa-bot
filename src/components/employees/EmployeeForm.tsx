@@ -32,6 +32,10 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onClose, o
       expiryDate: '',
     },
     
+    // Campos de saída
+    exitDate: employee?.exitDate || '',
+    exitReason: employee?.exitReason || undefined,
+    
     // Tipo de vínculo
     employmentType: employee?.employmentType || 'CLT',
     
@@ -81,7 +85,17 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onClose, o
   });
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Clear exit fields when status changes to active
+      if (field === 'status' && value !== 'Inativo') {
+        newData.exitDate = '';
+        newData.exitReason = undefined;
+      }
+      
+      return newData;
+    });
   };
 
   const handleNestedInputChange = (parent: string, field: string, value: any) => {
@@ -436,6 +450,38 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onClose, o
                     <option value="Férias">Férias</option>
                   </select>
                 </div>
+                {formData.status === 'Inativo' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Data de Saída *
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.exitDate || ''}
+                        onChange={(e) => handleInputChange('exitDate', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-acasa-purple focus:border-transparent"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Motivo da Saída *
+                      </label>
+                      <select
+                        value={formData.exitReason || ''}
+                        onChange={(e) => handleInputChange('exitReason', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-acasa-purple focus:border-transparent"
+                        required
+                      >
+                        <option value="">Selecione o motivo...</option>
+                        <option value="Rescisão">Rescisão</option>
+                        <option value="Demissão">Demissão</option>
+                        <option value="Pedido de Demissão">Pedido de Demissão</option>
+                      </select>
+                    </div>
+                  </>
+                )}
               </div>
             </section>
 
