@@ -204,7 +204,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
       
       if (guestData.fullName !== undefined) updateData.full_name = guestData.fullName;
       if (guestData.gender !== undefined) updateData.gender = guestData.gender;
-      if (guestData.birthDate !== undefined) updateData.birth_date = guestData.birthDate;
+      if (guestData.birthDate !== undefined) updateData.birth_date = guestData.birthDate || null;
       if (guestData.cpf !== undefined) updateData.cpf = guestData.cpf;
       if (guestData.rg !== undefined) updateData.rg = guestData.rg;
       if (guestData.documentIssuer !== undefined) updateData.document_issuer = guestData.documentIssuer;
@@ -212,11 +212,11 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
       if (guestData.hasCuratorship !== undefined) updateData.has_curatorship = guestData.hasCuratorship;
       if (guestData.imageUsageAuthorized !== undefined) updateData.image_usage_authorized = guestData.imageUsageAuthorized;
       if (guestData.status !== undefined) updateData.status = guestData.status;
-      if (guestData.admissionDate !== undefined) updateData.admission_date = guestData.admissionDate;
-      if (guestData.exitDate !== undefined) updateData.exit_date = guestData.exitDate;
+      if (guestData.admissionDate !== undefined) updateData.admission_date = guestData.admissionDate || null;
+      if (guestData.exitDate !== undefined) updateData.exit_date = guestData.exitDate || null;
       if (guestData.exitReason !== undefined) updateData.exit_reason = guestData.exitReason;
       if (guestData.hasNewContract !== undefined) updateData.has_new_contract = guestData.hasNewContract;
-      if (guestData.contractExpiryDate !== undefined) updateData.contract_expiry_date = guestData.contractExpiryDate;
+      if (guestData.contractExpiryDate !== undefined) updateData.contract_expiry_date = guestData.contractExpiryDate || null;
       if (guestData.dependencyLevel !== undefined) updateData.dependency_level = guestData.dependencyLevel;
       if (guestData.legalResponsibleRelationship !== undefined) updateData.legal_responsible_relationship = guestData.legalResponsibleRelationship;
       if (guestData.legalResponsibleCpf !== undefined) updateData.legal_responsible_cpf = guestData.legalResponsibleCpf;
