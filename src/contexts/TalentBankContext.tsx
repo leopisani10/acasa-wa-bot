@@ -80,16 +80,16 @@ export const TalentBankProvider: React.FC<TalentBankProviderProps> = ({ children
       // Check if error is related to missing tables
       if (error && typeof error === 'object' && 'code' in error) {
         if (error.code === 'PGRST205' || error.code === 'PGRST116') {
-          setError('Tabelas do Banco de Talentos não encontradas. Execute a migração create_talent_bank_tables.sql no Supabase SQL Editor.');
+          setError('CONFIGURAÇÃO NECESSÁRIA: As tabelas do Banco de Talentos ainda não foram criadas. Acesse o Supabase SQL Editor e execute a migração "create_talent_bank_tables.sql" para ativar este módulo.');
         } else if (error.code === '42P01') {
-          setError('Tabelas do Banco de Talentos não existem. Por favor, execute a migração no banco de dados.');
+          setError('TABELAS AUSENTES: Execute a migração "create_talent_bank_tables.sql" no Supabase SQL Editor para criar as tabelas necessárias do Banco de Talentos.');
         } else {
           setError(`Erro no banco de dados: ${error.message || 'Erro desconhecido'}`);
         }
       } else if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
         setError('Erro de conexão: Verifique sua conexão com a internet e se o Supabase está configurado corretamente');
       } else {
-        setError('Erro ao carregar dados do Banco de Talentos. Verifique se as tabelas foram criadas no banco.');
+        setError('MIGRAÇÃO PENDENTE: As tabelas do Banco de Talentos precisam ser criadas. Execute a migração "create_talent_bank_tables.sql" no Supabase SQL Editor.');
       }
     } finally {
       setLoading(false);

@@ -64,14 +64,33 @@ export const CandidateList: React.FC = () => {
         </div>
         <button
           onClick={() => {
-            setEditingCandidate(null);
-            setShowForm(true);
-          }}
-          className="mt-4 sm:mt-0 flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          <Plus size={20} className="mr-2" />
-          Novo Candidato
-        </button>
+      <div className="text-center py-12 max-w-2xl mx-auto">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-yellow-100 rounded-full">
+            <Database className="w-6 h-6 text-yellow-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+            Configuração Necessária
+          </h3>
+          <p className="text-yellow-700 mb-4 leading-relaxed">
+            {error}
+          </p>
+          <div className="bg-white rounded-lg p-4 mb-4 text-left">
+            <h4 className="font-semibold text-gray-800 mb-2">📋 Passos para ativar:</h4>
+            <ol className="text-sm text-gray-600 space-y-1">
+              <li>1. Acesse seu projeto no Supabase</li>
+              <li>2. Vá para "SQL Editor"</li>
+              <li>3. Execute a migração "create_talent_bank_tables.sql"</li>
+              <li>4. Recarregue esta página</li>
+            </ol>
+          </div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
+          >
+            Recarregar Página
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
