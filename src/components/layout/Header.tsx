@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, sideba
       { key: 'prontuario', label: 'Prontuário Eletrônico', icon: FileText },
     ] : []),
     { key: 'schedules', label: 'Escalas', icon: Calendar },
-    { key: 'sobreaviso', label: 'Banco de Talentos', icon: Clock },
+    { key: 'sobreaviso', label: 'Sobreaviso', icon: Clock },
     { key: 'cardapio', label: 'Cardápio', icon: ChefHat },
     // Menus administrativos só para admins
     ...(user?.role === 'admin' ? [
