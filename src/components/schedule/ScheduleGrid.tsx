@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, AlertCircle, Trash2, UserPlus, Edit3, FileText, Plus, Users } from 'lucide-react';
+import { Save, AlertCircle, Trash2, UserPlus, Edit3, FileText, Plus, Users, X } from 'lucide-react';
 import { useSchedule } from '../../contexts/ScheduleContext';
 import { useSobreaviso } from '../../contexts/SobreavisoContext';
 import { ScheduleEmployee, ShiftType, ScheduleSubstitution } from '../../types';
