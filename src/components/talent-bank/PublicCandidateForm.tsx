@@ -322,7 +322,7 @@ export const PublicCandidateForm: React.FC = () => {
         </form>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-8 py-6 border-t border-gray-200">
+        <div className="bg-gray-50 px-8 py-6 border-t border-gray-200 text-center">
           <div className="text-center">
             <h4 className="font-semibold text-gray-900 mb-2">🏥 Sobre a ACASA Residencial Sênior</h4>
             <p className="text-sm text-gray-600 mb-4">
@@ -343,6 +343,13 @@ export const PublicCandidateForm: React.FC = () => {
                 <br />Cuidar com excelência
               </div>
             </div>
+          </div>
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <p className="text-xs text-gray-500">
+              <strong>Política de Privacidade:</strong> Seus dados são protegidos conforme a LGPD e utilizados exclusivamente para processos seletivos da ACASA.
+              <br />
+              <strong>Contato:</strong> rh@acasaresidencialsenior.com.br • (21) 2537-8350
+            </p>
           </div>
         </div>
       </div>
