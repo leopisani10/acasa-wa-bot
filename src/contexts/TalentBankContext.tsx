@@ -98,13 +98,30 @@ export const TalentBankProvider: React.FC<TalentBankProviderProps> = ({ children
 
   const fetchCandidates = async () => {
     try {
-      const { data, error } = await supabase
-        .from('candidates')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      setCandidates(data || []);
+      // Wrap in try-catch to prevent Supabase SDK console errors
+      try {
+        const { data, error } = await supabase
+          .from('candidates')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          // Check for table not found errors
+          if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.code === '42P01') {
+            setCandidates([]);
+            return;
+          }
+          throw error;
+        }
+        setCandidates(data || []);
+      } catch (err: any) {
+        // Silently handle table not found errors
+        if (err?.code === 'PGRST205' || err?.code === 'PGRST116' || err?.code === '42P01') {
+          setCandidates([]);
+          return;
+        }
+        throw err;
+      }
     } catch (error) {
       setCandidates([]);
       
@@ -125,16 +142,33 @@ export const TalentBankProvider: React.FC<TalentBankProviderProps> = ({ children
 
   const fetchActivities = async () => {
     try {
-      const { data, error } = await supabase
-        .from('candidate_activities')
-        .select(`
-          *,
-          creator:profiles!candidate_activities_created_by_fkey(id, name)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      setActivities(data || []);
+      // Wrap in try-catch to prevent Supabase SDK console errors
+      try {
+        const { data, error } = await supabase
+          .from('candidate_activities')
+          .select(`
+            *,
+            creator:profiles!candidate_activities_created_by_fkey(id, name)
+          `)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          // Check for table not found errors
+          if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.code === '42P01') {
+            setActivities([]);
+            return;
+          }
+          throw error;
+        }
+        setActivities(data || []);
+      } catch (err: any) {
+        // Silently handle table not found errors
+        if (err?.code === 'PGRST205' || err?.code === 'PGRST116' || err?.code === '42P01') {
+          setActivities([]);
+          return;
+        }
+        throw err;
+      }
     } catch (error) {
       setActivities([]);
       
