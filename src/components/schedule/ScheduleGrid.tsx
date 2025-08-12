@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Save, AlertCircle, Trash2, UserPlus, Edit3, FileText, Plus, Users, X } from 'lucide-react';
+import { Save, AlertCircle, Trash2, UserPlus, Edit3, FileText, Plus, Users, X, Lock, Calendar, CheckCircle, AlertTriangle, Printer, UserX, Copy } from 'lucide-react';
 import { useSchedule } from '../../contexts/ScheduleContext';
 import { useSobreaviso } from '../../contexts/SobreavisoContext';
 import { ScheduleEmployee, ShiftType, ScheduleSubstitution } from '../../types';
@@ -34,6 +34,7 @@ interface ScheduleClosure {
   backupData: any;
   isLocked: boolean;
 }
+
 export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   scheduleType,
   unit,
@@ -52,6 +53,8 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   const [showSubstituteModal, setShowSubstituteModal] = useState(false);
   const [showAddPositionModal, setShowAddPositionModal] = useState(false);
   const [showClosureModal, setShowClosureModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showBulkActionModal, setShowBulkActionModal] = useState(false);
   const [scheduleClosure, setScheduleClosure] = useState<ScheduleClosure | null>(null);
   const [selectedDay, setSelectedDay] = useState<{ employeeId: string; day: number } | null>(null);
   const [substituteForm, setSubstituteForm] = useState({
@@ -69,6 +72,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   const monthSubstitutions = getSubstitutionsForMonth(scheduleType, unit, month, year);
   const daysInMonth = new Date(year, month, 0).getDate();
   const sobreavisoList = getSobreavisoByUnit(unit);
+
   // Verificar se a escala está fechada
   useEffect(() => {
     const savedClosures = localStorage.getItem('acasa_schedule_closures');
@@ -94,6 +98,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
       setSelectedEmployees(employees.map(emp => emp.id));
     }
   }, [employees]);
+
   useEffect(() => {
     // Carregar dados da escala
     const data: Record<string, Record<number, ShiftType | null>> = {};
@@ -116,9 +121,9 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
     
     // Inicializar posições vazias existentes
     emptyPositions.forEach(position => {
-      initialData[position.id] = {};
+      data[position.id] = {};
       for (let day = 1; day <= daysInMonth; day++) {
-        initialData[position.id][day] = null;
+        data[position.id][day] = null;
       }
     });
     
@@ -133,7 +138,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
       substitutionData[sub.employeeId][sub.day] = sub;
     });
     setLocalSubstitutions(substitutionData);
-  }, [allEmployees, monthSchedules, monthSubstitutions, month, year]);
+  }, [allEmployees, monthSchedules, monthSubstitutions, month, year, daysInMonth, emptyPositions]);
 
   const handleEmployeeToggle = (employeeId: string) => {
     setSelectedEmployees(prev => 
@@ -150,6 +155,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   const handleDeselectAllEmployees = () => {
     setSelectedEmployees([]);
   };
+
   // Função para ordenar funcionários por cargo
   const sortEmployeesByPosition = () => {
     const priorityOrder = [
@@ -176,7 +182,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
         // Se mesmo cargo, ordenar por nome
         return a.name.localeCompare(b.name);
       }
-  }, [employees, monthSchedules, daysInMonth, emptyPositions]);
+      
       // Se apenas um está na lista, priorizar o que está
       if (aIndex !== -1) return -1;
       if (bIndex !== -1) return 1;
@@ -201,7 +207,9 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
     
     return updates;
   }, [daysInMonth]);
+
   const sortedEmployees = sortEmployeesByPosition();
+
   // Função melhorada para lidar com mudanças de turno
   const handleShiftChangeWithAutoFill = useCallback(async (employeeId: string, day: number, shift: ShiftType | null) => {
     // Atualizar o dia atual
@@ -272,6 +280,27 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   };
 
   const handleClearSchedule = async () => {
+    if (window.confirm(`Tem certeza que deseja limpar toda a escala de ${scheduleType} da unidade ${unit} para ${monthNames[month - 1]} ${year}?`)) {
+      try {
+        await clearScheduleForMonth(scheduleType, unit, month, year);
+        // Limpar dados locais também
+        const clearedData: Record<string, Record<number, ShiftType | null>> = {};
+        allEmployees.forEach(employee => {
+          clearedData[employee.id] = {};
+          for (let day = 1; day <= 31; day++) {
+            clearedData[employee.id][day] = null;
+          }
+        });
+        setScheduleData(clearedData);
+        setLocalSubstitutions({});
+      } catch (error) {
+        console.error('Erro ao limpar escala:', error);
+        alert('Erro ao limpar escala. Tente novamente.');
+      }
+    }
+  };
+
+  const clearAllSchedules = async () => {
     if (window.confirm(`Tem certeza que deseja limpar toda a escala de ${scheduleType} da unidade ${unit} para ${monthNames[month - 1]} ${year}?`)) {
       try {
         await clearScheduleForMonth(scheduleType, unit, month, year);
@@ -475,6 +504,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
       }
     }
   };
+
   const handleRemoveEmptyPosition = (positionId: string) => {
     setEmptyPositions(prev => prev.filter(pos => pos.id !== positionId));
     
@@ -510,6 +540,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
     if (shift === '24') return '24h';
     return shift;
   };
+
   const shiftOptions: (ShiftType | null)[] = [null, 'SD', 'DR', '12', '24', '6h'];
   const uniquePositions = new Set(allEmployees.map(emp => emp.position)).size;
 
@@ -722,7 +753,8 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
                                   }
                                 }
                               }}
-                              className={`w-full px-1 py-1 text-xs border rounded text-center ${getShiftColor(scheduleData[employee.id]?.[day] || null)} ${isEmptyPosition ? 'italic' : ''}`}
+                              disabled={scheduleClosure?.isLocked}
+                              className={`w-full px-1 py-1 text-xs border rounded text-center ${getShiftColor(scheduleData[employee.id]?.[day] || null)} ${isEmptyPosition ? 'italic' : ''} ${scheduleClosure?.isLocked ? 'cursor-not-allowed opacity-50' : ''}`}
                             >
                               <option value="">-</option>
                               <option value="SD">SD</option>
@@ -747,7 +779,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
                                 </div>
                                 <div className="text-xs text-orange-600">{hasSubstitution.reason}</div>
                               </div>
-                            ) : hasShift && (
+                            ) : hasShift && !scheduleClosure?.isLocked && (
                               <button
                                 onClick={() => handleAddSubstitute(employee.id, day)}
                                 className="w-full bg-orange-100 border border-orange-300 rounded px-1 py-0.5 text-xs text-orange-600 hover:bg-orange-200 transition-colors"
@@ -762,6 +794,60 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
                     })}
                   </tr>
                 );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Legend */}
+        <div className="bg-gray-50 p-4 border-t border-gray-200">
+          <h4 className="font-semibold text-gray-900 mb-2">Legenda dos Turnos:</h4>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+            <div className="flex items-center space-x-2">
+              <div className="w-6 h-6 bg-blue-100 border border-blue-300 rounded text-xs flex items-center justify-center text-blue-700 font-medium">
+                SD
+              </div>
+              <span className="text-sm text-gray-700">Serviço Diurno</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-6 h-6 bg-green-100 border border-green-300 rounded text-xs flex items-center justify-center text-green-700 font-medium">
+                DR
+              </div>
+              <span className="text-sm text-gray-700">Descanso Remunerado</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-6 h-6 bg-yellow-100 border border-yellow-300 rounded text-xs flex items-center justify-center text-yellow-700 font-medium">
+                12
+              </div>
+              <span className="text-sm text-gray-700">Plantão 12h</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-6 h-6 bg-red-100 border border-red-300 rounded text-xs flex items-center justify-center text-red-700 font-medium">
+                24
+              </div>
+              <span className="text-sm text-gray-700">Plantão 24h</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-6 h-6 bg-purple-100 border border-purple-300 rounded text-xs flex items-center justify-center text-acasa-purple font-medium">
+                6h
+              </div>
+              <span className="text-sm text-gray-700">Plantão 6h</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 className="font-semibold text-blue-900 mb-2">💡 Como usar as Posições Vazias:</h4>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• <strong>Selecionar Funcionários:</strong> Clique no botão azul para escolher quais funcionários aparecerão na escala</li>
+            <li>• <strong>Adicionar Posição:</strong> Clique no botão verde para criar posições vazias (ex: "Técnico 1", "Cuidador 2")</li>
+            <li>• <strong>Definir Escalas:</strong> Marque turnos 24h ou 12h nas posições vazias para criar o padrão do mês</li>
+            <li>• <strong>Preencher com Curingas:</strong> Durante o mês, clique em "+ Curinga" para definir quem vai cobrir cada plantão</li>
+            <li>• <strong>Escala Automática:</strong> Turnos 24h repetem a cada 3 dias, turnos 12h a cada 2 dias</li>
+          </ul>
+        </div>
+      </div>
+
       {/* Status da Escala e Ações Principais */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center justify-between">
@@ -809,6 +895,8 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
             >
               <Printer size={16} className="mr-2" />
               Relatório
+            </button>
+
             {!scheduleClosure && (
               <>
                 <button
@@ -931,6 +1019,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
           </div>
         </div>
       )}
+
       {/* Modal para Adicionar Posições */}
       {showAddPositionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -1087,44 +1176,41 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
                   </label>
                   <select
                     value={substituteForm.reason}
-                              disabled={scheduleClosure?.isLocked}
                     onChange={(e) => setSubstituteForm(prev => ({ ...prev, reason: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-acasa-purple focus:border-transparent"
-                                const selectedShift = e.target.value === '' ? null : e.target.value as ShiftType;
-                                handleShiftChange(employee.id, day, selectedShift);
-            <span className="text-sm text-gray-700">Descanso Remunerado</span>
-                              className={`w-full px-1 py-1 text-xs border rounded text-center ${getShiftColor(shift)} ${isEmptyPosition ? 'italic' : ''} ${scheduleClosure?.isLocked ? 'cursor-not-allowed opacity-50' : ''}`}
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-yellow-100 border border-yellow-300 rounded text-xs flex items-center justify-center text-yellow-700 font-medium">
-              12
+                  >
+                    <option value="Substituição">Substituição</option>
+                    <option value="Falta">Falta</option>
+                    <option value="Atestado">Atestado</option>
+                    <option value="Férias">Férias</option>
+                    <option value="Licença">Licença</option>
+                    <option value="Curinga">Curinga</option>
+                    <option value="Emergência">Emergência</option>
+                    <option value="Outro">Outro</option>
+                  </select>
+                </div>
+              </div>
             </div>
-            <span className="text-sm text-gray-700">Plantão 12h</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-red-100 border border-red-300 rounded text-xs flex items-center justify-center text-red-700 font-medium">
-              24
+            
+            <div className="flex items-center justify-end space-x-4 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowSubstituteModal(false)}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveSubstitute}
+                disabled={!substituteForm.substituteName.trim() || (!substituteForm.substituteId && !substituteForm.substituteName.trim())}
+                className="flex items-center px-4 py-2 bg-acasa-purple text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <UserPlus size={16} className="mr-2" />
+                Adicionar Substituição
+              </button>
             </div>
-                          {shift && !substitution && (
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-purple-100 border border-purple-300 rounded text-xs flex items-center justify-center text-acasa-purple font-medium">
-              6h
-            </div>
-            <span className="text-sm text-gray-700">Plantão 6h</span>
-          </div>
-                            {getShiftDisplay(shift)}
-
-        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-semibold text-blue-900 mb-2">💡 Como usar as Posições Vazias:</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• <strong>Selecionar Funcionários:</strong> Clique no botão azul para escolher quais funcionários aparecerão na escala</li>
-            <li>• <strong>Adicionar Posição:</strong> Clique no botão verde para criar posições vazias (ex: "Técnico 1", "Cuidador 2")</li>
-            <li>• <strong>Definir Escalas:</strong> Marque turnos 24h ou 12h nas posições vazias para criar o padrão do mês</li>
-            <li>• <strong>Preencher com Curingas:</strong> Durante o mês, clique em "+ Curinga" para definir quem vai cobrir cada plantão</li>
-            <li>• <strong>Escala Automática:</strong> Turnos 24h repetem a cada 3 dias, turnos 12h a cada 2 dias</li>
-          </ul>
         </div>
-      </div>
+      )}
 
       {/* Modal de Fechamento de Escala */}
       {showClosureModal && (
@@ -1187,109 +1273,6 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
                   Fechar Escala
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}</antmlAction>
-      {/* Modal de Substituição */}
-      {showSubstituteModal && selectedDay && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Adicionar Substituição</h2>
-              <button
-                onClick={() => setShowSubstituteModal(false)}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="p-6">
-              <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-2">
-                  <strong>Posição:</strong> {allEmployees.find(e => e.id === selectedDay.employeeId)?.name}
-                </p>
-                <p className="text-sm text-gray-600 mb-4">
-                  <strong>Dia:</strong> {selectedDay.day} de {monthNames[month - 1]} {year}
-                </p>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Selecionar Curinga/Substituto *
-                  </label>
-                  <select
-                    value={substituteForm.substituteId}
-                    onChange={(e) => handleSubstituteChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-acasa-purple focus:border-transparent"
-                    required
-                  >
-                    <option value="">Selecione um colaborador...</option>
-                    {sobreavisoList.map(emp => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.fullName} ({emp.position})
-                      </option>
-                    ))}
-                    <option value="custom">✏️ Digitar nome manualmente</option>
-                  </select>
-                  
-                  {substituteForm.substituteId === 'custom' && (
-                    <input
-                      type="text"
-                      value={substituteForm.substituteName}
-                      onChange={(e) => setSubstituteForm(prev => ({ ...prev, substituteName: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-acasa-purple focus:border-transparent mt-2"
-                      placeholder="Digite o nome do substituto..."
-                      required
-                    />
-                  )}
-                  
-                  {sobreavisoList.length === 0 && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Nenhum colaborador de sobreaviso cadastrado. Cadastre primeiro na seção "Sobreaviso".
-                    </p>
-                  )}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Motivo da Substituição
-                  </label>
-                  <select
-                    value={substituteForm.reason}
-                    onChange={(e) => setSubstituteForm(prev => ({ ...prev, reason: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-acasa-purple focus:border-transparent"
-                  >
-                    <option value="Substituição">Substituição</option>
-                    <option value="Falta">Falta</option>
-                    <option value="Atestado">Atestado</option>
-                    <option value="Férias">Férias</option>
-                    <option value="Licença">Licença</option>
-                    <option value="Curinga">Curinga</option>
-                    <option value="Emergência">Emergência</option>
-                    <option value="Outro">Outro</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-end space-x-4 p-6 border-t border-gray-200">
-              <button
-                onClick={() => setShowSubstituteModal(false)}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveSubstitute}
-                disabled={!substituteForm.substituteName.trim() || (!substituteForm.substituteId && !substituteForm.substituteName.trim())}
-                className="flex items-center px-4 py-2 bg-acasa-purple text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <UserPlus size={16} className="mr-2" />
-                Adicionar Substituição
-              </button>
             </div>
           </div>
         </div>
