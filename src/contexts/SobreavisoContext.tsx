@@ -49,7 +49,6 @@ export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children
       if (error) {
         // If table doesn't exist, fall back to localStorage
         if (error.code === 'PGRST205') {
-          console.warn('sobreaviso_employees table not found, using localStorage');
           const stored = localStorage.getItem('sobreavisoEmployees');
           const localData = stored ? JSON.parse(stored) : [];
           setSobreavisoEmployees(localData);
@@ -76,8 +75,11 @@ export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children
       
       setSobreavisoEmployees(transformedEmployees);
     } catch (error) {
-      console.error('Error fetching sobreaviso employees:', error);
-      setError(error instanceof Error ? error.message : 'Erro ao carregar funcionários de sobreaviso');
+      // Only set error for actual database errors, not missing table
+      if (error instanceof Error && !error.message.includes('PGRST205')) {
+        console.error('Error fetching sobreaviso employees:', error);
+        setError(error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -129,8 +131,11 @@ export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children
         throw error;
       }
     } catch (error) {
-      console.error('Error adding sobreaviso employee:', error);
-      throw error;
+      // Only throw error for actual database errors, not missing table
+      if (!(error instanceof Error && error.message.includes('PGRST205'))) {
+        console.error('Error adding sobreaviso employee:', error);
+        throw error;
+      }
     }
   };
 
@@ -176,8 +181,11 @@ export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children
         throw error;
       }
     } catch (error) {
-      console.error('Error updating sobreaviso employee:', error);
-      throw error;
+      // Only throw error for actual database errors, not missing table
+      if (!(error instanceof Error && error.message.includes('PGRST205'))) {
+        console.error('Error updating sobreaviso employee:', error);
+        throw error;
+      }
     }
   };
 
@@ -208,8 +216,11 @@ export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children
         throw error;
       }
     } catch (error) {
-      console.error('Error deleting sobreaviso employee:', error);
-      throw error;
+      // Only throw error for actual database errors, not missing table
+      if (!(error instanceof Error && error.message.includes('PGRST205'))) {
+        console.error('Error deleting sobreaviso employee:', error);
+        throw error;
+      }
     }
   };
 
