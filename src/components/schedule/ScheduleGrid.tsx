@@ -553,8 +553,8 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
                               <option value="">-</option>
                               <option value="SD">SD</option>
                               <option value="DR">DR</option>
-                              <option value="12">12</option>
-                              <option value="24">24</option>
+                              <option value="12">12h</option>
+                              <option value="24">24h</option>
                               <option value="6h">6h</option>
                             </select>
                             
