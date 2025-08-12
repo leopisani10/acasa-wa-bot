@@ -302,8 +302,6 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                       >
                         <option value="">Selecione o motivo...</option>
                         <option value="Óbito">Óbito</option>
-                        <option value="Rescisão">Rescisão</option>
-                        <option value="Transferência">Transferência</option>
                         <option value="Outro">Outro</option>
                       </select>
                     </div>

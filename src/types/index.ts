@@ -25,7 +25,7 @@ export interface Guest {
   status: 'Ativo' | 'Inativo';
   admissionDate: string;
   exitDate?: string;
-  exitReason?: 'Óbito' | 'Rescisão' | 'Transferência' | 'Outro';
+  exitReason?: 'Óbito' | 'Outro';
   hasNewContract: boolean;
   contractExpiryDate: string;
   dependencyLevel: 'I' | 'II' | 'III';
