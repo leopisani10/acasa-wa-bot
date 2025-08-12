@@ -194,6 +194,11 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
 
   // Função para preencher automaticamente dias sequenciais
   const fillAutomaticDays = useCallback((employeeId: string, startDay: number, shiftType: ShiftType) => {
+    // Implementation for fillAutomaticDays
+  }, []);
+
+  const sortedEmployees = sortEmployeesByPosition();
+
   const handleShiftChange = (employeeId: string, day: number, shift: ShiftType | null) => {
     // Atualizar estado local
     // Atualizar estado local primeiro
@@ -1210,6 +1215,21 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Monthly Report Modal */}
+      {showMonthlyReport && (
+        <MonthlyReport
+          scheduleType={scheduleType}
+          unit={unit}
+          month={month}
+          year={year}
+          monthNames={monthNames}
+          employees={allEmployees}
+          scheduleData={scheduleData}
+          substitutions={localSubstitutions}
+          onClose={() => setShowMonthlyReport(false)}
+        />
       )}
 
       {/* Print Styles */}
