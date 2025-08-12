@@ -278,6 +278,39 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                     <option value="Inativo">Inativo</option>
                   </select>
                 </div>
+                {formData.status === 'Inativo' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Motivo da Inativação *
+                      </label>
+                      <select
+                        value={formData.exitReason || ''}
+                        onChange={(e) => handleInputChange('exitReason', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                      >
+                        <option value="">Selecione o motivo...</option>
+                        <option value="Óbito">Óbito</option>
+                        <option value="Rescisão">Rescisão</option>
+                        <option value="Transferência">Transferência</option>
+                        <option value="Outro">Outro</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Data do Último Dia na Instituição *
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.exitDate || ''}
+                        onChange={(e) => handleInputChange('exitDate', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                      />
+                    </div>
+                  </>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Data de Admissão *
@@ -632,64 +665,8 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                 </div>
               </div>
               
-              <h4 className="text-md font-semibold text-gray-900 mb-4">Documentos</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    PIA (Plano Individual de Atendimento)
-                  </label>
-                  <div className="flex items-center space-x-4">
-                    <label className="flex items-center px-4 py-2 bg-acasa-purple text-white rounded-lg hover:bg-purple-700 cursor-pointer transition-colors">
-                      <Upload size={16} className="mr-2" />
-                      Anexar PIA
-                      <input
-                        type="file"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const fakeUrl = `https://example.com/pia/${file.name}`;
-                            handleInputChange('pia', fakeUrl);
-                          }
-                        }}
-                        className="hidden"
-                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                      />
-                    </label>
-                  </div>
-                  {formData.pia && (
-                    <p className="text-sm text-green-600 mt-2">
-                      ✓ PIA anexado: {formData.pia.split('/').pop()}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    PAISI (Plano de Atenção Integral à Saúde)
-                  </label>
-                  <div className="flex items-center space-x-4">
-                    <label className="flex items-center px-4 py-2 bg-acasa-purple text-white rounded-lg hover:bg-purple-700 cursor-pointer transition-colors">
-                      <Upload size={16} className="mr-2" />
-                      Anexar PAISI
-                      <input
-                        type="file"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const fakeUrl = `https://example.com/paisi/${file.name}`;
-                            handleInputChange('paisi', fakeUrl);
-                          }
-                        }}
-                        className="hidden"
-                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                      />
-                    </label>
-                  </div>
-                  {formData.paisi && (
-                    <p className="text-sm text-green-600 mt-2">
-                      ✓ PAISI anexado: {formData.paisi.split('/').pop()}
-                    </p>
-                  )}
-                </div>
+              <h4 className="text-md font-semibold text-gray-900 mb-4">Contrato Digitalizado</h4>
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Contrato Digitalizado
@@ -718,7 +695,6 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                     </p>
                   )}
                 </div>
-              </div>
             </section>
 
             {/* Vacinas */}
