@@ -470,54 +470,81 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
                                 const shift = e.target.value === '' ? null : e.target.value as ShiftType;
                                 handleShiftChange(employee.id, day, shift);
                                 
-                                // Verificar se é uma posição vazia antes de salvar
-                                const isEmptyPosition = employee.id.startsWith('empty-');
+                                // Lógica de preenchimento automático para 24h e 12h
+                                if (shift === '24') {
+                                  let nextWorkDay = day + 3;
+                                  const updates: Record<number, ShiftType> = {};
+                                  
+                                  while (nextWorkDay <= daysInMonth) {
+                                    updates[nextWorkDay] = '24';
+                                    nextWorkDay += 3;
+                                  }
+                                  
+                                  if (Object.keys(updates).length > 0) {
+                                    // Atualizar estado local
+                                    setScheduleData(prev => ({
+                                      ...prev,
+                                      [employee.id]: {
+                                        ...prev[employee.id],
+                                        ...updates,
+                                      }
+                                    }));
+                                    
+                                    // Salvar no banco se for funcionário real
+                                    const isEmptyPosition = employee.id.startsWith('empty-');
+                                    if (!isEmptyPosition) {
+                                      // Salvar cada dia individual no banco
+                                      Object.entries(updates).forEach(async ([dayStr, shiftType]) => {
+                                        try {
+                                          await updateScheduleDay(employee.id, scheduleType, unit, month, year, parseInt(dayStr), shiftType);
+                                        } catch (error) {
+                                          console.error('Error saving auto-filled schedule day:', error);
+                                        }
+                                      });
+                                    }
+                                  }
+                                } else if (shift === '12') {
+                                  let nextWorkDay = day + 2;
+                                  const updates: Record<number, ShiftType> = {};
+                                  
+                                  while (nextWorkDay <= daysInMonth) {
+                                    updates[nextWorkDay] = '12';
+                                    nextWorkDay += 2;
+                                  }
+                                  
+                                  if (Object.keys(updates).length > 0) {
+                                    // Atualizar estado local
+                                    setScheduleData(prev => ({
+                                      ...prev,
+                                      [employee.id]: {
+                                        ...prev[employee.id],
+                                        ...updates,
+                                      }
+                                    }));
+                                    
+                                    // Salvar no banco se for funcionário real
+                                    const isEmptyPosition = employee.id.startsWith('empty-');
+                                    if (!isEmptyPosition) {
+                                      // Salvar cada dia individual no banco
+                                      Object.entries(updates).forEach(async ([dayStr, shiftType]) => {
+                                        try {
+                                          await updateScheduleDay(employee.id, scheduleType, unit, month, year, parseInt(dayStr), shiftType);
+                                        } catch (error) {
+                                          console.error('Error saving auto-filled schedule day:', error);
+                                        }
+                                      });
+                                    }
+                                  }
+                                }
                                 
+                                // Salvar o dia atual no banco se for funcionário real
+                                const isEmptyPosition = employee.id.startsWith('empty-');
                                 if (!isEmptyPosition) {
-                                  // Salvar no banco apenas para funcionários reais
+                                  // Salvar no banco apenas para funcionários reais (dia atual)
                                   try {
                                     await updateScheduleDay(employee.id, scheduleType, unit, month, year, day, shift);
                                   } catch (error) {
                                     console.error('Error saving schedule:', error);
-                                  }
-                                } else {
-                                  // Para posições vazias, aplicar lógica automática apenas no estado local
-                                  if (shift === '24') {
-                                    let nextWorkDay = day + 3;
-                                    const updates: Record<number, ShiftType> = {};
-                                    
-                                    while (nextWorkDay <= daysInMonth) {
-                                      updates[nextWorkDay] = '24';
-                                      nextWorkDay += 3;
-                                    }
-                                    
-                                    if (Object.keys(updates).length > 0) {
-                                      setScheduleData(prev => ({
-                                        ...prev,
-                                        [employee.id]: {
-                                          ...prev[employee.id],
-                                          ...updates,
-                                        }
-                                      }));
-                                    }
-                                  } else if (shift === '12') {
-                                    let nextWorkDay = day + 2;
-                                    const updates: Record<number, ShiftType> = {};
-                                    
-                                    while (nextWorkDay <= daysInMonth) {
-                                      updates[nextWorkDay] = '12';
-                                      nextWorkDay += 2;
-                                    }
-                                    
-                                    if (Object.keys(updates).length > 0) {
-                                      setScheduleData(prev => ({
-                                        ...prev,
-                                        [employee.id]: {
-                                          ...prev[employee.id],
-                                          ...updates,
-                                        }
-                                      }));
-                                    }
                                   }
                                 }
                               }}
