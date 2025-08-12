@@ -695,6 +695,7 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                     </p>
                   )}
                 </div>
+              </div>
             </section>
 
             {/* Vacinas */}
