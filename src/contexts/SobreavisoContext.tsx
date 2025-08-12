@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { supabase, getCurrentUserId } from '../utils/supabase';
 import { SobreavisoEmployee } from '../types';
 
 interface SobreavisoContextType {
   sobreavisoEmployees: SobreavisoEmployee[];
-  addSobreavisoEmployee: (employee: Omit<SobreavisoEmployee, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateSobreavisoEmployee: (id: string, employee: Partial<SobreavisoEmployee>) => void;
-  deleteSobreavisoEmployee: (id: string) => void;
+  loading: boolean;
+  error: string | null;
+  addSobreavisoEmployee: (employee: Omit<SobreavisoEmployee, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateSobreavisoEmployee: (id: string, employee: Partial<SobreavisoEmployee>) => Promise<void>;
+  deleteSobreavisoEmployee: (id: string) => Promise<void>;
   getSobreavisoEmployee: (id: string) => SobreavisoEmployee | undefined;
   getSobreavisoByUnit: (unit: string) => SobreavisoEmployee[];
 }
@@ -26,43 +29,117 @@ interface SobreavisoProviderProps {
 
 export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children }) => {
   const [sobreavisoEmployees, setSobreavisoEmployees] = useState<SobreavisoEmployee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedEmployees = localStorage.getItem('acasa_sobreaviso_employees');
-    if (savedEmployees) {
-      setSobreavisoEmployees(JSON.parse(savedEmployees));
-    }
+    fetchSobreavisoEmployees();
   }, []);
 
-  const saveEmployees = (updatedEmployees: SobreavisoEmployee[]) => {
-    setSobreavisoEmployees(updatedEmployees);
-    localStorage.setItem('acasa_sobreaviso_employees', JSON.stringify(updatedEmployees));
+  const fetchSobreavisoEmployees = async () => {
+    try {
+      setError(null);
+      const { data, error } = await supabase
+        .from('sobreaviso_employees')
+        .select('*')
+        .order('full_name');
+      
+      if (error) throw error;
+      
+      // Transform data to match our SobreavisoEmployee type
+      const transformedEmployees: SobreavisoEmployee[] = data.map(emp => ({
+        id: emp.id,
+        fullName: emp.full_name,
+        cpf: emp.cpf,
+        position: emp.position,
+        phone: emp.phone,
+        pix: emp.pix,
+        unit: emp.unit,
+        status: emp.status,
+        observations: emp.observations,
+        createdAt: emp.created_at,
+        updatedAt: emp.updated_at,
+      }));
+      
+      setSobreavisoEmployees(transformedEmployees);
+    } catch (error) {
+      console.error('Error fetching sobreaviso employees:', error);
+      setError(error instanceof Error ? error.message : 'Erro ao carregar funcionários de sobreaviso');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const addSobreavisoEmployee = (employeeData: Omit<SobreavisoEmployee, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newEmployee: SobreavisoEmployee = {
-      ...employeeData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const updatedEmployees = [...sobreavisoEmployees, newEmployee];
-    saveEmployees(updatedEmployees);
+  const addSobreavisoEmployee = async (employeeData: Omit<SobreavisoEmployee, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const userId = await getCurrentUserId();
+      
+      const { data, error } = await supabase
+        .from('sobreaviso_employees')
+        .insert([{
+          full_name: employeeData.fullName,
+          cpf: employeeData.cpf,
+          position: employeeData.position,
+          phone: employeeData.phone,
+          pix: employeeData.pix,
+          unit: employeeData.unit,
+          status: employeeData.status,
+          observations: employeeData.observations,
+          created_by: userId,
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      await fetchSobreavisoEmployees();
+    } catch (error) {
+      console.error('Error adding sobreaviso employee:', error);
+      throw error;
+    }
   };
 
-  const updateSobreavisoEmployee = (id: string, employeeData: Partial<SobreavisoEmployee>) => {
-    const updatedEmployees = sobreavisoEmployees.map(emp => 
-      emp.id === id 
-        ? { ...emp, ...employeeData, updatedAt: new Date().toISOString() }
-        : emp
-    );
-    saveEmployees(updatedEmployees);
+  const updateSobreavisoEmployee = async (id: string, employeeData: Partial<SobreavisoEmployee>) => {
+    try {
+      const updateData: any = {};
+      
+      if (employeeData.fullName !== undefined) updateData.full_name = employeeData.fullName;
+      if (employeeData.cpf !== undefined) updateData.cpf = employeeData.cpf;
+      if (employeeData.position !== undefined) updateData.position = employeeData.position;
+      if (employeeData.phone !== undefined) updateData.phone = employeeData.phone;
+      if (employeeData.pix !== undefined) updateData.pix = employeeData.pix;
+      if (employeeData.unit !== undefined) updateData.unit = employeeData.unit;
+      if (employeeData.status !== undefined) updateData.status = employeeData.status;
+      if (employeeData.observations !== undefined) updateData.observations = employeeData.observations;
+      
+      const { error } = await supabase
+        .from('sobreaviso_employees')
+        .update(updateData)
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      await fetchSobreavisoEmployees();
+    } catch (error) {
+      console.error('Error updating sobreaviso employee:', error);
+      throw error;
+    }
   };
 
-  const deleteSobreavisoEmployee = (id: string) => {
-    const updatedEmployees = sobreavisoEmployees.filter(emp => emp.id !== id);
-    saveEmployees(updatedEmployees);
+  const deleteSobreavisoEmployee = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('sobreaviso_employees')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      await fetchSobreavisoEmployees();
+    } catch (error) {
+      console.error('Error deleting sobreaviso employee:', error);
+      throw error;
+    }
   };
 
   const getSobreavisoEmployee = (id: string) => {
@@ -77,6 +154,8 @@ export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children
 
   const value = {
     sobreavisoEmployees,
+    loading,
+    error,
     addSobreavisoEmployee,
     updateSobreavisoEmployee,
     deleteSobreavisoEmployee,
