@@ -131,7 +131,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
           status: guestData.status,
           admission_date: guestData.admissionDate,
           exit_date: guestData.exitDate,
-          exit_reason: guestData.exitReason,
+          exit_reason: guestData.exitReason || null,
           has_new_contract: guestData.hasNewContract,
           contract_expiry_date: guestData.contractExpiryDate,
           dependency_level: guestData.dependencyLevel,
@@ -214,7 +214,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
       if (guestData.status !== undefined) updateData.status = guestData.status;
       if (guestData.admissionDate !== undefined) updateData.admission_date = guestData.admissionDate || null;
       if (guestData.exitDate !== undefined) updateData.exit_date = guestData.exitDate || null;
-      if (guestData.exitReason !== undefined) updateData.exit_reason = guestData.exitReason;
+      if (guestData.exitReason !== undefined) updateData.exit_reason = guestData.exitReason || null;
       if (guestData.hasNewContract !== undefined) updateData.has_new_contract = guestData.hasNewContract;
       if (guestData.contractExpiryDate !== undefined) updateData.contract_expiry_date = guestData.contractExpiryDate || null;
       if (guestData.dependencyLevel !== undefined) updateData.dependency_level = guestData.dependencyLevel;
