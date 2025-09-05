@@ -68,11 +68,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Error checking user:', error);
-      // Se houver erro de conexão, tentar deslogar para limpar estado
-      try {
-        await supabase.auth.signOut();
-      } catch (signOutError) {
-        console.error('Error signing out:', signOutError);
+      
+      // Handle connection errors during user check
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.error('Network error during user check - Supabase may be unreachable');
+        // Don't try to sign out if there's a network error, as that will also fail
+      } else {
+        // For other errors, try to sign out to clear state
+        try {
+          await supabase.auth.signOut();
+        } catch (signOutError) {
+          console.error('Error signing out:', signOutError);
+        }
       }
     } finally {
       setIsLoading(false);
@@ -113,19 +120,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       let message = 'Email ou senha incorretos. Verifique suas credenciais ou cadastre-se caso não tenha uma conta.';
       
-      // Extract specific error message from Supabase
+      // Handle network and connection errors specifically
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        message = 'Erro de conexão: Não foi possível conectar ao servidor. Verifique se:\n\n• Sua internet está funcionando\n• O Supabase está configurado corretamente\n• O projeto Supabase está ativo\n\nClique em "Connect to Supabase" no canto superior direito para reconfigurar.';
+      } else if (error && typeof error === 'object' && 'name' in error && error.name === 'TypeError') {
+        message = 'Erro de rede: Verifique sua conexão com a internet e se o Supabase está configurado corretamente.';
+      } else if (error && typeof error === 'object' && 'message' in error) {
       if (error && typeof error === 'object' && 'message' in error) {
         if (error.message.includes('Invalid login credentials')) {
           message = 'Credenciais inválidas. Verifique seu email e senha ou cadastre-se caso não tenha uma conta.';
         } else if (error.message.includes('Email not confirmed')) {
           message = 'Email não confirmado. Verifique sua caixa de entrada.';
         } else if (error.message.includes('Invalid API key')) {
-          message = 'Erro de configuração. Entre em contato com o administrador.';
+          message = 'Configuração do Supabase incorreta. Clique em "Connect to Supabase" no canto superior direito para reconfigurar.';
+        } else if (error.message.includes('Failed to fetch')) {
+          message = 'Erro de conexão com o servidor. Verifique:\n\n• Sua conexão com internet\n• Configuração do Supabase\n• Se o projeto está ativo\n\nUse "Connect to Supabase" para reconfigurar.';
+        } else if (error.message.includes('NetworkError')) {
+          message = 'Erro de rede. Verifique sua conexão com a internet e tente novamente.';
         } else if (error.message.includes('Too many requests')) {
           message = 'Muitas tentativas de login. Tente novamente em alguns minutos.';
         } else {
           message = `Erro: ${error.message}`;
         }
+      }
       }
       
       setIsLoading(false);
