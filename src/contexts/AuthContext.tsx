@@ -126,6 +126,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else if (error && typeof error === 'object' && 'name' in error && error.name === 'TypeError') {
         message = '🌐 Erro de Rede\n\nProblema de conectividade detectado.\n\n• Verifique sua conexão com a internet\n• Confirme se o Supabase está configurado\n• Verifique se o projeto Supabase está ativo\n\n✅ Use "Connect to Supabase" para reconfigurar.';
       } else if (error && typeof error === 'object' && 'message' in error) {
+      }
       if (error && typeof error === 'object' && 'message' in error) {
         if (error.message.includes('Invalid login credentials')) {
           message = 'Credenciais inválidas. Verifique seu email e senha ou cadastre-se caso não tenha uma conta.';
