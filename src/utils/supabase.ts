@@ -156,20 +156,6 @@ const testConnection = async () => {
     }
   }
 };
-              <li>• Problemas de conectividade de rede</li>
-              <li>• Projeto Supabase pausado ou inacessível</li>
-            </ul>
-          </div>
-          <button onclick="window.location.reload()" style="background: #8B2C8A; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.25rem; cursor: pointer;">
-            Tentar Novamente
-          </button>
-        </div>
-      </div>
-    }
-    `;
-    }
-  }
-};
 
 // Call test connection
 testConnection();
@@ -196,5 +182,3 @@ export const getCurrentUserId = async () => {
     return null;
   }
 };
-  }
-}
