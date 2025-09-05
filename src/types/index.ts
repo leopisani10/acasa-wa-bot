@@ -428,6 +428,3 @@ export * from './prontuario';
 
 // Re-export CRM types
 export * from './crm';
-
-// Re-export Talent Bank types
-export * from './talentBank';

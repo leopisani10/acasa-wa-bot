@@ -223,17 +223,6 @@ export const SYSTEM_MODULES: Record<string, SystemModule> = {
     minRole: 'admin',
     isRequired: false,
   },
-  'talent-bank': {
-    id: 'talent-bank',
-    name: 'Banco de Talentos',
-    description: 'Gestão de candidatos e processos seletivos',
-    icon: 'Users',
-    category: 'administrative',
-    dependencies: [],
-    requiredBy: [],
-    minRole: 'admin',
-    isRequired: false,
-  },
 };
 
 // Helper functions for dependency management

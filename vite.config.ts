@@ -11,8 +11,7 @@ export default defineConfig({
     assetsDir: 'assets',
     rollupOptions: {
       input: {
-        main: './index.html',
-        'public-register': './public/public-register.html'
+        main: './index.html'
       },
       onwarn(warning, warn) {
         // Suppress certain warnings that don't affect functionality

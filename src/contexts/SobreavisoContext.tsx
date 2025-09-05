@@ -40,67 +40,43 @@ export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children
     try {
       setError(null);
       
-      // Wrap in try-catch to prevent Supabase SDK console errors
-      try {
-        const { data, error } = await supabase
-          .from('sobreaviso_employees')
-          .select('*')
-          .order('full_name');
-        
-        if (error) {
-          // If table doesn't exist, fall back to localStorage
-          if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.code === '42P01') {
-            const stored = localStorage.getItem('sobreavisoEmployees');
-            const localData = stored ? JSON.parse(stored) : [];
-            setSobreavisoEmployees(localData);
-            setLoading(false);
-            return;
-          }
-          throw error;
-        }
-        
-        // Transform data to match our SobreavisoEmployee type
-        const transformedEmployees: SobreavisoEmployee[] = data.map(emp => ({
-          id: emp.id,
-          fullName: emp.full_name,
-          cpf: emp.cpf,
-          position: emp.position,
-          phone: emp.phone,
-          pix: emp.pix,
-          unit: emp.unit,
-          status: emp.status,
-          observations: emp.observations,
-          createdAt: emp.created_at,
-          updatedAt: emp.updated_at,
-        }));
-        
-        setSobreavisoEmployees(transformedEmployees);
-      } catch (err: any) {
-        // Silently handle table not found errors
-        if (err?.code === 'PGRST205' || err?.code === 'PGRST116' || err?.code === '42P01') {
+      // Try to fetch from Supabase first
+      const { data, error } = await supabase
+        .from('sobreaviso_employees')
+        .select('*')
+        .order('full_name');
+      
+      if (error) {
+        // If table doesn't exist, fall back to localStorage
+        if (error.code === 'PGRST205') {
           const stored = localStorage.getItem('sobreavisoEmployees');
           const localData = stored ? JSON.parse(stored) : [];
           setSobreavisoEmployees(localData);
           setLoading(false);
           return;
         }
-        throw err;
-      }
-    } catch (error) {
-      // Handle missing table errors gracefully
-      if (error && typeof error === 'object' && 'code' in error) {
-        if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.code === '42P01') {
-          // Table doesn't exist - use localStorage fallback
-          const stored = localStorage.getItem('sobreavisoEmployees');
-          const localData = stored ? JSON.parse(stored) : [];
-          setSobreavisoEmployees(localData);
-          setLoading(false);
-          return;
-        }
+        throw error;
       }
       
-      // Only log actual errors, not missing table errors
-      if (error instanceof Error && !(error && typeof error === 'object' && 'code' in error && error.code === 'PGRST205')) {
+      // Transform data to match our SobreavisoEmployee type
+      const transformedEmployees: SobreavisoEmployee[] = data.map(emp => ({
+        id: emp.id,
+        fullName: emp.full_name,
+        cpf: emp.cpf,
+        position: emp.position,
+        phone: emp.phone,
+        pix: emp.pix,
+        unit: emp.unit,
+        status: emp.status,
+        observations: emp.observations,
+        createdAt: emp.created_at,
+        updatedAt: emp.updated_at,
+      }));
+      
+      setSobreavisoEmployees(transformedEmployees);
+    } catch (error) {
+      // Only set error for actual database errors, not missing table
+      if (error instanceof Error && !error.message.includes('PGRST205')) {
         console.error('Error fetching sobreaviso employees:', error);
         setError(error.message);
       }

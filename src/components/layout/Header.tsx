@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, User, Home, Menu, FileText, Users, FileCheck, Receipt, Settings, Clipboard, AlertTriangle, Calendar, Clock, ChefHat, ChevronLeft, ChevronRight, UserCog, UserPlus, Kanban, MessageCircle, BarChart3, ChevronDown, ChevronUp, TrendingUp, UsersIcon } from 'lucide-react';
+import { LogOut, User, Home, Menu, FileText, Users, FileCheck, Receipt, Settings, Clipboard, AlertTriangle, Calendar, Clock, ChefHat, ChevronLeft, ChevronRight, UserCog, UserPlus, Kanban, MessageCircle, BarChart3, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface HeaderProps {
@@ -14,9 +14,6 @@ export const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, sideba
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [crmExpanded, setCrmExpanded] = useState(
     activeView.startsWith('crm-') // Auto-expand if on CRM page
-  );
-  const [talentExpanded, setTalentExpanded] = useState(
-    activeView.startsWith('talent-') // Auto-expand if on Talent Bank page
   );
 
   const navItems = [
@@ -63,30 +60,15 @@ export const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, sideba
     { key: 'crm-reports', label: 'Relatórios', icon: BarChart3 },
   ] : [];
 
-  const talentItems = user?.role === 'admin' ? [
-    { key: 'talent-bank', label: 'Candidatos', icon: UserPlus },
-    { key: 'talent-pipeline', label: 'Pipeline RH', icon: Kanban },
-    { key: 'talent-reports', label: 'Relatórios RH', icon: BarChart3 },
-  ] : [];
-
   const handleCRMToggle = () => {
     if (!sidebarCollapsed) {
       setCrmExpanded(!crmExpanded);
     }
   };
 
-  const handleTalentToggle = () => {
-    if (!sidebarCollapsed) {
-      setTalentExpanded(!talentExpanded);
-    }
-  };
-
   const handleNavClick = (key: string) => {
     if (key.startsWith('crm-')) {
       setCrmExpanded(true);
-    }
-    if (key.startsWith('talent-')) {
-      setTalentExpanded(true);
     }
     onViewChange(key);
     setSidebarOpen(false);
@@ -167,52 +149,6 @@ export const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, sideba
                           className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all text-left text-sm ${
                             activeView === item.key
                               ? 'bg-blue-100 text-blue-700 shadow-sm'
-                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                          }`}
-                        >
-                          <Icon size={16} className="mr-3" />
-                          <span className="truncate">{item.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Talent Bank Section (Admin only) */}
-            {user?.role === 'admin' && (
-              <div className="space-y-1">
-                <button
-                  onClick={handleTalentToggle}
-                  className={`w-full flex items-center ${sidebarCollapsed ? 'px-2 justify-center' : 'px-3'} py-2 rounded-lg font-medium transition-all text-left text-sm ${
-                    activeView.startsWith('talent-')
-                      ? 'bg-green-100 text-green-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }`}
-                  title={sidebarCollapsed ? 'Banco de Talentos' : undefined}
-                >
-                  <UsersIcon size={18} className={sidebarCollapsed ? '' : 'mr-3'} />
-                  {!sidebarCollapsed && (
-                    <>
-                      <span className="flex-1 truncate">Banco de Talentos</span>
-                      {talentExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </>
-                  )}
-                </button>
-                
-                {/* Talent Bank Subitems */}
-                {!sidebarCollapsed && talentExpanded && (
-                  <div className="ml-6 space-y-1">
-                    {talentItems.map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <button
-                          key={item.key}
-                          onClick={() => handleNavClick(item.key)}
-                          className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all text-left text-sm ${
-                            activeView === item.key
-                              ? 'bg-green-100 text-green-700 shadow-sm'
                               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                           }`}
                         >
