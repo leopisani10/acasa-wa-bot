@@ -131,14 +131,31 @@ const testConnection = async () => {
         </div>
       `;
     } else {
-            <h1 style="color: #dc2626; font-size: 1.5rem; margin-bottom: 1rem;">❌ Erro de Configuração</h1>
+      document.body.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f3f4f6; font-family: system-ui;">
+          <div style="background: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); max-width: 500px; text-align: center;">
+            <h1 style="color: #dc2626; font-size: 1.5rem; margin-bottom: 1rem;">🔌 Erro de Conexão</h1>
             <p style="color: #374151; margin-bottom: 1rem;">Erro inesperado na conexão com Supabase.</p>
-      <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f3f4f6; font-family: system-ui;">
-        <div style="background: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); max-width: 500px; text-align: center;">
-          <h1 style="color: #dc2626; font-size: 1.5rem; margin-bottom: 1rem;">🔌 Erro de Conexão</h1>
             <div style="background: #fee2e2; border: 1px solid #fca5a5; border-radius: 0.5rem; padding: 1rem; margin: 1rem 0; text-align: left;">
               <p style="font-size: 0.875rem; color: #991b1b;"><strong>Erro técnico:</strong> ${error.message}</p>
             </div>
+            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 0.5rem; padding: 1rem; margin: 1rem 0; text-align: left;">
+              <p style="font-size: 0.875rem; color: #92400e; margin-bottom: 0.5rem;"><strong>Possíveis causas:</strong></p>
+              <ul style="font-size: 0.875rem; color: #92400e; margin-left: 1rem;">
+                <li>• Configuração incorreta do Supabase</li>
+                <li>• Problemas de conectividade de rede</li>
+                <li>• Projeto Supabase pausado ou inacessível</li>
+              </ul>
+            </div>
+            <button onclick="window.location.reload()" style="background: #dc2626; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500; margin-top: 1rem;">
+              Tentar Novamente
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  }
+};
               <li>• Problemas de conectividade de rede</li>
               <li>• Projeto Supabase pausado ou inacessível</li>
             </ul>
