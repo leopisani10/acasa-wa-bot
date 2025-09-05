@@ -122,9 +122,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Handle network and connection errors specifically
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        message = 'Erro de conexão: Não foi possível conectar ao servidor. Verifique se:\n\n• Sua internet está funcionando\n• O Supabase está configurado corretamente\n• O projeto Supabase está ativo\n\nClique em "Connect to Supabase" no canto superior direito para reconfigurar.';
+        message = '🔌 Erro de Conexão com Supabase\n\nNão foi possível conectar ao servidor. Possíveis causas:\n\n• Variáveis de ambiente não configuradas (VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY)\n• URL do Supabase incorreta\n• Projeto Supabase pausado ou inativo\n• Problemas de rede/internet\n\n✅ SOLUÇÃO: Clique em "Connect to Supabase" no canto superior direito para reconfigurar.';
       } else if (error && typeof error === 'object' && 'name' in error && error.name === 'TypeError') {
-        message = 'Erro de rede: Verifique sua conexão com a internet e se o Supabase está configurado corretamente.';
+        message = '🌐 Erro de Rede\n\nProblema de conectividade detectado.\n\n• Verifique sua conexão com a internet\n• Confirme se o Supabase está configurado\n• Verifique se o projeto Supabase está ativo\n\n✅ Use "Connect to Supabase" para reconfigurar.';
       } else if (error && typeof error === 'object' && 'message' in error) {
       if (error && typeof error === 'object' && 'message' in error) {
         if (error.message.includes('Invalid login credentials')) {

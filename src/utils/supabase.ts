@@ -65,37 +65,61 @@ const testConnection = async () => {
       document.body.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f3f4f6; font-family: system-ui;">
           <div style="background: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); max-width: 500px; text-align: center;">
-            <h1 style="color: #dc2626; font-size: 1.5rem; margin-bottom: 1rem;">🌐 Erro de Conexão</h1>
-            <p style="color: #374151; margin-bottom: 1rem;">Não foi possível conectar ao Supabase. Verifique sua configuração.</p>
+            <h1 style="color: #dc2626; font-size: 1.875rem; margin-bottom: 1.5rem;">🔌 Erro de Conexão com Supabase</h1>
+            <p style="color: #374151; margin-bottom: 1.5rem; font-size: 1.125rem;">Não foi possível conectar ao Supabase. Este é o erro mais comum!</p>
             
             <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 0.5rem; padding: 1rem; margin: 1rem 0; text-align: left;">
-              <p style="font-size: 0.875rem; color: #92400e; margin-bottom: 0.5rem;"><strong>Possíveis causas:</strong></p>
+              <p style="font-size: 1rem; color: #92400e; margin-bottom: 0.75rem;"><strong>🚨 Principais causas (90% dos casos):</strong></p>
               <ul style="font-size: 0.875rem; color: #92400e; margin-left: 1rem; space-y: 0.25rem;">
-                <li>• Projeto Supabase não configurado ou pausado</li>
-                <li>• URL do Supabase incorreta no arquivo .env</li>
-                <li>• Chave de API (ANON_KEY) incorreta ou expirada</li>
-                <li>• Problemas de rede ou firewall</li>
-                <li>• Projeto Supabase foi deletado ou movido</li>
+                <li><strong>• Variáveis não configuradas:</strong> VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY ausentes</li>
+                <li><strong>• URL incorreta:</strong> URL do Supabase inválida no .env</li>
+                <li><strong>• Projeto pausado:</strong> Projeto Supabase inativo/pausado</li>
+                <li><strong>• Chave errada:</strong> ANON_KEY incorreta ou expirada</li>
+                <li><strong>• Projeto deletado:</strong> Projeto foi removido do Supabase</li>
               </ul>
             </div>
             
-            <div style="background: #eff6ff; border: 1px solid #2563eb; border-radius: 0.5rem; padding: 1rem; margin: 1rem 0; text-align: left;">
-              <p style="font-size: 0.875rem; color: #1e40af; margin-bottom: 0.5rem;"><strong>Como corrigir:</strong></p>
+            <div style="background: #dcfce7; border: 2px solid #22c55e; border-radius: 0.5rem; padding: 1.5rem; margin: 1.5rem 0; text-align: left;">
+              <p style="font-size: 1.125rem; color: #15803d; margin-bottom: 1rem;"><strong>✅ SOLUÇÃO RÁPIDA:</strong></p>
               <ol style="font-size: 0.875rem; color: #1e40af; margin-left: 1rem; space-y: 0.25rem;">
-                <li>1. Clique no botão "Connect to Supabase" no canto superior direito</li>
-                <li>2. Ou verifique o arquivo .env na raiz do projeto</li>
-                <li>3. Confirme que VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY estão corretos</li>
-                <li>4. Acesse seu projeto no dashboard do Supabase para confirmar que está ativo</li>
+                <li><strong>1. CLIQUE no botão "Connect to Supabase" (canto superior direito)</strong></li>
+                <li>2. Ou configure manualmente o arquivo .env na raiz do projeto</li>
+                <li>3. Verifique se VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY estão corretos</li>
+                <li>4. Confirme que o projeto está ativo no dashboard Supabase</li>
+                <li>5. Reinicie o servidor após configurar (Ctrl+C e npm run dev)</li>
               </ol>
             </div>
 
-            <button onclick="window.location.reload()" style="background: #2563eb; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500; margin-top: 1rem;">
-              Tentar Novamente
+            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
+              <button onclick="window.location.reload()" style="background: #22c55e; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; font-size: 1rem;">
+                🔄 Tentar Novamente
+              </button>
+              <button onclick="window.open('https://app.supabase.com/', '_blank')" style="background: #3b82f6; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; font-size: 1rem;">
+                🔗 Abrir Supabase
+              </button>
+            </div>
+            
+            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 1rem; font-style: italic;">
+              💡 Dica: O botão "Connect to Supabase" resolve 90% dos problemas automaticamente!
+            </p>
+          </div>
+        </div>
+      `;
+    } else if (error.message && error.message.includes('NetworkError')) {
+      document.body.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f3f4f6; font-family: system-ui;">
+          <div style="background: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); max-width: 500px; text-align: center;">
+            <h1 style="color: #dc2626; font-size: 1.5rem; margin-bottom: 1rem;">📡 Erro de Rede</h1>
+            <p style="color: #374151; margin-bottom: 1rem;">Problema de conectividade de rede detectado.</p>
+            <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem;">
+              Verifique sua conexão com a internet e tente novamente.
+            </p>
+            <button onclick="window.location.reload()" style="background: #dc2626; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.25rem; cursor: pointer;">
+              Recarregar Página
             </button>
           </div>
         </div>
       `;
-    } else if (error.message.includes('NetworkError')) {
       document.body.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f3f4f6; font-family: system-ui;">
           <div style="background: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); max-width: 500px; text-align: center;">
