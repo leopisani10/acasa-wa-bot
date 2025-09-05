@@ -148,6 +148,7 @@ const testConnection = async () => {
           </button>
         </div>
       </div>
+    }
     `;
     }
   }
@@ -178,3 +179,5 @@ export const getCurrentUserId = async () => {
     return null;
   }
 };
+  }
+}
