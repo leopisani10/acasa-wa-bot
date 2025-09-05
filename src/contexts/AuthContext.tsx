@@ -143,7 +143,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           message = `Erro: ${error.message}`;
         }
       }
-      }
       
       setIsLoading(false);
       return { success: false, message };
