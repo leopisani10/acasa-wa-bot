@@ -6,7 +6,7 @@ import { MonthlyAgravosIndicators } from '../../types/agravos';
 interface MonthlyIndicatorsProps {
   month: number;
   year: number;
-  unit: 'Botafogo' | 'Tijuca';
+  unit: 'Botafogo';
 }
 
 export const MonthlyIndicators: React.FC<MonthlyIndicatorsProps> = ({ month, year, unit }) => {

@@ -7,7 +7,7 @@ import { CardapioList } from './CardapioList';
 export const CardapioManager: React.FC = () => {
   const { getWeekDates } = useCardapio();
   const [showForm, setShowForm] = useState(false);
-  const [selectedUnit, setSelectedUnit] = useState<'Botafogo' | 'Tijuca'>('Botafogo');
+  const [selectedUnit, setSelectedUnit] = useState<'Botafogo'>('Botafogo');
   const [selectedWeek, setSelectedWeek] = useState(() => {
     return new Date().toISOString().split('T')[0];
   });
@@ -61,11 +61,10 @@ export const CardapioManager: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2 font-sans">Unidade</label>
             <select
               value={selectedUnit}
-              onChange={(e) => setSelectedUnit(e.target.value as 'Botafogo' | 'Tijuca')}
+              onChange={(e) => setSelectedUnit(e.target.value as 'Botafogo')}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-sans"
             >
               <option value="Botafogo">Botafogo</option>
-              <option value="Tijuca">Tijuca</option>
             </select>
           </div>
 

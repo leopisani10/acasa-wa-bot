@@ -232,7 +232,6 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onAddEmployee, onEdi
         >
           <option value="all">Todas as Unidades</option>
           <option value="Botafogo">Botafogo</option>
-          <option value="Tijuca">Tijuca</option>
         </select>
         <select
           value={groupBy}

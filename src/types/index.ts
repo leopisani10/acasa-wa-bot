@@ -41,7 +41,7 @@ export interface Guest {
   financialResponsibleEmail: string;
   financialResponsibleAddress: string;
   financialResponsibleProfession: string;
-  unit: 'Botafogo' | 'Tijuca';
+  unit: 'Botafogo';
 
   // Taxas
   climatizationFee: boolean; // Janeiro, Fevereiro e Março
@@ -107,7 +107,7 @@ export interface DocumentRevision {
 export interface Certificate {
   id: string;
   service: 'Dedetização' | 'Limpeza de Caixa d\'Água' | 'Manutenção de Elevador' | 'Laudo Elétrico' | 'AVCB' | 'Alvará Sanitário' | 'Laudo de Segurança' | 'Outro';
-  unit: 'Botafogo' | 'Tijuca';
+  unit: 'Botafogo';
   executedDate: string;
   expiryDate: string;
   status: 'Em dia' | 'Pendente' | 'Atrasado';
@@ -128,7 +128,7 @@ export interface Employee {
   birthDate: string;
   address: string;
   position: string; // cargo
-  unit: 'Botafogo' | 'Tijuca';
+  unit: 'Botafogo';
   status: 'Ativo' | 'Inativo' | 'Afastado' | 'Férias';
   photo?: string;
   covidVaccines: CovidVaccine[];
@@ -249,7 +249,7 @@ export interface NFRDAEntry {
   id: string;
   contractorId: string; // ID do colaborador contratado/terceirizado
   contractorName: string; // Nome do contratado (cache para performance)
-  unit: 'Botafogo' | 'Tijuca';
+  unit: 'Botafogo';
   referenceMonth: number; // 1-12
   referenceYear: number;
   activityReportUpload?: string; // URL do RDA
@@ -266,7 +266,7 @@ export interface WorkSchedule {
   id: string;
   employeeId: string;
   scheduleType: 'Geral' | 'Enfermagem' | 'Nutrição';
-  unit: 'Botafogo' | 'Tijuca';
+  unit: 'Botafogo';
   month: number; // 1-12
   year: number;
   // Dias do mês (1-31)
@@ -323,7 +323,7 @@ export interface SobreavisoEmployee {
   position: string;
   phone: string;
   pix?: string;
-  unit: 'Botafogo' | 'Tijuca' | 'Ambas';
+  unit: 'Botafogo' | 'Ambas';
   status: 'Ativo' | 'Inativo';
   observations?: string;
   createdAt: string;
@@ -364,7 +364,7 @@ export interface ScheduleSubstitution {
 // Cardápio Module Types
 export interface WeeklyMenu {
   id: string;
-  unit: 'Botafogo' | 'Tijuca';
+  unit: 'Botafogo';
   dietType: 'Dieta Branda' | 'Dieta Pastosa' | 'Dieta Branda para Diabéticos' | 'Dieta Branda para Hipertensos';
   weekStartDate: string; // Data de início da semana (Quarta-feira)
   weekEndDate: string; // Data de fim da semana (Terça-feira)

@@ -431,7 +431,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onClose, o
                     required
                   >
                     <option value="Botafogo">Botafogo</option>
-                    <option value="Tijuca">Tijuca</option>
                   </select>
                 </div>
                 <div>

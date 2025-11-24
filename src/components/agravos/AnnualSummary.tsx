@@ -5,7 +5,7 @@ import { AnnualAgravosSummary } from '../../types/agravos';
 
 interface AnnualSummaryProps {
   year: number;
-  unit: 'Botafogo' | 'Tijuca';
+  unit: 'Botafogo';
 }
 
 export const AnnualSummary: React.FC<AnnualSummaryProps> = ({ year, unit }) => {

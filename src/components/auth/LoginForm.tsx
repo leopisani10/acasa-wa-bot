@@ -122,7 +122,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode, isLogin }) =
             >
               <option value="">Selecione a unidade</option>
               <option value="Botafogo">Botafogo</option>
-              <option value="Tijuca">Tijuca</option>
             </select>
           </div>
         )}

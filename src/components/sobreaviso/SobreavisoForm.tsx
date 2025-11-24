@@ -153,8 +153,6 @@ export const SobreavisoForm: React.FC<SobreavisoFormProps> = ({ employee, onClos
                     required
                   >
                     <option value="Botafogo">Botafogo</option>
-                    <option value="Tijuca">Tijuca</option>
-                    <option value="Ambas">Ambas as Unidades</option>
                   </select>
                 </div>
                 <div>

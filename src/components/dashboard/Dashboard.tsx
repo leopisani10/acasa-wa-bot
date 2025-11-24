@@ -226,7 +226,7 @@ export const Dashboard: React.FC = () => {
             Hóspedes por Unidade
           </h2>
           <div className="space-y-4">
-            {['Botafogo', 'Tijuca', 'Outra'].map((unit) => {
+            {['Botafogo'].map((unit) => {
               const unitGuests = activeGuests.filter(g => g.unit === unit);
               const unitTotal = guests.filter(g => g.unit === unit);
               return (
@@ -253,7 +253,7 @@ export const Dashboard: React.FC = () => {
             Colaboradores por Unidade
           </h2>
           <div className="space-y-4">
-            {['Botafogo', 'Tijuca'].map((unit) => {
+            {['Botafogo'].map((unit) => {
               const unitEmployees = activeEmployees.filter(e => e.unit === unit);
               const unitTotal = employees.filter(e => e.unit === unit);
               return (

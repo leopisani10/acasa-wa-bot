@@ -156,7 +156,6 @@ export const ProfileForm: React.FC = () => {
                   required
                 >
                   <option value="Botafogo">Botafogo</option>
-                  <option value="Tijuca">Tijuca</option>
                 </select>
               </div>
               <div>

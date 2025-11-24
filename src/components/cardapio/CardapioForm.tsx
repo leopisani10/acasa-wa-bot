@@ -5,7 +5,7 @@ import { useCardapio } from '../../contexts/CardapioContext';
 
 interface CardapioFormProps {
   menu?: WeeklyMenu;
-  unit: 'Botafogo' | 'Tijuca';
+  unit: 'Botafogo';
   weekStartDate: string;
   weekEndDate: string;
   dietType: 'Dieta Branda' | 'Dieta Pastosa' | 'Dieta Branda para Diabéticos' | 'Dieta Branda para Hipertensos';

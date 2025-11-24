@@ -23,7 +23,7 @@ export interface MedicalRecord {
   // Metadata
   createdAt: string;
   updatedAt: string;
-  unit: 'Botafogo' | 'Tijuca';
+  unit: 'Botafogo';
   
   // Controle de edição
   isLocked: boolean; // true após assinatura

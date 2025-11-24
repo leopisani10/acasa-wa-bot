@@ -110,7 +110,6 @@ export const CertificateForm: React.FC<CertificateFormProps> = ({ certificate, o
                     required
                   >
                     <option value="Botafogo">Botafogo</option>
-                    <option value="Tijuca">Tijuca</option>
                   </select>
                 </div>
                 <div>

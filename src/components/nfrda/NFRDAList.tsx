@@ -138,7 +138,6 @@ export const NFRDAList: React.FC<NFRDAListProps> = ({ onAddEntry, onEditEntry })
         >
           <option value="all">Todas as Unidades</option>
           <option value="Botafogo">Botafogo</option>
-          <option value="Tijuca">Tijuca</option>
         </select>
         <select
           value={statusFilter}

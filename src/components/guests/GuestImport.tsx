@@ -193,7 +193,6 @@ export const GuestImport: React.FC<GuestImportProps> = ({ onClose, onImported })
       if (!guest.documentIssuer.trim()) errors.push('Órgão emissor é obrigatório');
       if (!guest.roomNumber.trim()) errors.push('Número do quarto é obrigatório');
       if (!['Masculino', 'Feminino'].includes(guest.gender)) errors.push('Sexo deve ser Masculino ou Feminino');
-      if (!['Botafogo', 'Tijuca'].includes(guest.unit)) errors.push('Unidade deve ser Botafogo ou Tijuca');
       if (!guest.legalResponsibleCpf.trim()) errors.push('CPF do responsável é obrigatório');
       if (!guest.financialResponsibleName.trim()) errors.push('Nome do responsável financeiro é obrigatório');
       if (!guest.financialResponsibleCpf.trim()) errors.push('CPF do responsável financeiro é obrigatório');
@@ -246,7 +245,6 @@ export const GuestImport: React.FC<GuestImportProps> = ({ onClose, onImported })
   const normalizeUnit = (unit: string): string => {
     const normalized = unit.toLowerCase().trim();
     if (normalized.includes('botafogo')) return 'Botafogo';
-    if (normalized.includes('tijuca')) return 'Tijuca';
     return unit;
   };
 
@@ -306,7 +304,7 @@ export const GuestImport: React.FC<GuestImportProps> = ({ onClose, onImported })
           financialResponsibleEmail: '',
           financialResponsibleAddress: guestData.financialResponsibleAddress,
           financialResponsibleProfession: '',
-          unit: guestData.unit as 'Botafogo' | 'Tijuca',
+          unit: guestData.unit as 'Botafogo',
           climatizationFee: false,
           maintenanceFee: false,
           trousseauFee: false,
@@ -379,9 +377,7 @@ export const GuestImport: React.FC<GuestImportProps> = ({ onClose, onImported })
       ],
       [
         'João Oliveira Costa', 'Masculino', '20/07/1925', '987.654.321-00', '98.765.432-1', 'SSP/RJ',
-        'Tijuca', '205', 'II', '15/02/2024', '15/02/2025', 'Filho', '555.666.777-88',
         'Carlos Oliveira Lima', '999.888.777-66', '(21) 88888-8888',
-        'Avenida Brasil, 456, Tijuca, Rio de Janeiro, RJ, 20551-030', 'Ativo'
       ],
     ];
 

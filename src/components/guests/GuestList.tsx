@@ -13,7 +13,7 @@ export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest })
   const { guests, deleteGuest } = useGuests();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Ativo' | 'Inativo'>('all');
-  const [unitFilter, setUnitFilter] = useState<'all' | 'Botafogo' | 'Tijuca'>('all');
+  const [unitFilter, setUnitFilter] = useState<'all' | 'Botafogo'>('all');
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [showImport, setShowImport] = useState(false);
 
@@ -96,12 +96,11 @@ export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest })
         </select>
         <select
           value={unitFilter}
-          onChange={(e) => setUnitFilter(e.target.value as 'all' | 'Botafogo' | 'Tijuca')}
+          onChange={(e) => setUnitFilter(e.target.value as 'all' | 'Botafogo')}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-sans"
         >
           <option value="all">Todas as Unidades</option>
           <option value="Botafogo">Botafogo</option>
-          <option value="Tijuca">Tijuca</option>
         </select>
       </div>
 

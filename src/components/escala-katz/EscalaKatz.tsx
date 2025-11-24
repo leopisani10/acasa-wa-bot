@@ -82,7 +82,7 @@ export const EscalaKatz: React.FC = () => {
             </div>
           </div>
 
-          ${['Botafogo', 'Tijuca'].map(unit => {
+          ${['Botafogo'].map(unit => {
             const unitGuests = filteredGuests.filter(g => g.unit === unit);
             if (unitGuests.length === 0) return '';
             
@@ -158,7 +158,6 @@ export const EscalaKatz: React.FC = () => {
             >
               <option value="all">Todas as Unidades</option>
               <option value="Botafogo">Botafogo</option>
-              <option value="Tijuca">Tijuca</option>
             </select>
           </div>
           

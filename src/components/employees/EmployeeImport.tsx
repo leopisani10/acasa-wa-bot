@@ -171,7 +171,6 @@ export const EmployeeImport: React.FC<EmployeeImportProps> = ({ onClose, onImpor
       if (!employee.rg.trim()) errors.push('RG é obrigatório');
       if (!employee.birthDate) errors.push('Data de nascimento é obrigatória');
       if (!employee.position.trim()) errors.push('Cargo é obrigatório');
-      if (!['Botafogo', 'Tijuca'].includes(employee.unit)) errors.push('Unidade deve ser Botafogo ou Tijuca');
       if (!['CLT', 'Contrato', 'Terceirizado', 'Estágio', 'Outro'].includes(employee.employmentType)) {
         errors.push('Tipo de vínculo inválido');
       }
@@ -215,7 +214,6 @@ export const EmployeeImport: React.FC<EmployeeImportProps> = ({ onClose, onImpor
   const normalizeUnit = (unit: string): string => {
     const normalized = unit.toLowerCase().trim();
     if (normalized.includes('botafogo')) return 'Botafogo';
-    if (normalized.includes('tijuca')) return 'Tijuca';
     return unit;
   };
 
@@ -257,7 +255,6 @@ export const EmployeeImport: React.FC<EmployeeImportProps> = ({ onClose, onImpor
           birthDate: empData.birthDate,
           address: 'A ser preenchido',
           position: empData.position,
-          unit: empData.unit as 'Botafogo' | 'Tijuca',
           status: empData.status as 'Ativo' | 'Inativo' | 'Afastado' | 'Férias',
           photo: '',
           observations: '',
@@ -346,7 +343,6 @@ export const EmployeeImport: React.FC<EmployeeImportProps> = ({ onClose, onImpor
     const template = [
       ['Nome Completo', 'CPF', 'RG', 'Data de Nascimento', 'Cargo', 'Unidade', 'Tipo de Vínculo', 'Status'],
       ['João Silva Santos', '123.456.789-00', '12.345.678-9', '15/03/1985', 'Enfermeiro', 'Botafogo', 'CLT', 'Ativo'],
-      ['Maria Oliveira Costa', '987.654.321-00', '98.765.432-1', '20/07/1990', 'Cuidador de Idosos', 'Tijuca', 'Contrato', 'Ativo'],
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(template);

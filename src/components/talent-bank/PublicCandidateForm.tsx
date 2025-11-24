@@ -332,7 +332,7 @@ export const PublicCandidateForm: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-500">
               <div>
                 <strong>📍 Unidades:</strong>
-                <br />Botafogo e Tijuca/RJ
+                <br />Botafogo/RJ
               </div>
               <div>
                 <strong>👥 Equipe:</strong>

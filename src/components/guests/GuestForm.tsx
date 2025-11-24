@@ -342,8 +342,6 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                     required
                   >
                     <option value="Botafogo">Botafogo</option>
-                    <option value="Tijuca">Tijuca</option>
-                    <option value="Outra">Outra</option>
                   </select>
                 </div>
                 <div>

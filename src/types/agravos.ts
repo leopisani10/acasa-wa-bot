@@ -1,6 +1,6 @@
 export interface DailyAgravosRecord {
   id: string;
-  unit: 'Botafogo' | 'Tijuca';
+  unit: 'Botafogo';
   date: string; // YYYY-MM-DD
   month: number;
   year: number;
@@ -41,7 +41,7 @@ export interface AgravoEvent {
 
 export interface MonthlyAgravosIndicators {
   id: string;
-  unit: 'Botafogo' | 'Tijuca';
+  unit: 'Botafogo';
   month: number;
   year: number;
   
@@ -71,7 +71,7 @@ export interface MonthlyAgravosIndicators {
 
 export interface AnnualAgravosSummary {
   id: string;
-  unit: 'Botafogo' | 'Tijuca';
+  unit: 'Botafogo';
   year: number;
   
   // Totais anuais por tipo

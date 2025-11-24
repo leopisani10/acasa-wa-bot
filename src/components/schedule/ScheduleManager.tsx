@@ -6,7 +6,7 @@ import { ScheduleGrid } from './ScheduleGrid';
 export const ScheduleManager: React.FC = () => {
   const { getScheduleEmployees, schedules, loading, tableNotFound } = useSchedule();
   const [selectedType, setSelectedType] = useState<'Geral' | 'Enfermagem' | 'Nutrição'>('Geral');
-  const [selectedUnit, setSelectedUnit] = useState<'Botafogo' | 'Tijuca'>('Botafogo');
+  const [selectedUnit, setSelectedUnit] = useState<'Botafogo'>('Botafogo');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
@@ -100,11 +100,10 @@ export const ScheduleManager: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">Unidade</label>
             <select
               value={selectedUnit}
-              onChange={(e) => setSelectedUnit(e.target.value as 'Botafogo' | 'Tijuca')}
+              onChange={(e) => setSelectedUnit(e.target.value as 'Botafogo')}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-acasa-purple focus:border-transparent"
             >
               <option value="Botafogo">Botafogo</option>
-              <option value="Tijuca">Tijuca</option>
             </select>
           </div>
 

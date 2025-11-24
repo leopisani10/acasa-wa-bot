@@ -254,7 +254,6 @@ export const UserManagement: React.FC = () => {
           >
             <option value="all">Todas as Unidades</option>
             <option value="Botafogo">Botafogo</option>
-            <option value="Tijuca">Tijuca</option>
           </select>
           <div className="flex items-center text-sm text-gray-600">
             <Users size={16} className="mr-1" />

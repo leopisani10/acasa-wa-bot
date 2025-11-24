@@ -6,7 +6,7 @@ import { DailyAgravosRecord, AgravoEvent } from '../../types/agravos';
 
 interface DailyRegistryProps {
   selectedDate: string;
-  selectedUnit: 'Botafogo' | 'Tijuca';
+  selectedUnit: 'Botafogo';
 }
 
 export const DailyRegistry: React.FC<DailyRegistryProps> = ({ selectedDate, selectedUnit }) => {

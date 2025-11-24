@@ -156,7 +156,6 @@ export const NFRDAForm: React.FC<NFRDAFormProps> = ({ entry, onClose, onSave }) 
                     required
                   >
                     <option value="Botafogo">Botafogo</option>
-                    <option value="Tijuca">Tijuca</option>
                   </select>
                 </div>
                 <div>

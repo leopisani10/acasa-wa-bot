@@ -39,7 +39,6 @@ export const SobreavisoList: React.FC<SobreavisoListProps> = ({ onAddEmployee, o
   const getUnitColor = (unit: string) => {
     switch (unit) {
       case 'Botafogo': return 'bg-blue-100 text-blue-700';
-      case 'Tijuca': return 'bg-purple-100 text-purple-700';
       case 'Ambas': return 'bg-green-100 text-green-700';
       default: return 'bg-gray-100 text-gray-700';
     }
@@ -91,7 +90,6 @@ export const SobreavisoList: React.FC<SobreavisoListProps> = ({ onAddEmployee, o
         >
           <option value="all">Todas as Unidades</option>
           <option value="Botafogo">Botafogo</option>
-          <option value="Tijuca">Tijuca</option>
           <option value="Ambas">Ambas</option>
         </select>
       </div>

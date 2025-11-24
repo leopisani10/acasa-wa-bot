@@ -137,7 +137,6 @@ export const CertificateList: React.FC<CertificateListProps> = ({ onAddCertifica
         >
           <option value="all">Todas as Unidades</option>
           <option value="Botafogo">Botafogo</option>
-          <option value="Tijuca">Tijuca</option>
         </select>
         <select
           value={statusFilter}
