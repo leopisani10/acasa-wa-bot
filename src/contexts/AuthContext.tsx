@@ -102,21 +102,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       console.log('Login data:', data);
-      
+
       if (data.user) {
         await checkUser();
-        
+
         // Verificar se o usuário foi definido corretamente
         const { data: { user: verifyUser } } = await supabase.auth.getUser();
         if (verifyUser) {
           setIsLoading(false);
           return { success: true };
         } else {
+          setIsLoading(false);
           throw new Error('Failed to verify user after login');
         }
       }
     } catch (error) {
       console.error('Login error:', error);
+      setIsLoading(false);
       
       let message = 'Email ou senha incorretos. Verifique suas credenciais ou cadastre-se caso não tenha uma conta.';
       
@@ -144,11 +146,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           message = `Erro: ${error.message}`;
         }
       }
-      
-      setIsLoading(false);
+
       return { success: false, message };
     }
-    
+
     setIsLoading(false);
     return { success: false, message: 'Erro inesperado ao fazer login.' };
   };
