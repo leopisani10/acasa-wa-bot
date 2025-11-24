@@ -155,31 +155,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (email: string, password: string, name: string, position: string, unit: string, type: 'matriz' | 'franqueado'): Promise<boolean> => {
     setIsLoading(true);
-    
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
-      
+
       if (error) throw error;
-      
+
       if (data.user) {
-        // Create profile
-        const { error: profileError } = await supabase
+        // Check if profile already exists
+        const { data: existingProfile } = await supabase
           .from('profiles')
-          .insert([{
-            id: data.user.id,
-            email,
-            name,
-            position,
-            unit,
-            type,
-            role: 'staff',
-          }]);
-        
-        if (profileError) throw profileError;
-        
+          .select('id')
+          .eq('id', data.user.id)
+          .maybeSingle();
+
+        if (!existingProfile) {
+          // Create profile only if it doesn't exist
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([{
+              id: data.user.id,
+              email,
+              name,
+              position,
+              unit,
+              type,
+              role: 'staff',
+            }]);
+
+          if (profileError) throw profileError;
+        }
+
         await checkUser();
         setIsLoading(false);
         return true;
@@ -188,7 +197,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Register error:', error);
       // Don't throw the error, just return false to show user-friendly message
     }
-    
+
     setIsLoading(false);
     return false;
   };
