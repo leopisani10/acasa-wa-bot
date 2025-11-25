@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, UserCheck, UserX, Calendar, TrendingUp, AlertTriangle, FileText, FileCheck, Receipt, Clock, Building2 } from 'lucide-react';
+import { Users, UserCheck, UserX, Calendar, TrendingUp, AlertTriangle, FileText, FileCheck, Receipt, Clock, Building2, User, Award, Timer } from 'lucide-react';
 import { useGuests } from '../../contexts/GuestContext';
 import { useEmployees } from '../../contexts/EmployeeContext';
 import { useDocuments } from '../../contexts/DocumentContext';
@@ -17,6 +17,90 @@ export const Dashboard: React.FC = () => {
   const inactiveGuests = guests.filter(g => g.status === 'Inativo');
   const guestsWithDiapers = guests.filter(g => g.diaperContracted);
   const guestsWithHealthPlan = guests.filter(g => g.healthPlan);
+
+  // Calcular idades dos hóspedes
+  const calculateAge = (birthDate: string) => {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const ages = guests.map(guest => calculateAge(guest.birthDate));
+  const averageAge = ages.length > 0 ? Math.round(ages.reduce((sum, age) => sum + age, 0) / ages.length) : 0;
+  const maxAge = ages.length > 0 ? Math.max(...ages) : 0;
+  const minAge = ages.length > 0 ? Math.min(...ages) : 0;
+
+  // Calcular tempo de permanência (LTV)
+  const calculateStayDuration = (admissionDate: string, exitDate?: string) => {
+    const admission = new Date(admissionDate);
+    const end = exitDate ? new Date(exitDate) : new Date();
+
+    const diffTime = Math.abs(end.getTime() - admission.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffMonths = Math.floor(diffDays / 30);
+    const diffYears = Math.floor(diffMonths / 12);
+
+    return {
+      days: diffDays,
+      months: diffMonths,
+      years: diffYears,
+      formattedYears: diffYears,
+      formattedMonths: diffMonths % 12,
+      formattedDays: diffDays % 30
+    };
+  };
+
+  // Calcular métricas de permanência
+  const stayDurations = guests.map(guest =>
+    calculateStayDuration(guest.admissionDate, guest.exitDate)
+  );
+
+  const totalDays = stayDurations.reduce((sum, duration) => sum + duration.days, 0);
+  const averageStayDays = guests.length > 0 ? Math.round(totalDays / guests.length) : 0;
+  const averageStayMonths = Math.floor(averageStayDays / 30);
+  const averageStayYears = Math.floor(averageStayMonths / 12);
+
+  // Hóspede com contrato mais antigo (ativo)
+  const oldestActiveGuest = activeGuests.length > 0
+    ? activeGuests.reduce((oldest, guest) => {
+        return new Date(guest.admissionDate) < new Date(oldest.admissionDate) ? guest : oldest;
+      })
+    : null;
+
+  const oldestStayDuration = oldestActiveGuest
+    ? calculateStayDuration(oldestActiveGuest.admissionDate)
+    : null;
+
+  // Hóspede com contrato mais novo (ativo)
+  const newestActiveGuest = activeGuests.length > 0
+    ? activeGuests.reduce((newest, guest) => {
+        return new Date(guest.admissionDate) > new Date(newest.admissionDate) ? guest : newest;
+      })
+    : null;
+
+  const newestStayDuration = newestActiveGuest
+    ? calculateStayDuration(newestActiveGuest.admissionDate)
+    : null;
+
+  // Taxa de renovação (hóspedes com novo contrato)
+  const guestsWithRenewal = guests.filter(g => g.hasNewContract).length;
+  const renewalRate = guests.length > 0
+    ? Math.round((guestsWithRenewal / guests.length) * 100)
+    : 0;
+
+  // Média de ocupação por quarto
+  const roomsOccupied = new Set(activeGuests.map(g => g.roomNumber)).size;
+
+  // Hóspedes por nível de dependência
+  const dependencyLevels = activeGuests.reduce((acc, guest) => {
+    acc[guest.dependencyLevel] = (acc[guest.dependencyLevel] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   // Employee stats
   const activeEmployees = employees.filter(e => e.status === 'Ativo');
@@ -300,6 +384,123 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Age Statistics */}
+      <div className="bg-white rounded-lg border border-gray-200 p-5">
+        <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <User className="mr-2 text-acasa-purple" size={24} />
+          Estatísticas de Idade dos Hóspedes
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-100">
+            <p className="text-3xl font-bold text-blue-600 font-sans">{averageAge}</p>
+            <p className="text-sm text-gray-600 font-sans mt-2">Idade Média</p>
+          </div>
+          <div className="text-center p-4 bg-green-50 rounded-lg border border-green-100">
+            <p className="text-3xl font-bold text-green-600 font-sans">{maxAge}</p>
+            <p className="text-sm text-gray-600 font-sans mt-2">Maior Idade</p>
+          </div>
+          <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-100">
+            <p className="text-3xl font-bold text-orange-600 font-sans">{minAge}</p>
+            <p className="text-sm text-gray-600 font-sans mt-2">Menor Idade</p>
+          </div>
+        </div>
+      </div>
+
+      {/* LTV - Lifetime Value & Stay Duration */}
+      <div className="bg-white rounded-lg border border-gray-200 p-5">
+        <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <Timer className="mr-2 text-acasa-purple" size={24} />
+          Tempo de Permanência (LTV - Lifetime Value)
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="text-center p-4 bg-acasa-purple/10 rounded-lg border border-acasa-purple/20">
+            <p className="text-3xl font-bold text-acasa-purple font-sans">
+              {averageStayYears > 0 ? `${averageStayYears}a ${averageStayMonths % 12}m` : `${averageStayMonths}m`}
+            </p>
+            <p className="text-sm text-gray-600 font-sans mt-2">Permanência Média</p>
+            <p className="text-xs text-gray-500 font-sans mt-1">{averageStayDays} dias</p>
+          </div>
+          <div className="text-center p-4 bg-green-50 rounded-lg border border-green-100">
+            <p className="text-2xl font-bold text-green-600 font-sans">{renewalRate}%</p>
+            <p className="text-sm text-gray-600 font-sans mt-2">Taxa de Renovação</p>
+            <p className="text-xs text-gray-500 font-sans mt-1">{guestsWithRenewal} hóspedes</p>
+          </div>
+          <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-100">
+            <p className="text-3xl font-bold text-blue-600 font-sans">{roomsOccupied}</p>
+            <p className="text-sm text-gray-600 font-sans mt-2">Quartos Ocupados</p>
+            <p className="text-xs text-gray-500 font-sans mt-1">De {activeGuests.length} hóspedes</p>
+          </div>
+        </div>
+
+        {/* Oldest and Newest Guests */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {oldestActiveGuest && oldestStayDuration && (
+            <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+              <div className="flex items-center mb-2">
+                <Award className="text-amber-600 mr-2" size={20} />
+                <h3 className="text-sm font-semibold text-gray-900">Hóspede Mais Antigo</h3>
+              </div>
+              <p className="text-lg font-bold text-gray-900">{oldestActiveGuest.fullName}</p>
+              <p className="text-sm text-gray-600 mt-1">Quarto {oldestActiveGuest.roomNumber}</p>
+              <div className="mt-2 pt-2 border-t border-amber-200">
+                <p className="text-xl font-bold text-amber-700">
+                  {oldestStayDuration.formattedYears > 0
+                    ? `${oldestStayDuration.formattedYears} ano${oldestStayDuration.formattedYears > 1 ? 's' : ''} e ${oldestStayDuration.formattedMonths} mês${oldestStayDuration.formattedMonths !== 1 ? 'es' : ''}`
+                    : `${oldestStayDuration.formattedMonths} mês${oldestStayDuration.formattedMonths !== 1 ? 'es' : ''}`}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Desde {new Date(oldestActiveGuest.admissionDate).toLocaleDateString('pt-BR')}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {newestActiveGuest && newestStayDuration && (
+            <div className="p-4 bg-teal-50 rounded-lg border border-teal-200">
+              <div className="flex items-center mb-2">
+                <Calendar className="text-teal-600 mr-2" size={20} />
+                <h3 className="text-sm font-semibold text-gray-900">Hóspede Mais Recente</h3>
+              </div>
+              <p className="text-lg font-bold text-gray-900">{newestActiveGuest.fullName}</p>
+              <p className="text-sm text-gray-600 mt-1">Quarto {newestActiveGuest.roomNumber}</p>
+              <div className="mt-2 pt-2 border-t border-teal-200">
+                <p className="text-xl font-bold text-teal-700">
+                  {newestStayDuration.formattedYears > 0
+                    ? `${newestStayDuration.formattedYears} ano${newestStayDuration.formattedYears > 1 ? 's' : ''} e ${newestStayDuration.formattedMonths} mês${newestStayDuration.formattedMonths !== 1 ? 'es' : ''}`
+                    : newestStayDuration.formattedMonths > 0
+                    ? `${newestStayDuration.formattedMonths} mês${newestStayDuration.formattedMonths !== 1 ? 'es' : ''}`
+                    : `${newestStayDuration.formattedDays} dia${newestStayDuration.formattedDays !== 1 ? 's' : ''}`}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Desde {new Date(newestActiveGuest.admissionDate).toLocaleDateString('pt-BR')}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Dependency Levels Distribution */}
+      {Object.keys(dependencyLevels).length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 p-5">
+          <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <TrendingUp className="mr-2 text-acasa-purple" size={24} />
+            Distribuição por Nível de Dependência
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {Object.entries(dependencyLevels).map(([level, count]) => (
+              <div key={level} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-2xl font-bold text-acasa-purple font-sans">{count}</p>
+                <p className="text-sm text-gray-600 font-sans mt-1">{level}</p>
+                <p className="text-xs text-gray-500 font-sans mt-1">
+                  {Math.round((count / activeGuests.length) * 100)}% do total
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
