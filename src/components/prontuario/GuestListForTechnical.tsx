@@ -215,14 +215,8 @@ export const GuestListForTechnical: React.FC<GuestListForTechnicalProps> = ({ on
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 mb-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 font-sans">Plano:</span>
+                    <span className="text-gray-600 font-sans">Plano de Saúde:</span>
                     <span className="font-medium text-gray-900 font-sans">{guest.healthPlan || 'Não informado'}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 font-sans">Fisio:</span>
-                    <span className={`font-medium font-sans ${guest.hasPhysiotherapy ? 'text-green-600' : 'text-gray-400'}`}>
-                      {guest.hasPhysiotherapy ? '✓' : '○'}
-                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 font-sans">Fono:</span>

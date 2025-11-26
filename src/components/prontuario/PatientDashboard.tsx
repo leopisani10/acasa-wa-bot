@@ -114,14 +114,10 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({ guest, onBac
           </div>
 
           {/* Quick Info */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
               <div className="font-semibold text-blue-700">Plano de Saúde</div>
               <div className="text-sm text-gray-700 mt-1">{guest.healthPlan || 'Não informado'}</div>
-            </div>
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-              <div className="font-semibold text-green-700">Fisioterapia</div>
-              <div className="text-sm text-gray-700 mt-1">{guest.hasPhysiotherapy ? 'Sim' : 'Não'}</div>
             </div>
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center">
               <div className="font-semibold text-purple-700">Fonoaudiologia</div>

@@ -63,12 +63,9 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
 
     // Acomodação
     roomNumber: guest?.roomNumber || '',
-    diaperContracted: guest?.diaperContracted || false,
-    dailyDiaperQuantity: guest?.dailyDiaperQuantity || 0,
 
     // Saúde
     healthPlan: guest?.healthPlan || '',
-    hasPhysiotherapy: guest?.hasPhysiotherapy || false,
     hasSpeechTherapy: guest?.hasSpeechTherapy || false,
     pia: guest?.pia || '',
     paisi: guest?.paisi || '',
@@ -609,45 +606,13 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
               </div>
             </section>
 
-            {/* Acomodação e Cuidados */}
-            <section>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
-                Acomodação e Cuidados
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="diaperContracted"
-                    checked={formData.diaperContracted}
-                    onChange={(e) => handleInputChange('diaperContracted', e.target.checked)}
-                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="diaperContracted" className="text-sm font-medium text-gray-700">
-                    Fralda Contratada
-                  </label>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Quantidade de Fraldas/Dia
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.dailyDiaperQuantity}
-                    onChange={(e) => handleInputChange('dailyDiaperQuantity', parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-            </section>
 
             {/* Plano de Saúde */}
             <section>
               <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
                 Plano de Saúde e Serviços de Saúde
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Plano de Saúde
@@ -659,18 +624,6 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Ex: Unimed, SulAmérica"
                   />
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="hasPhysiotherapy"
-                    checked={formData.hasPhysiotherapy}
-                    onChange={(e) => handleInputChange('hasPhysiotherapy', e.target.checked)}
-                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="hasPhysiotherapy" className="text-sm font-medium text-gray-700">
-                    Possui Fisioterapia
-                  </label>
                 </div>
                 <div className="flex items-center">
                   <input

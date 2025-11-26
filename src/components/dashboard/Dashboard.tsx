@@ -16,8 +16,6 @@ export const Dashboard: React.FC = () => {
 
   const activeGuests = guests.filter(g => g.status === 'Ativo');
   const inactiveGuests = guests.filter(g => g.status === 'Inativo');
-  const guestsWithDiapers = guests.filter(g => g.diaperContracted);
-  const guestsWithHealthPlan = guests.filter(g => g.healthPlan);
 
   // Filtros por tipo de permanência
   const longStayGuests = guests.filter(g => g.stayType === 'Longa Permanência');
@@ -507,20 +505,10 @@ export const Dashboard: React.FC = () => {
       {/* Quick Stats */}
       <div className="bg-white rounded-lg border border-gray-200 p-5">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Estatísticas Rápidas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="text-center p-3 bg-purple-50 rounded border border-purple-100">
-            <p className="text-2xl font-bold text-acasa-purple font-sans">{guestsWithDiapers.length}</p>
-            <p className="text-sm text-gray-600 font-sans">Com Fralda Contratada</p>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="text-center p-3 bg-blue-50 rounded border border-blue-100">
-            <p className="text-2xl font-bold text-blue-600 font-sans">{guestsWithHealthPlan.length}</p>
+            <p className="text-2xl font-bold text-blue-600 font-sans">{guests.filter(g => g.healthPlan).length}</p>
             <p className="text-sm text-gray-600 font-sans">Com Plano de Saúde</p>
-          </div>
-          <div className="text-center p-3 bg-green-50 rounded border border-green-100">
-            <p className="text-2xl font-bold text-green-600 font-sans">
-              {guests.filter(g => g.hasPhysiotherapy).length}
-            </p>
-            <p className="text-sm text-gray-600 font-sans">Com Fisioterapia</p>
           </div>
           <div className="text-center p-3 bg-gray-50 rounded border border-gray-100">
             <p className="text-2xl font-bold text-acasa-purple font-sans">

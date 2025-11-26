@@ -83,10 +83,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
         trousseauFee: guest.trousseau_fee,
         administrativeFee: guest.administrative_fee,
         roomNumber: guest.room_number,
-        diaperContracted: guest.diaper_contracted,
-        dailyDiaperQuantity: guest.daily_diaper_quantity,
         healthPlan: guest.health_plan || '',
-        hasPhysiotherapy: guest.has_physiotherapy,
         hasSpeechTherapy: guest.has_speech_therapy,
         pia: guest.pia || '',
         paisi: guest.paisi || '',
@@ -153,10 +150,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
           trousseau_fee: guestData.trousseauFee,
           administrative_fee: guestData.administrativeFee,
           room_number: guestData.roomNumber,
-          diaper_contracted: guestData.diaperContracted,
-          daily_diaper_quantity: guestData.dailyDiaperQuantity,
           health_plan: guestData.healthPlan,
-          has_physiotherapy: guestData.hasPhysiotherapy,
           has_speech_therapy: guestData.hasSpeechTherapy,
           pia: guestData.pia,
           paisi: guestData.paisi,
@@ -237,10 +231,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
       if (guestData.trousseauFee !== undefined) updateData.trousseau_fee = guestData.trousseauFee;
       if (guestData.administrativeFee !== undefined) updateData.administrative_fee = guestData.administrativeFee;
       if (guestData.roomNumber !== undefined) updateData.room_number = guestData.roomNumber;
-      if (guestData.diaperContracted !== undefined) updateData.diaper_contracted = guestData.diaperContracted;
-      if (guestData.dailyDiaperQuantity !== undefined) updateData.daily_diaper_quantity = guestData.dailyDiaperQuantity;
       if (guestData.healthPlan !== undefined) updateData.health_plan = guestData.healthPlan;
-      if (guestData.hasPhysiotherapy !== undefined) updateData.has_physiotherapy = guestData.hasPhysiotherapy;
       if (guestData.hasSpeechTherapy !== undefined) updateData.has_speech_therapy = guestData.hasSpeechTherapy;
       if (guestData.pia !== undefined) updateData.pia = guestData.pia;
       if (guestData.paisi !== undefined) updateData.paisi = guestData.paisi;

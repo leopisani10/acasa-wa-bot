@@ -52,12 +52,9 @@ export interface Guest {
 
   // Acomodação e Cuidados
   roomNumber: string;
-  diaperContracted: boolean;
-  dailyDiaperQuantity: number;
 
   // Plano de Saúde e Serviços de Saúde
   healthPlan?: string;
-  hasPhysiotherapy: boolean;
   hasSpeechTherapy: boolean;
   pia?: string; // Plano Individual de Atendimento
   paisi?: string; // Plano de Atenção Integral à Saúde Individual
