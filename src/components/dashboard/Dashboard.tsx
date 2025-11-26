@@ -236,7 +236,7 @@ export const Dashboard: React.FC = () => {
                 {totalActiveGuests} <span className="text-2xl text-gray-400">/ {TOTAL_CAPACITY}</span>
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                {availableSpots} vaga{availableSpots !== 1 ? 's' : ''} disponível{availableSpots !== 1 ? 'eis' : ''}
+                {availableSpots} vaga{availableSpots !== 1 ? 's disponíveis' : ' disponível'}
               </p>
             </div>
             <div className="text-right">
