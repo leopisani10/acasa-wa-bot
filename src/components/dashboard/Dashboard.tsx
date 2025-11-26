@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Users, UserCheck, UserX, Calendar, TrendingUp, AlertTriangle, FileText, FileCheck, Receipt, Clock, Building2, User, Award, Timer, XCircle } from 'lucide-react';
 import { useGuests } from '../../contexts/GuestContext';
 import { useEmployees } from '../../contexts/EmployeeContext';
@@ -12,6 +12,7 @@ export const Dashboard: React.FC = () => {
   const { documents } = useDocuments();
   const { certificates, getExpiringCertificates } = useCertificates();
   const { user } = useAuth();
+  const [showExpiredModal, setShowExpiredModal] = useState(false);
 
   const activeGuests = guests.filter(g => g.status === 'Ativo');
   const inactiveGuests = guests.filter(g => g.status === 'Inativo');
@@ -307,26 +308,31 @@ export const Dashboard: React.FC = () => {
             Contratos Vencidos
           </h2>
           {expiredContracts.length > 0 ? (
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {expiredContracts.slice(0, 3).map((guest) => (
-                <div key={guest.id} className="flex items-center justify-between p-3 bg-red-50 rounded border-l-3 border-red-600">
-                  <div>
-                    <p className="font-medium text-gray-900 text-sm">{guest.fullName}</p>
-                    <p className="text-xs text-gray-600">Quarto {guest.roomNumber}</p>
+            <>
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {expiredContracts.slice(0, 3).map((guest) => (
+                  <div key={guest.id} className="flex items-center justify-between p-3 bg-red-50 rounded border-l-3 border-red-600">
+                    <div>
+                      <p className="font-medium text-gray-900 text-sm">{guest.fullName}</p>
+                      <p className="text-xs text-gray-600">Quarto {guest.roomNumber}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-medium text-red-600">
+                        {formatDate(guest.contractExpiryDate)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs font-medium text-red-600">
-                      {formatDate(guest.contractExpiryDate)}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
               {expiredContracts.length > 3 && (
-                <p className="text-xs text-gray-600 text-center pt-2">
-                  +{expiredContracts.length - 3} contratos adicionais
-                </p>
+                <button
+                  onClick={() => setShowExpiredModal(true)}
+                  className="w-full mt-3 text-sm text-acasa-purple hover:text-acasa-red font-medium transition-colors"
+                >
+                  Ver mais ({expiredContracts.length - 3} adicional{expiredContracts.length - 3 !== 1 ? 'is' : ''})
+                </button>
               )}
-            </div>
+            </>
           ) : (
             <div className="text-center py-6">
               <XCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
@@ -638,6 +644,54 @@ export const Dashboard: React.FC = () => {
                 </p>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Contratos Vencidos */}
+      {showExpiredModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                <XCircle className="mr-2 text-red-600" size={24} />
+                Contratos Vencidos ({expiredContracts.length})
+              </h2>
+              <button
+                onClick={() => setShowExpiredModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <XCircle size={24} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[calc(80vh-140px)]">
+              <div className="space-y-3">
+                {expiredContracts.map((guest) => (
+                  <div key={guest.id} className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200">
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{guest.fullName}</p>
+                      <p className="text-sm text-gray-600">Quarto {guest.roomNumber}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-red-600">
+                        Vencido em
+                      </p>
+                      <p className="text-sm font-semibold text-red-700">
+                        {formatDate(guest.contractExpiryDate)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setShowExpiredModal(false)}
+                className="w-full px-4 py-2 bg-acasa-purple text-white rounded-lg hover:bg-acasa-red transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}
