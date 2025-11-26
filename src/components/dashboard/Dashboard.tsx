@@ -163,6 +163,11 @@ export const Dashboard: React.FC = () => {
     },
   ];
 
+  const TOTAL_CAPACITY = 40;
+  const totalActiveGuests = activeLongStayGuests.length + activeDayCenterGuests.length;
+  const totalOccupancyRate = Math.round((totalActiveGuests / TOTAL_CAPACITY) * 100);
+  const availableSpots = TOTAL_CAPACITY - totalActiveGuests;
+
   const stayTypeStats = [
     {
       title: 'Longa Permanência',
@@ -221,36 +226,54 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Stay Type Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {stayTypeStats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <div key={index} className="bg-white rounded-lg border border-gray-200 p-5 hover:border-acasa-purple transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className={`${stat.color} p-3 rounded-lg`}>
-                    <Icon className="text-white" size={28} />
+      <div className="space-y-4">
+        {/* Ocupação Total */}
+        <div className="bg-white rounded-lg border-2 border-acasa-purple p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Ocupação Total da Instituição</p>
+              <p className="text-4xl font-bold text-gray-900">
+                {totalActiveGuests} <span className="text-2xl text-gray-400">/ {TOTAL_CAPACITY}</span>
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                {availableSpots} vaga{availableSpots !== 1 ? 's' : ''} disponível{availableSpots !== 1 ? 'eis' : ''}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-5xl font-bold text-acasa-purple">
+                {totalOccupancyRate}%
+              </div>
+              <p className="text-sm text-gray-500 mt-1">Taxa de Ocupação</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Breakdown por Tipo */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {stayTypeStats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <div key={index} className="bg-white rounded-lg border border-gray-200 p-5 hover:border-acasa-purple transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className={`${stat.color} p-3 rounded-lg`}>
+                      <Icon className="text-white" size={28} />
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm text-gray-500">{stat.title}</p>
+                      <p className="text-3xl font-bold text-gray-900">
+                        {stat.value}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {stat.total - stat.value} inativo{stat.total - stat.value !== 1 ? 's' : ''}
+                      </p>
+                    </div>
                   </div>
-                  <div className="ml-4">
-                    <p className="text-sm text-gray-500">{stat.title}</p>
-                    <p className="text-3xl font-bold text-gray-900">
-                      {stat.value}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {stat.total} total ({stat.total - stat.value} inativos)
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className={`text-4xl font-bold ${stat.textColor}`}>
-                    {stat.total > 0 ? Math.round((stat.value / stat.total) * 100) : 0}%
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Taxa de Ocupação</p>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Recent Activity and Alerts */}
