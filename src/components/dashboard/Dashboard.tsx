@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, UserCheck, UserX, Calendar, TrendingUp, AlertTriangle, FileText, FileCheck, Receipt, Clock, Building2, User, Award, Timer } from 'lucide-react';
+import { Users, UserCheck, UserX, Calendar, TrendingUp, AlertTriangle, FileText, FileCheck, Receipt, Clock, Building2, User, Award, Timer, XCircle } from 'lucide-react';
 import { useGuests } from '../../contexts/GuestContext';
 import { useEmployees } from '../../contexts/EmployeeContext';
 import { useDocuments } from '../../contexts/DocumentContext';
@@ -120,12 +120,26 @@ export const Dashboard: React.FC = () => {
   // Certificate stats
   const activeCertificates = certificates.filter(c => c.status === 'Em dia');
   const expiringCertificates = getExpiringCertificates();
-  // Calcular contratos vencendo nos próximos 30 dias
-  const expiringContracts = guests.filter(guest => {
+
+  // Calcular contratos vencendo nos próximos 30 dias e vencidos
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const thirtyDaysFromNow = new Date(today);
+  thirtyDaysFromNow.setDate(today.getDate() + 30);
+
+  const expiringContracts = activeGuests.filter(guest => {
+    if (!guest.contractExpiryDate) return false;
     const expiryDate = new Date(guest.contractExpiryDate);
-    const today = new Date();
-    const thirtyDaysFromNow = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
-    return expiryDate >= today && expiryDate <= thirtyDaysFromNow && guest.status === 'Ativo';
+    expiryDate.setHours(0, 0, 0, 0);
+    return expiryDate > today && expiryDate <= thirtyDaysFromNow;
+  });
+
+  const expiredContracts = activeGuests.filter(guest => {
+    if (!guest.contractExpiryDate) return false;
+    const expiryDate = new Date(guest.contractExpiryDate);
+    expiryDate.setHours(0, 0, 0, 0);
+    return expiryDate <= today;
   });
 
   const stats = [
@@ -154,12 +168,20 @@ export const Dashboard: React.FC = () => {
       textColor: 'text-acasa-red',
     },
     {
-      title: 'Contratos Vencendo',
+      title: 'Contratos Vencendo (30 dias)',
       value: expiringContracts.length,
       icon: AlertTriangle,
       color: 'bg-orange-500',
       bgColor: 'bg-orange-50',
       textColor: 'text-orange-600',
+    },
+    {
+      title: 'Contratos Vencidos',
+      value: expiredContracts.length,
+      icon: XCircle,
+      color: 'bg-red-600',
+      bgColor: 'bg-red-50',
+      textColor: 'text-red-600',
     },
   ];
 
@@ -277,16 +299,16 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Recent Activity and Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Contratos de Hóspedes Vencendo */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+        {/* Contratos de Hóspedes Vencidos */}
         <div className="bg-white rounded-lg border border-gray-200 p-5">
           <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-            <Calendar className="mr-2 text-red-600" size={20} />
-            Contratos Vencendo
+            <XCircle className="mr-2 text-red-600" size={20} />
+            Contratos Vencidos
           </h2>
-          {expiringContracts.length > 0 ? (
+          {expiredContracts.length > 0 ? (
             <div className="space-y-3 max-h-64 overflow-y-auto">
-              {expiringContracts.slice(0, 3).map((guest) => (
+              {expiredContracts.slice(0, 3).map((guest) => (
                 <div key={guest.id} className="flex items-center justify-between p-3 bg-red-50 rounded border-l-3 border-red-600">
                   <div>
                     <p className="font-medium text-gray-900 text-sm">{guest.fullName}</p>
@@ -294,6 +316,41 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-medium text-red-600">
+                      {formatDate(guest.contractExpiryDate)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {expiredContracts.length > 3 && (
+                <p className="text-xs text-gray-600 text-center pt-2">
+                  +{expiredContracts.length - 3} contratos adicionais
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <XCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+              <p className="text-sm text-gray-600">Nenhum contrato vencido</p>
+            </div>
+          )}
+        </div>
+
+        {/* Contratos de Hóspedes Vencendo */}
+        <div className="bg-white rounded-lg border border-gray-200 p-5">
+          <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <AlertTriangle className="mr-2 text-orange-600" size={20} />
+            Contratos Vencendo (30 dias)
+          </h2>
+          {expiringContracts.length > 0 ? (
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {expiringContracts.slice(0, 3).map((guest) => (
+                <div key={guest.id} className="flex items-center justify-between p-3 bg-orange-50 rounded border-l-3 border-orange-600">
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">{guest.fullName}</p>
+                    <p className="text-xs text-gray-600">Quarto {guest.roomNumber}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-medium text-orange-600">
                       {formatDate(guest.contractExpiryDate)}
                     </p>
                   </div>
