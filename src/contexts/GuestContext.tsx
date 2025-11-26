@@ -60,6 +60,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
         hasCuratorship: guest.has_curatorship,
         imageUsageAuthorized: guest.image_usage_authorized,
         status: guest.status,
+        stayType: guest.stay_type || 'Longa Permanência',
         admissionDate: guest.admission_date,
         exitDate: guest.exit_date,
         exitReason: guest.exit_reason,
@@ -129,6 +130,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
           has_curatorship: guestData.hasCuratorship,
           image_usage_authorized: guestData.imageUsageAuthorized,
           status: guestData.status,
+          stay_type: guestData.stayType,
           admission_date: guestData.admissionDate,
           exit_date: guestData.exitDate,
           exit_reason: guestData.exitReason || null,
@@ -212,6 +214,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
       if (guestData.hasCuratorship !== undefined) updateData.has_curatorship = guestData.hasCuratorship;
       if (guestData.imageUsageAuthorized !== undefined) updateData.image_usage_authorized = guestData.imageUsageAuthorized;
       if (guestData.status !== undefined) updateData.status = guestData.status;
+      if (guestData.stayType !== undefined) updateData.stay_type = guestData.stayType;
       if (guestData.admissionDate !== undefined) updateData.admission_date = guestData.admissionDate || null;
       if (guestData.exitDate !== undefined) updateData.exit_date = guestData.exitDate || null;
       if (guestData.exitReason !== undefined) updateData.exit_reason = guestData.exitReason || null;
