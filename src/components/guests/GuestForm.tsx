@@ -34,6 +34,7 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
 
     // Contratuais
     status: guest?.status || 'Ativo',
+    stayType: guest?.stayType || 'Longa Permanência',
     admissionDate: guest?.admissionDate || '',
     exitDate: guest?.exitDate || '',
     exitReason: guest?.exitReason || undefined,
@@ -286,6 +287,20 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                   >
                     <option value="Ativo">Ativo</option>
                     <option value="Inativo">Inativo</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de Permanência *
+                  </label>
+                  <select
+                    value={formData.stayType}
+                    onChange={(e) => handleInputChange('stayType', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="Longa Permanência">Longa Permanência</option>
+                    <option value="Centro Dia">Centro Dia</option>
                   </select>
                 </div>
                 {formData.status === 'Inativo' && (

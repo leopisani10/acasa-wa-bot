@@ -18,6 +18,12 @@ export const Dashboard: React.FC = () => {
   const guestsWithDiapers = guests.filter(g => g.diaperContracted);
   const guestsWithHealthPlan = guests.filter(g => g.healthPlan);
 
+  // Filtros por tipo de permanência
+  const longStayGuests = guests.filter(g => g.stayType === 'Longa Permanência');
+  const dayCenterGuests = guests.filter(g => g.stayType === 'Centro Dia');
+  const activeLongStayGuests = activeGuests.filter(g => g.stayType === 'Longa Permanência');
+  const activeDayCenterGuests = activeGuests.filter(g => g.stayType === 'Centro Dia');
+
   // Calcular idades dos hóspedes
   const calculateAge = (birthDate: string) => {
     const today = new Date();
@@ -157,6 +163,27 @@ export const Dashboard: React.FC = () => {
     },
   ];
 
+  const stayTypeStats = [
+    {
+      title: 'Longa Permanência',
+      value: activeLongStayGuests.length,
+      total: longStayGuests.length,
+      icon: Building2,
+      color: 'bg-blue-500',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-600',
+    },
+    {
+      title: 'Centro Dia',
+      value: activeDayCenterGuests.length,
+      total: dayCenterGuests.length,
+      icon: Clock,
+      color: 'bg-teal-500',
+      bgColor: 'bg-teal-50',
+      textColor: 'text-teal-600',
+    },
+  ];
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
@@ -186,6 +213,39 @@ export const Dashboard: React.FC = () => {
                   <p className="text-2xl font-bold text-gray-900">
                     {stat.value}
                   </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Stay Type Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {stayTypeStats.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <div key={index} className="bg-white rounded-lg border border-gray-200 p-5 hover:border-acasa-purple transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className={`${stat.color} p-3 rounded-lg`}>
+                    <Icon className="text-white" size={28} />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm text-gray-500">{stat.title}</p>
+                    <p className="text-3xl font-bold text-gray-900">
+                      {stat.value}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {stat.total} total ({stat.total - stat.value} inativos)
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className={`text-4xl font-bold ${stat.textColor}`}>
+                    {stat.total > 0 ? Math.round((stat.value / stat.total) * 100) : 0}%
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Taxa de Ocupação</p>
                 </div>
               </div>
             </div>

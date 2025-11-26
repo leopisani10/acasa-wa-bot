@@ -23,6 +23,7 @@ export interface Guest {
 
   // Informações Contratuais e Status
   status: 'Ativo' | 'Inativo';
+  stayType: 'Longa Permanência' | 'Centro Dia';
   admissionDate: string;
   exitDate?: string;
   exitReason?: 'Óbito' | 'Outro';
