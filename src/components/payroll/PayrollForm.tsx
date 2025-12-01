@@ -105,8 +105,8 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl my-8">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl my-8 max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <h2 className="text-2xl font-bold text-gray-900">
             {payroll ? 'Editar Folha de Pagamento' : 'Nova Folha de Pagamento'}
           </h2>
@@ -118,7 +118,8 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+          <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -434,25 +435,33 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
               />
             </div>
           </div>
-
-          <div className="flex justify-end gap-4 mt-6 pt-6 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              disabled={loading}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-acasa-purple text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={loading}
-            >
-              {loading ? 'Salvando...' : payroll ? 'Atualizar' : 'Salvar'}
-            </button>
           </div>
         </form>
+
+        <div className="flex justify-end gap-4 p-6 border-t border-gray-200 flex-shrink-0 bg-white">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            disabled={loading}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            onClick={(e) => {
+              e.preventDefault();
+              const form = e.currentTarget.closest('.flex.flex-col')?.querySelector('form');
+              if (form) {
+                form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+              }
+            }}
+            className="px-6 py-2 bg-acasa-purple text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading}
+          >
+            {loading ? 'Salvando...' : payroll ? 'Atualizar' : 'Salvar'}
+          </button>
+        </div>
       </div>
     </div>
   );
