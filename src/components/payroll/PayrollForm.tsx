@@ -112,8 +112,12 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
         grossSalary,
         netSalary,
         employmentType: selectedEmployee?.employmentType,
+        workDates: formData.workDates || [],
+        simplifiedPayment: formData.simplifiedPayment || false,
         createdBy: '',
       };
+
+      console.log('Salvando folha de pagamento:', payrollData);
 
       if (payroll) {
         await updatePayroll(payroll.id, payrollData);
@@ -125,7 +129,8 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
       onClose();
     } catch (error) {
       console.error('Error saving payroll:', error);
-      alert('Erro ao salvar folha de pagamento');
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      alert(`Erro ao salvar folha de pagamento: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

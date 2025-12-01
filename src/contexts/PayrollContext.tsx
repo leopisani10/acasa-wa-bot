@@ -103,43 +103,54 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const addPayroll = async (payroll: Omit<PayrollRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
+      console.log('PayrollContext - Adding payroll:', payroll);
+
+      const insertData = {
+        employee_id: payroll.employeeId,
+        employment_type: payroll.employmentType || null,
+        reference_month: payroll.referenceMonth,
+        reference_year: payroll.referenceYear,
+        base_salary: payroll.baseSalary || 0,
+        overtime_hours: payroll.overtimeHours || 0,
+        overtime_amount: payroll.overtimeAmount || 0,
+        night_shift_hours: payroll.nightShiftHours || 0,
+        night_shift_amount: payroll.nightShiftAmount || 0,
+        hazard_pay: payroll.hazardPay || 0,
+        food_allowance: payroll.foodAllowance || 0,
+        transportation_allowance: payroll.transportationAllowance || 0,
+        health_insurance: payroll.healthInsurance || 0,
+        other_benefits: payroll.otherBenefits || 0,
+        inss_deduction: payroll.inssDeduction || 0,
+        irrf_deduction: payroll.irrfDeduction || 0,
+        other_deductions: payroll.otherDeductions || 0,
+        gross_salary: payroll.grossSalary || 0,
+        net_salary: payroll.netSalary || 0,
+        payment_date: payroll.paymentDate || null,
+        payment_status: payroll.paymentStatus || 'pending',
+        payment_method: payroll.paymentMethod || null,
+        notes: payroll.notes || null,
+        work_dates: payroll.workDates || [],
+        simplified_payment: payroll.simplifiedPayment || false,
+        created_by: user?.id,
+      };
+
+      console.log('PayrollContext - Insert data:', insertData);
+
       const { data, error: insertError } = await supabase
         .from('payroll_records')
-        .insert([{
-          employee_id: payroll.employeeId,
-          employment_type: payroll.employmentType,
-          reference_month: payroll.referenceMonth,
-          reference_year: payroll.referenceYear,
-          base_salary: payroll.baseSalary,
-          overtime_hours: payroll.overtimeHours,
-          overtime_amount: payroll.overtimeAmount,
-          night_shift_hours: payroll.nightShiftHours,
-          night_shift_amount: payroll.nightShiftAmount,
-          hazard_pay: payroll.hazardPay,
-          food_allowance: payroll.foodAllowance,
-          transportation_allowance: payroll.transportationAllowance,
-          health_insurance: payroll.healthInsurance,
-          other_benefits: payroll.otherBenefits,
-          inss_deduction: payroll.inssDeduction,
-          irrf_deduction: payroll.irrfDeduction,
-          other_deductions: payroll.otherDeductions,
-          gross_salary: payroll.grossSalary,
-          net_salary: payroll.netSalary,
-          payment_date: payroll.paymentDate,
-          payment_status: payroll.paymentStatus,
-          payment_method: payroll.paymentMethod,
-          notes: payroll.notes,
-          work_dates: payroll.workDates || [],
-          simplified_payment: payroll.simplifiedPayment || false,
-          created_by: user?.id,
-        }])
+        .insert([insertData])
         .select()
         .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('PayrollContext - Insert error:', insertError);
+        throw insertError;
+      }
 
+      console.log('PayrollContext - Successfully inserted:', data);
       await fetchPayrolls();
     } catch (err) {
+      console.error('PayrollContext - Error in addPayroll:', err);
       setError(err instanceof Error ? err.message : 'Erro ao adicionar folha de pagamento');
       throw err;
     }
