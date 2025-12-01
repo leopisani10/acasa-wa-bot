@@ -36,18 +36,59 @@ export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children
     fetchSobreavisoEmployees();
   }, []);
 
+  const migrateFromLocalStorage = async () => {
+    try {
+      const stored = localStorage.getItem('sobreavisoEmployees');
+      if (!stored) return;
+
+      const localData = JSON.parse(stored);
+      if (!Array.isArray(localData) || localData.length === 0) return;
+
+      console.log('Migrando dados do localStorage para o banco...', localData);
+
+      const userId = await getCurrentUserId();
+
+      for (const emp of localData) {
+        try {
+          await supabase
+            .from('sobreaviso_employees')
+            .insert([{
+              id: emp.id,
+              full_name: emp.fullName,
+              cpf: emp.cpf,
+              position: emp.position,
+              phone: emp.phone,
+              pix: emp.pix,
+              unit: emp.unit,
+              status: emp.status,
+              observations: emp.observations,
+              created_by: userId,
+              created_at: emp.createdAt,
+              updated_at: emp.updatedAt,
+            }]);
+          console.log('Migrado:', emp.fullName);
+        } catch (err) {
+          console.error('Erro ao migrar:', emp.fullName, err);
+        }
+      }
+
+      console.log('Migração concluída!');
+      localStorage.removeItem('sobreavisoEmployees');
+    } catch (error) {
+      console.error('Erro na migração:', error);
+    }
+  };
+
   const fetchSobreavisoEmployees = async () => {
     try {
       setError(null);
-      
-      // Try to fetch from Supabase first
+
       const { data, error } = await supabase
         .from('sobreaviso_employees')
         .select('*')
         .order('full_name');
-      
+
       if (error) {
-        // If table doesn't exist, fall back to localStorage
         if (error.code === 'PGRST205') {
           const stored = localStorage.getItem('sobreavisoEmployees');
           const localData = stored ? JSON.parse(stored) : [];
@@ -57,25 +98,48 @@ export const SobreavisoProvider: React.FC<SobreavisoProviderProps> = ({ children
         }
         throw error;
       }
-      
-      // Transform data to match our SobreavisoEmployee type
-      const transformedEmployees: SobreavisoEmployee[] = data.map(emp => ({
-        id: emp.id,
-        fullName: emp.full_name,
-        cpf: emp.cpf,
-        position: emp.position,
-        phone: emp.phone,
-        pix: emp.pix,
-        unit: emp.unit,
-        status: emp.status,
-        observations: emp.observations,
-        createdAt: emp.created_at,
-        updatedAt: emp.updated_at,
-      }));
-      
-      setSobreavisoEmployees(transformedEmployees);
+
+      if (data.length === 0) {
+        await migrateFromLocalStorage();
+        const { data: newData } = await supabase
+          .from('sobreaviso_employees')
+          .select('*')
+          .order('full_name');
+
+        if (newData) {
+          const transformedEmployees: SobreavisoEmployee[] = newData.map(emp => ({
+            id: emp.id,
+            fullName: emp.full_name,
+            cpf: emp.cpf,
+            position: emp.position,
+            phone: emp.phone,
+            pix: emp.pix,
+            unit: emp.unit,
+            status: emp.status,
+            observations: emp.observations,
+            createdAt: emp.created_at,
+            updatedAt: emp.updated_at,
+          }));
+          setSobreavisoEmployees(transformedEmployees);
+        }
+      } else {
+        const transformedEmployees: SobreavisoEmployee[] = data.map(emp => ({
+          id: emp.id,
+          fullName: emp.full_name,
+          cpf: emp.cpf,
+          position: emp.position,
+          phone: emp.phone,
+          pix: emp.pix,
+          unit: emp.unit,
+          status: emp.status,
+          observations: emp.observations,
+          createdAt: emp.created_at,
+          updatedAt: emp.updated_at,
+        }));
+
+        setSobreavisoEmployees(transformedEmployees);
+      }
     } catch (error) {
-      // Only set error for actual database errors, not missing table
       if (error instanceof Error && !error.message.includes('PGRST205')) {
         console.error('Error fetching sobreaviso employees:', error);
         setError(error.message);
