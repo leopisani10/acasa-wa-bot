@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Calculator, DollarSign, Briefcase, Calendar as CalendarIcon, RefreshCw } from 'lucide-react';
 import { usePayroll } from '../../contexts/PayrollContext';
 import { useEmployees } from '../../contexts/EmployeeContext';
-import { PayrollRecord, Employee, ShiftPayment } from '../../types';
+import { useSobreaviso } from '../../contexts/SobreavisoContext';
+import { PayrollRecord, Employee, ShiftPayment, SobreavisoEmployee } from '../../types';
 import { DateSelector } from './DateSelector';
 
 interface PayrollFormProps {
@@ -14,11 +15,38 @@ interface PayrollFormProps {
 export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSave }) => {
   const { addPayroll, updatePayroll, getShiftPaymentsByEmployeeAndMonth } = usePayroll();
   const { employees } = useEmployees();
+  const { sobreavisoEmployees } = useSobreaviso();
   const [loading, setLoading] = useState(false);
   const [loadingShifts, setLoadingShifts] = useState(false);
   const [shiftPayments, setShiftPayments] = useState<ShiftPayment[]>([]);
 
   const activeEmployees = employees.filter(e => e.status === 'Ativo');
+  const activeSobreavisoEmployees = sobreavisoEmployees.filter(e => e.status === 'Ativo');
+
+  type CombinedEmployee = {
+    id: string;
+    name: string;
+    position: string;
+    type: 'employee' | 'sobreaviso';
+    employmentType?: string;
+  };
+
+  const allEmployees: CombinedEmployee[] = [
+    ...activeEmployees.map(e => ({
+      id: e.id,
+      name: e.fullName,
+      position: e.position,
+      type: 'employee' as const,
+      employmentType: e.employmentType,
+    })),
+    ...activeSobreavisoEmployees.map(e => ({
+      id: e.id,
+      name: e.fullName,
+      position: e.position,
+      type: 'sobreaviso' as const,
+      employmentType: 'Contrato',
+    })),
+  ].sort((a, b) => a.name.localeCompare(b.name));
 
   const [formData, setFormData] = useState({
     employeeId: payroll?.employeeId || '',
@@ -45,11 +73,11 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
     simplifiedPayment: payroll?.simplifiedPayment || false,
   });
 
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<CombinedEmployee | null>(null);
 
   useEffect(() => {
     if (formData.employeeId) {
-      const employee = employees.find(e => e.id === formData.employeeId);
+      const employee = allEmployees.find(e => e.id === formData.employeeId);
       setSelectedEmployee(employee || null);
 
       if (employee) {
@@ -59,7 +87,7 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
           simplifiedPayment: isSimplified,
         }));
 
-        if (employee.employmentType === 'Contrato') {
+        if (employee.type === 'sobreaviso' || employee.employmentType === 'Contrato') {
           loadShiftPayments(employee.id);
         }
       }
@@ -67,7 +95,7 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
       setSelectedEmployee(null);
       setShiftPayments([]);
     }
-  }, [formData.employeeId, employees]);
+  }, [formData.employeeId, employees, sobreavisoEmployees]);
 
   useEffect(() => {
     if (selectedEmployee?.employmentType === 'Contrato' && formData.employeeId) {
@@ -202,7 +230,17 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
   };
 
   const showFullFields = !formData.simplifiedPayment;
-  const showTransportation = selectedEmployee?.receivesTransportation && showFullFields;
+
+  const getOriginalEmployee = () => {
+    if (!selectedEmployee) return null;
+    if (selectedEmployee.type === 'employee') {
+      return employees.find(e => e.id === selectedEmployee.id);
+    }
+    return null;
+  };
+
+  const originalEmployee = getOriginalEmployee();
+  const showTransportation = originalEmployee?.receivesTransportation && showFullFields;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -233,17 +271,34 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
                   required
                 >
                   <option value="">Selecione um colaborador</option>
-                  {activeEmployees.map((employee) => (
-                    <option key={employee.id} value={employee.id}>
-                      {employee.fullName} - {employee.position}
-                    </option>
-                  ))}
+
+                  {activeEmployees.length > 0 && (
+                    <optgroup label="📋 Colaboradores CLT">
+                      {activeEmployees.map((employee) => (
+                        <option key={employee.id} value={employee.id}>
+                          {employee.fullName} - {employee.position}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+
+                  {activeSobreavisoEmployees.length > 0 && (
+                    <optgroup label="🔔 Curingas / Sobreaviso">
+                      {activeSobreavisoEmployees.map((employee) => (
+                        <option key={employee.id} value={employee.id}>
+                          {employee.fullName} - {employee.position}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
 
                 {selectedEmployee && (
                   <div className="mt-3 flex items-center gap-3">
                     <Briefcase className="w-5 h-5 text-gray-400" />
-                    <span className="text-sm text-gray-600">Tipo de vínculo:</span>
+                    <span className="text-sm text-gray-600">
+                      {selectedEmployee.type === 'sobreaviso' ? 'Curinga/Sobreaviso' : 'Tipo de vínculo'}:
+                    </span>
                     {getEmploymentTypeBadge(selectedEmployee.employmentType)}
                   </div>
                 )}
@@ -308,7 +363,7 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
                     </p>
                   </div>
 
-                  {selectedEmployee?.employmentType === 'Contrato' && (
+                  {(selectedEmployee?.type === 'sobreaviso' || selectedEmployee?.employmentType === 'Contrato') && (
                     <>
                       <div className="col-span-2">
                         <div className="flex items-center justify-between mb-3">
