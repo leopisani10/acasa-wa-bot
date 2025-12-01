@@ -21,6 +21,14 @@ export const TransportationVoucherForm: React.FC<TransportationVoucherFormProps>
 
   const activeEmployees = employees.filter(e => e.status === 'Ativo' && e.receivesTransportation);
 
+  console.log('Total employees:', employees.length);
+  console.log('Active employees with transportation:', activeEmployees.length);
+  console.log('All employees:', employees.map(e => ({
+    name: e.fullName,
+    status: e.status,
+    receivesTransportation: e.receivesTransportation
+  })));
+
   const getCurrentMonth = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
