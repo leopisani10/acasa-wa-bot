@@ -38,6 +38,8 @@ import { LeadsList } from './components/crm/LeadsList';
 import { Pipeline } from './components/crm/Pipeline';
 import { CRMInbox } from './components/crm/CRMInbox';
 import { CRMReports } from './components/crm/CRMReports';
+import { TransportationVoucherProvider } from './contexts/TransportationVoucherContext';
+import { TransportationVoucherList } from './components/transportation-voucher/TransportationVoucherList';
 import { Guest, Employee, DocumentTemplate, Certificate, NFRDAEntry, SobreavisoEmployee } from './types';
 
 function App() {
@@ -213,6 +215,7 @@ function App() {
                       <CardapioProvider>
                         <UserManagementProvider>
                         <CRMProvider>
+                        <TransportationVoucherProvider>
                         <div className="min-h-screen bg-gray-50 lg:flex lg:overflow-hidden">
                           <div className={`lg:flex-shrink-0 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'}`}>
                             <Header 
@@ -268,6 +271,7 @@ function App() {
                               {activeView === 'crm-pipeline' && <Pipeline />}
                               {activeView === 'crm-inbox' && <CRMInbox />}
                               {activeView === 'crm-reports' && <CRMReports />}
+                              {activeView === 'transportation-voucher' && <TransportationVoucherList />}
                             </main>
                           </div>
                         </div>
@@ -327,6 +331,7 @@ function App() {
                             onSave={handleSaveSobreaviso}
                           />
                         )}
+                        </TransportationVoucherProvider>
                         </CRMProvider>
                         </UserManagementProvider>
                       </CardapioProvider>

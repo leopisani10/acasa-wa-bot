@@ -132,7 +132,8 @@ export interface Employee {
   covidVaccines: CovidVaccine[];
   observations?: string;
   professionalLicense?: ProfessionalLicense;
-  
+  receivesTransportation: boolean;
+
   // Tipo de vínculo (condiciona outros campos)
   employmentType: 'CLT' | 'Contrato' | 'Terceirizado' | 'Estágio' | 'Outro';
   
@@ -416,6 +417,34 @@ export interface EmployeeContextType {
   deleteEmployee: (id: string) => void;
   getEmployee: (id: string) => Employee | undefined;
   getExpiringItems: () => ExpiringItem[];
+}
+
+// Transportation Voucher
+export interface TransportationVoucher {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  referenceMonth: string;
+  dailyValue: number;
+  workingDays: number;
+  totalValue: number;
+  paymentDate?: string;
+  paid: boolean;
+  notes?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TransportationVoucherContextType {
+  vouchers: TransportationVoucher[];
+  loading: boolean;
+  error: string | null;
+  addVoucher: (voucher: Omit<TransportationVoucher, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateVoucher: (id: string, voucher: Partial<TransportationVoucher>) => Promise<void>;
+  deleteVoucher: (id: string) => Promise<void>;
+  getVouchersByEmployee: (employeeId: string) => TransportationVoucher[];
+  getVouchersByMonth: (month: string) => TransportationVoucher[];
 }
 
 // Re-export agravos types

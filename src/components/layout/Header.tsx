@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, User, Home, Menu, FileText, Users, FileCheck, Receipt, Settings, Clipboard, AlertTriangle, Calendar, Clock, ChefHat, ChevronLeft, ChevronRight, UserCog, UserPlus, Kanban, MessageCircle, BarChart3, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
+import { LogOut, User, Home, Menu, FileText, Users, FileCheck, Receipt, Settings, Clipboard, AlertTriangle, Calendar, Clock, ChefHat, ChevronLeft, ChevronRight, UserCog, UserPlus, Kanban, MessageCircle, BarChart3, ChevronDown, ChevronUp, TrendingUp, Bus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface HeaderProps {
@@ -22,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, sideba
     ...(user?.role === 'admin' ? [
       { key: 'guests', label: 'Hóspedes', icon: User },
       { key: 'employees', label: 'Colaboradores', icon: Users },
+      { key: 'transportation-voucher', label: 'Vale Transporte', icon: Bus },
     ] : []),
     // Menu para profissionais de saúde (enfermagem, médicos, etc.)
     ...((user?.position?.toLowerCase().includes('enfermagem') || 

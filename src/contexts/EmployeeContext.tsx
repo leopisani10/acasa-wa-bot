@@ -74,6 +74,7 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
         status: employee.status,
         photo: employee.photo,
         observations: employee.observations,
+        receivesTransportation: employee.receives_transportation || false,
         professionalLicense: employee.professional_license_council !== 'Não Possui' ? {
           council: employee.professional_license_council,
           licenseNumber: employee.professional_license_number,
@@ -187,6 +188,7 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
           status: employeeData.status,
           photo: employeeData.photo,
           observations: employeeData.observations,
+          receives_transportation: employeeData.receivesTransportation || false,
           professional_license_council: employeeData.professionalLicense?.council || 'Não Possui',
           professional_license_number: employeeData.professionalLicense?.licenseNumber,
           professional_license_expiry_date: employeeData.professionalLicense?.expiryDate || null,

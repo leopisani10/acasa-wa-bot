@@ -26,6 +26,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onClose, o
     photo: employee?.photo || '',
     covidVaccines: employee?.covidVaccines || [],
     observations: employee?.observations || '',
+    receivesTransportation: employee?.receivesTransportation || false,
     professionalLicense: employee?.professionalLicense || {
       council: 'Não Possui',
       licenseNumber: '',
@@ -1040,6 +1041,19 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onClose, o
                   rows={4}
                   placeholder="Observações importantes sobre o colaborador..."
                 />
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="receivesTransportation"
+                  checked={formData.receivesTransportation}
+                  onChange={(e) => handleInputChange('receivesTransportation', e.target.checked)}
+                  className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="receivesTransportation" className="text-sm font-medium text-gray-700">
+                  Recebe Vale Transporte
+                </label>
               </div>
             </section>
           </div>
