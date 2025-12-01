@@ -44,7 +44,7 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
       name: e.fullName,
       position: e.position,
       type: 'sobreaviso' as const,
-      employmentType: 'Contrato',
+      employmentType: 'Sobreaviso',
     })),
   ].sort((a, b) => a.name.localeCompare(b.name));
 

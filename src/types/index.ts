@@ -135,7 +135,7 @@ export interface Employee {
   receivesTransportation: boolean;
 
   // Tipo de vínculo (condiciona outros campos)
-  employmentType: 'CLT' | 'Contrato' | 'Terceirizado' | 'Estágio' | 'Outro';
+  employmentType: 'CLT' | 'Contrato' | 'Terceirizado' | 'Estágio' | 'Sobreaviso' | 'Outro';
   
   // Campos específicos por tipo de vínculo
   cltData?: CLTData;
@@ -522,7 +522,7 @@ export interface PayrollRecord {
   id: string;
   employeeId: string;
   employeeName?: string;
-  employmentType?: 'CLT' | 'Contrato' | 'Terceirizado' | 'Estágio' | 'Outro';
+  employmentType?: 'CLT' | 'Contrato' | 'Terceirizado' | 'Estágio' | 'Sobreaviso' | 'Outro';
   referenceMonth: string;
   referenceYear: number;
   baseSalary: number;

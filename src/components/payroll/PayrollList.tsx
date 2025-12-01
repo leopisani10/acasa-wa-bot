@@ -88,6 +88,7 @@ export const PayrollList: React.FC<PayrollListProps> = ({ onAddPayroll, onEditPa
       Contrato: { color: 'bg-purple-100 text-purple-800', label: 'Contrato' },
       Terceirizado: { color: 'bg-orange-100 text-orange-800', label: 'Terceirizado' },
       Estágio: { color: 'bg-green-100 text-green-800', label: 'Estágio' },
+      Sobreaviso: { color: 'bg-yellow-100 text-yellow-800', label: 'Sobreaviso' },
       Outro: { color: 'bg-gray-100 text-gray-800', label: 'Outro' },
     };
 

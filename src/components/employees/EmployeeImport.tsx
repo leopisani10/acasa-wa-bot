@@ -171,7 +171,7 @@ export const EmployeeImport: React.FC<EmployeeImportProps> = ({ onClose, onImpor
       if (!employee.rg.trim()) errors.push('RG é obrigatório');
       if (!employee.birthDate) errors.push('Data de nascimento é obrigatória');
       if (!employee.position.trim()) errors.push('Cargo é obrigatório');
-      if (!['CLT', 'Contrato', 'Terceirizado', 'Estágio', 'Outro'].includes(employee.employmentType)) {
+      if (!['CLT', 'Contrato', 'Terceirizado', 'Estágio', 'Sobreaviso', 'Outro'].includes(employee.employmentType)) {
         errors.push('Tipo de vínculo inválido');
       }
 
@@ -263,7 +263,7 @@ export const EmployeeImport: React.FC<EmployeeImportProps> = ({ onClose, onImpor
             licenseNumber: '',
             expiryDate: '',
           },
-          employmentType: empData.employmentType as 'CLT' | 'Contrato' | 'Terceirizado' | 'Estágio' | 'Outro',
+          employmentType: empData.employmentType as 'CLT' | 'Contrato' | 'Terceirizado' | 'Estágio' | 'Sobreaviso' | 'Outro',
           covidVaccines: [],
         };
 
