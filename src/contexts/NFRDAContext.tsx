@@ -92,11 +92,11 @@ export const NFRDAProvider: React.FC<NFRDAProviderProps> = ({ children }) => {
           unit: entryData.unit,
           reference_month: entryData.referenceMonth,
           reference_year: entryData.referenceYear,
-          activity_report_upload: entryData.activityReportUpload,
-          invoice_upload: entryData.invoiceUpload,
+          activity_report_upload: entryData.activityReportUpload || null,
+          invoice_upload: entryData.invoiceUpload || null,
           delivery_status: entryData.deliveryStatus,
           payment_status: entryData.paymentStatus,
-          payment_date: entryData.paymentDate,
+          payment_date: entryData.paymentDate || null,
           created_by: userId,
         }])
         .select()
@@ -118,28 +118,32 @@ export const NFRDAProvider: React.FC<NFRDAProviderProps> = ({ children }) => {
   const updateEntry = async (id: string, entryData: Partial<NFRDAEntry>) => {
     try {
       const updateData: any = {};
-      
+
       if (entryData.contractorId !== undefined) updateData.contractor_id = entryData.contractorId;
       if (entryData.contractorName !== undefined) updateData.contractor_name = entryData.contractorName;
       if (entryData.unit !== undefined) updateData.unit = entryData.unit;
       if (entryData.referenceMonth !== undefined) updateData.reference_month = entryData.referenceMonth;
       if (entryData.referenceYear !== undefined) updateData.reference_year = entryData.referenceYear;
-      if (entryData.activityReportUpload !== undefined) updateData.activity_report_upload = entryData.activityReportUpload;
-      if (entryData.invoiceUpload !== undefined) updateData.invoice_upload = entryData.invoiceUpload;
+      if (entryData.activityReportUpload !== undefined) updateData.activity_report_upload = entryData.activityReportUpload || null;
+      if (entryData.invoiceUpload !== undefined) updateData.invoice_upload = entryData.invoiceUpload || null;
       if (entryData.deliveryStatus !== undefined) updateData.delivery_status = entryData.deliveryStatus;
       if (entryData.paymentStatus !== undefined) updateData.payment_status = entryData.paymentStatus;
-      if (entryData.paymentDate !== undefined) updateData.payment_date = entryData.paymentDate;
-      
+      if (entryData.paymentDate !== undefined) updateData.payment_date = entryData.paymentDate || null;
+
       const { error } = await supabase
         .from('nfrda_entries')
         .update(updateData)
         .eq('id', id);
-      
-      if (error) throw error;
-      
+
+      if (error) {
+        console.error('Supabase error updating NFRDA entry:', error);
+        throw new Error(`Erro ao atualizar entrada: ${error.message}`);
+      }
+
       await fetchEntries();
     } catch (error) {
       console.error('Error updating NFRDA entry:', error);
+      throw error;
     }
   };
 
