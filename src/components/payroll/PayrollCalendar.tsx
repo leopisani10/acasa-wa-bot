@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, User, DollarSign } from 'lucide-react';
 import { usePayroll } from '../../contexts/PayrollContext';
+import { useEmployees } from '../../contexts/EmployeeContext';
 
 export const PayrollCalendar: React.FC = () => {
   const { payrolls } = usePayroll();
+  const { employees } = useEmployees();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
 
@@ -11,23 +13,99 @@ export const PayrollCalendar: React.FC = () => {
   const currentYear = currentDate.getFullYear();
   const monthStr = currentMonth.toString().padStart(2, '0');
 
+  const positionColors: { [key: string]: { bg: string; text: string; label: string } } = {
+    cuidador: { bg: 'bg-blue-500', text: 'text-white', label: 'Cuidador' },
+    'tecnico de enfermagem': { bg: 'bg-green-500', text: 'text-white', label: 'Técnico de Enfermagem' },
+    enfermeiro: { bg: 'bg-purple-500', text: 'text-white', label: 'Enfermeiro' },
+    medico: { bg: 'bg-red-500', text: 'text-white', label: 'Médico' },
+    nutricionista: { bg: 'bg-orange-500', text: 'text-white', label: 'Nutricionista' },
+    fisioterapeuta: { bg: 'bg-teal-500', text: 'text-white', label: 'Fisioterapeuta' },
+    psicologo: { bg: 'bg-pink-500', text: 'text-white', label: 'Psicólogo' },
+    assistente: { bg: 'bg-indigo-500', text: 'text-white', label: 'Assistente' },
+    admin: { bg: 'bg-gray-600', text: 'text-white', label: 'Administrativo' },
+    cozinha: { bg: 'bg-yellow-600', text: 'text-white', label: 'Cozinha' },
+    limpeza: { bg: 'bg-cyan-600', text: 'text-white', label: 'Limpeza' },
+    manutencao: { bg: 'bg-amber-700', text: 'text-white', label: 'Manutenção' },
+  };
+
+  const getPositionKey = (position: string): string => {
+    const normalized = position.toLowerCase().trim();
+
+    if (normalized.includes('cuidador')) return 'cuidador';
+    if (normalized.includes('técnico') || normalized.includes('tecnico')) return 'tecnico de enfermagem';
+    if (normalized.includes('enfermeiro') || normalized.includes('enfermeira')) return 'enfermeiro';
+    if (normalized.includes('médico') || normalized.includes('medico')) return 'medico';
+    if (normalized.includes('nutricionista')) return 'nutricionista';
+    if (normalized.includes('fisioterapeuta')) return 'fisioterapeuta';
+    if (normalized.includes('psicólogo') || normalized.includes('psicologo')) return 'psicologo';
+    if (normalized.includes('assistente')) return 'assistente';
+    if (normalized.includes('cozinha') || normalized.includes('cozinheiro')) return 'cozinha';
+    if (normalized.includes('limpeza') || normalized.includes('auxiliar de limpeza')) return 'limpeza';
+    if (normalized.includes('manutenção') || normalized.includes('manutencao')) return 'manutencao';
+    if (normalized.includes('admin') || normalized.includes('administrativo')) return 'admin';
+
+    return 'admin';
+  };
+
+  const getPositionColor = (position: string) => {
+    const key = getPositionKey(position);
+    return positionColors[key] || positionColors.admin;
+  };
+
+  const enrichedPayrolls = useMemo(() => {
+    return payrolls.map(payroll => {
+      const employee = employees.find(emp => emp.id === payroll.employeeId);
+      return {
+        ...payroll,
+        position: employee?.position || 'Não especificado',
+      };
+    });
+  }, [payrolls, employees]);
+
   const filteredPayrolls = useMemo(() => {
-    return payrolls.filter(payroll => {
+    return enrichedPayrolls.filter(payroll => {
       const matchesMonth = payroll.referenceMonth === monthStr && payroll.referenceYear === currentYear;
       const matchesEmployee = selectedEmployee === 'all' || payroll.employeeId === selectedEmployee;
       return matchesMonth && matchesEmployee && payroll.workDates && payroll.workDates.length > 0;
     });
-  }, [payrolls, monthStr, currentYear, selectedEmployee]);
+  }, [enrichedPayrolls, monthStr, currentYear, selectedEmployee]);
 
   const uniqueEmployees = useMemo(() => {
     const employeeMap = new Map();
-    payrolls.forEach(payroll => {
+    enrichedPayrolls.forEach(payroll => {
       if (payroll.employeeId && payroll.employeeName && !employeeMap.has(payroll.employeeId)) {
         employeeMap.set(payroll.employeeId, payroll.employeeName);
       }
     });
     return Array.from(employeeMap, ([id, name]) => ({ id, name }));
-  }, [payrolls]);
+  }, [enrichedPayrolls]);
+
+  const positionStats = useMemo(() => {
+    const stats = new Map<string, { count: number; totalDays: number; label: string; color: any }>();
+
+    filteredPayrolls.forEach(payroll => {
+      const key = getPositionKey(payroll.position);
+      const color = getPositionColor(payroll.position);
+
+      if (!stats.has(key)) {
+        stats.set(key, {
+          count: 0,
+          totalDays: 0,
+          label: color.label,
+          color: color,
+        });
+      }
+
+      const stat = stats.get(key)!;
+      stat.count += 1;
+      stat.totalDays += payroll.workDates?.length || 0;
+    });
+
+    return Array.from(stats.entries()).map(([key, value]) => ({
+      key,
+      ...value,
+    }));
+  }, [filteredPayrolls]);
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month, 0).getDate();
@@ -66,20 +144,8 @@ export const PayrollCalendar: React.FC = () => {
     return payroll.workDates.includes(dateStr);
   };
 
-  const getDayColor = (employeeIndex: number) => {
-    const colors = [
-      'bg-blue-500',
-      'bg-green-500',
-      'bg-purple-500',
-      'bg-pink-500',
-      'bg-orange-500',
-      'bg-teal-500',
-      'bg-red-500',
-      'bg-indigo-500',
-      'bg-yellow-500',
-      'bg-cyan-500',
-    ];
-    return colors[employeeIndex % colors.length];
+  const getFirstName = (fullName: string) => {
+    return fullName.split(' ')[0];
   };
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
@@ -104,7 +170,7 @@ export const PayrollCalendar: React.FC = () => {
             Calendário de Folha de Pagamento
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            Visualize os dias trabalhados de cada colaborador
+            Visualize os dias trabalhados por função e colaborador
           </p>
         </div>
 
@@ -188,7 +254,7 @@ export const PayrollCalendar: React.FC = () => {
           ))}
 
           {emptyDays.map((_, index) => (
-            <div key={`empty-${index}`} className="aspect-square" />
+            <div key={`empty-${index}`} className="min-h-[120px]" />
           ))}
 
           {days.map((day) => {
@@ -201,35 +267,33 @@ export const PayrollCalendar: React.FC = () => {
             return (
               <div
                 key={day}
-                className={`aspect-square border rounded-lg p-1 transition-all ${
+                className={`min-h-[120px] border rounded-lg p-2 transition-all ${
                   isToday
                     ? 'border-blue-500 bg-blue-50'
-                    : hasWork
-                    ? 'border-gray-300 bg-gray-50'
-                    : 'border-gray-200'
+                    : 'border-gray-300 bg-white'
                 }`}
               >
                 <div className="h-full flex flex-col">
-                  <div className={`text-sm font-semibold mb-1 ${
+                  <div className={`text-sm font-bold mb-2 ${
                     isToday ? 'text-blue-600' : 'text-gray-700'
                   }`}>
                     {day}
                   </div>
 
                   {hasWork && (
-                    <div className="flex-1 flex flex-col gap-0.5 overflow-hidden">
-                      {workingEmployees.slice(0, 3).map((payroll, index) => (
-                        <div
-                          key={payroll.id}
-                          className={`h-1.5 rounded-full ${getDayColor(filteredPayrolls.indexOf(payroll))}`}
-                          title={payroll.employeeName}
-                        />
-                      ))}
-                      {workingEmployees.length > 3 && (
-                        <div className="text-[10px] text-gray-500 text-center mt-0.5">
-                          +{workingEmployees.length - 3}
-                        </div>
-                      )}
+                    <div className="flex-1 flex flex-col gap-1 overflow-y-auto">
+                      {workingEmployees.map((payroll) => {
+                        const color = getPositionColor(payroll.position);
+                        return (
+                          <div
+                            key={payroll.id}
+                            className={`px-2 py-1 rounded text-[10px] font-medium ${color.bg} ${color.text} truncate`}
+                            title={`${payroll.employeeName} - ${payroll.position}`}
+                          >
+                            {getFirstName(payroll.employeeName || '')}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -238,17 +302,19 @@ export const PayrollCalendar: React.FC = () => {
           })}
         </div>
 
-        {filteredPayrolls.length > 0 && (
+        {positionStats.length > 0 && (
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">Legenda</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {filteredPayrolls.map((payroll, index) => (
-                <div key={payroll.id} className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded ${getDayColor(index)}`} />
-                  <span className="text-sm text-gray-700">{payroll.employeeName}</span>
-                  <span className="text-xs text-gray-500">
-                    ({payroll.workDates?.length || 0} dias)
-                  </span>
+            <h4 className="text-sm font-semibold text-gray-900 mb-3">Legenda por Função</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {positionStats.map((stat) => (
+                <div key={stat.key} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                  <div className={`w-6 h-6 rounded ${stat.color.bg} flex-shrink-0`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{stat.label}</p>
+                    <p className="text-xs text-gray-500">
+                      {stat.count} {stat.count === 1 ? 'pessoa' : 'pessoas'} • {stat.totalDays} dias
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -271,7 +337,9 @@ export const PayrollCalendar: React.FC = () => {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-blue-900 mb-2">Como funciona?</h4>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Cada barra colorida representa um colaborador que trabalhou naquele dia</li>
+          <li>• Cada colaborador aparece com o primeiro nome no dia trabalhado</li>
+          <li>• A cor de fundo indica a função do colaborador</li>
+          <li>• Passe o mouse sobre o nome para ver o nome completo e função</li>
           <li>• Use o filtro para visualizar apenas um colaborador específico</li>
           <li>• Navegue entre os meses usando as setas</li>
           <li>• O dia atual está destacado em azul</li>
