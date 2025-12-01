@@ -2,10 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, User, DollarSign } from 'lucide-react';
 import { usePayroll } from '../../contexts/PayrollContext';
 import { useEmployees } from '../../contexts/EmployeeContext';
+import { useSobreaviso } from '../../contexts/SobreavisoContext';
 
 export const PayrollCalendar: React.FC = () => {
   const { payrolls } = usePayroll();
   const { employees } = useEmployees();
+  const { sobreavisoEmployees } = useSobreaviso();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
 
@@ -14,6 +16,7 @@ export const PayrollCalendar: React.FC = () => {
   const monthStr = currentMonth.toString().padStart(2, '0');
 
   const positionColors: { [key: string]: { bg: string; text: string; label: string } } = {
+    curinga: { bg: 'bg-yellow-500', text: 'text-gray-900', label: 'Curinga (Sobreaviso)' },
     cuidador: { bg: 'bg-blue-500', text: 'text-white', label: 'Cuidador' },
     'tecnico de enfermagem': { bg: 'bg-green-500', text: 'text-white', label: 'Técnico de Enfermagem' },
     enfermeiro: { bg: 'bg-purple-500', text: 'text-white', label: 'Enfermeiro' },
@@ -23,14 +26,15 @@ export const PayrollCalendar: React.FC = () => {
     psicologo: { bg: 'bg-pink-500', text: 'text-white', label: 'Psicólogo' },
     assistente: { bg: 'bg-indigo-500', text: 'text-white', label: 'Assistente' },
     admin: { bg: 'bg-gray-600', text: 'text-white', label: 'Administrativo' },
-    cozinha: { bg: 'bg-yellow-600', text: 'text-white', label: 'Cozinha' },
+    cozinha: { bg: 'bg-amber-600', text: 'text-white', label: 'Cozinha' },
     limpeza: { bg: 'bg-cyan-600', text: 'text-white', label: 'Limpeza' },
-    manutencao: { bg: 'bg-amber-700', text: 'text-white', label: 'Manutenção' },
+    manutencao: { bg: 'bg-stone-700', text: 'text-white', label: 'Manutenção' },
   };
 
   const getPositionKey = (position: string): string => {
     const normalized = position.toLowerCase().trim();
 
+    if (normalized.includes('curinga')) return 'curinga';
     if (normalized.includes('cuidador')) return 'cuidador';
     if (normalized.includes('técnico') || normalized.includes('tecnico')) return 'tecnico de enfermagem';
     if (normalized.includes('enfermeiro') || normalized.includes('enfermeira')) return 'enfermeiro';
@@ -55,12 +59,23 @@ export const PayrollCalendar: React.FC = () => {
   const enrichedPayrolls = useMemo(() => {
     return payrolls.map(payroll => {
       const employee = employees.find(emp => emp.id === payroll.employeeId);
+
+      // Verificar se está no quadro de sobreaviso (busca por CPF ou nome)
+      const isSobreaviso = sobreavisoEmployees.some(sa =>
+        (sa.cpf && employee?.cpf && sa.cpf === employee.cpf) ||
+        (sa.fullName && employee?.name && sa.fullName.toLowerCase() === employee.name.toLowerCase())
+      );
+
+      // Se está no sobreaviso, é Curinga
+      const position = isSobreaviso ? 'Curinga' : (employee?.position || 'Não especificado');
+
       return {
         ...payroll,
-        position: employee?.position || 'Não especificado',
+        position,
+        isSobreaviso,
       };
     });
-  }, [payrolls, employees]);
+  }, [payrolls, employees, sobreavisoEmployees]);
 
   const filteredPayrolls = useMemo(() => {
     return enrichedPayrolls.filter(payroll => {
