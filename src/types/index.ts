@@ -455,3 +455,58 @@ export * from './prontuario';
 
 // Re-export CRM types
 export * from './crm';
+
+// Payroll Types
+export interface PayrollRecord {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  referenceMonth: string;
+  referenceYear: number;
+  baseSalary: number;
+  overtimeHours: number;
+  overtimeAmount: number;
+  nightShiftHours: number;
+  nightShiftAmount: number;
+  hazardPay: number;
+  foodAllowance: number;
+  transportationAllowance: number;
+  healthInsurance: number;
+  otherBenefits: number;
+  inssDeduction: number;
+  irrfDeduction: number;
+  otherDeductions: number;
+  grossSalary: number;
+  netSalary: number;
+  paymentDate?: string;
+  paymentStatus: 'pending' | 'processing' | 'paid' | 'cancelled';
+  paymentMethod?: 'bank_transfer' | 'check' | 'cash';
+  notes?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PayrollAdjustment {
+  id: string;
+  payrollId: string;
+  adjustmentType: 'addition' | 'deduction' | 'correction';
+  amount: number;
+  reason: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface PayrollContextType {
+  payrolls: PayrollRecord[];
+  adjustments: PayrollAdjustment[];
+  loading: boolean;
+  error: string | null;
+  addPayroll: (payroll: Omit<PayrollRecord, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updatePayroll: (id: string, payroll: Partial<PayrollRecord>) => Promise<void>;
+  deletePayroll: (id: string) => Promise<void>;
+  getPayrollsByEmployee: (employeeId: string) => PayrollRecord[];
+  getPayrollsByMonth: (month: string, year: number) => PayrollRecord[];
+  addAdjustment: (adjustment: Omit<PayrollAdjustment, 'id' | 'createdAt'>) => Promise<void>;
+  getAdjustmentsByPayroll: (payrollId: string) => PayrollAdjustment[];
+}
