@@ -264,6 +264,8 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
       await fetchEmployees();
     } catch (error) {
       console.error('Error adding employee:', error);
+      alert(`Erro ao adicionar colaborador: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      throw error;
     }
   };
 
