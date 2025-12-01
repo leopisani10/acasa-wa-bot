@@ -500,6 +500,21 @@ export interface PayrollAdjustment {
   createdAt: string;
 }
 
+export interface ShiftPayment {
+  id: string;
+  sobreaviso_employee_id: string;
+  shift_date: string;
+  shift_type: string;
+  hours_worked: number;
+  hourly_rate: number;
+  total_amount: number;
+  notes?: string;
+  payroll_entry_id?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PayrollContextType {
   payrolls: PayrollRecord[];
   adjustments: PayrollAdjustment[];
@@ -512,4 +527,5 @@ export interface PayrollContextType {
   getPayrollsByMonth: (month: string, year: number) => PayrollRecord[];
   addAdjustment: (adjustment: Omit<PayrollAdjustment, 'id' | 'createdAt'>) => Promise<void>;
   getAdjustmentsByPayroll: (payrollId: string) => PayrollAdjustment[];
+  getShiftPaymentsByEmployeeAndMonth: (employeeId: string, month: string, year: number) => Promise<ShiftPayment[]>;
 }

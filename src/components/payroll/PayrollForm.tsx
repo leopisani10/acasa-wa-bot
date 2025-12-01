@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calculator, DollarSign, Briefcase } from 'lucide-react';
+import { X, Calculator, DollarSign, Briefcase, Calendar as CalendarIcon, RefreshCw } from 'lucide-react';
 import { usePayroll } from '../../contexts/PayrollContext';
 import { useEmployees } from '../../contexts/EmployeeContext';
-import { PayrollRecord, Employee } from '../../types';
+import { PayrollRecord, Employee, ShiftPayment } from '../../types';
 import { DateSelector } from './DateSelector';
 
 interface PayrollFormProps {
@@ -12,9 +12,11 @@ interface PayrollFormProps {
 }
 
 export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSave }) => {
-  const { addPayroll, updatePayroll } = usePayroll();
+  const { addPayroll, updatePayroll, getShiftPaymentsByEmployeeAndMonth } = usePayroll();
   const { employees } = useEmployees();
   const [loading, setLoading] = useState(false);
+  const [loadingShifts, setLoadingShifts] = useState(false);
+  const [shiftPayments, setShiftPayments] = useState<ShiftPayment[]>([]);
 
   const activeEmployees = employees.filter(e => e.status === 'Ativo');
 
@@ -56,11 +58,49 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
           ...prev,
           simplifiedPayment: isSimplified,
         }));
+
+        if (employee.employmentType === 'Contrato') {
+          loadShiftPayments(employee.id);
+        }
       }
     } else {
       setSelectedEmployee(null);
+      setShiftPayments([]);
     }
   }, [formData.employeeId, employees]);
+
+  useEffect(() => {
+    if (selectedEmployee?.employmentType === 'Contrato' && formData.employeeId) {
+      loadShiftPayments(formData.employeeId);
+    }
+  }, [formData.referenceMonth, formData.referenceYear]);
+
+  const loadShiftPayments = async (employeeId: string) => {
+    setLoadingShifts(true);
+    try {
+      const shifts = await getShiftPaymentsByEmployeeAndMonth(
+        employeeId,
+        formData.referenceMonth,
+        formData.referenceYear
+      );
+      setShiftPayments(shifts);
+
+      const dates = shifts.map(s => s.shift_date);
+      const totalAmount = shifts.reduce((sum, s) => sum + parseFloat(s.total_amount.toString()), 0);
+
+      setFormData(prev => ({
+        ...prev,
+        workDates: dates,
+        baseSalary: totalAmount,
+      }));
+
+      console.log('Plantões carregados:', shifts);
+    } catch (error) {
+      console.error('Erro ao carregar plantões:', error);
+    } finally {
+      setLoadingShifts(false);
+    }
+  };
 
   const calculateGrossAndNet = () => {
     if (formData.simplifiedPayment) {
@@ -269,17 +309,83 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
                   </div>
 
                   {selectedEmployee?.employmentType === 'Contrato' && (
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Dias Trabalhados
-                      </label>
-                      <DateSelector
-                        month={formData.referenceMonth}
-                        year={formData.referenceYear}
-                        selectedDates={formData.workDates}
-                        onChange={(dates) => setFormData({ ...formData, workDates: dates })}
-                      />
-                    </div>
+                    <>
+                      <div className="col-span-2">
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Plantões Cadastrados
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => loadShiftPayments(formData.employeeId)}
+                            disabled={loadingShifts}
+                            className="flex items-center gap-2 text-sm text-acasa-purple hover:text-purple-700 disabled:opacity-50"
+                          >
+                            <RefreshCw className={`w-4 h-4 ${loadingShifts ? 'animate-spin' : ''}`} />
+                            {loadingShifts ? 'Carregando...' : 'Recarregar'}
+                          </button>
+                        </div>
+
+                        {loadingShifts ? (
+                          <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center">
+                            <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-2 animate-spin" />
+                            <p className="text-sm text-gray-600">Carregando plantões...</p>
+                          </div>
+                        ) : shiftPayments.length > 0 ? (
+                          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <CalendarIcon className="w-5 h-5 text-green-600" />
+                                <span className="font-medium text-green-900">
+                                  {shiftPayments.length} {shiftPayments.length === 1 ? 'plantão encontrado' : 'plantões encontrados'}
+                                </span>
+                              </div>
+                              <span className="text-sm font-semibold text-green-700">
+                                Total: {formatCurrency(shiftPayments.reduce((sum, s) => sum + parseFloat(s.total_amount.toString()), 0))}
+                              </span>
+                            </div>
+                            <div className="max-h-40 overflow-y-auto space-y-2">
+                              {shiftPayments.map((shift) => (
+                                <div key={shift.id} className="flex items-center justify-between bg-white p-2 rounded border border-green-100">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-sm font-medium text-gray-700">
+                                      {new Date(shift.shift_date).toLocaleDateString('pt-BR')}
+                                    </span>
+                                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                                      {shift.shift_type}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      {shift.hours_worked}h
+                                    </span>
+                                  </div>
+                                  <span className="text-sm font-semibold text-green-600">
+                                    {formatCurrency(parseFloat(shift.total_amount.toString()))}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                            <p className="text-sm text-yellow-800">
+                              Nenhum plantão cadastrado para este período. Os plantões cadastrados no módulo de Sobreaviso serão carregados automaticamente aqui.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Dias Trabalhados (opcional - ajuste manual)
+                        </label>
+                        <DateSelector
+                          month={formData.referenceMonth}
+                          year={formData.referenceYear}
+                          selectedDates={formData.workDates}
+                          onChange={(dates) => setFormData({ ...formData, workDates: dates })}
+                        />
+                      </div>
+                    </>
                   )}
                 </>
               ) : (

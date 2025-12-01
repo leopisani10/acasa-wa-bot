@@ -249,6 +249,31 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return adjustments.filter(a => a.payrollId === payrollId);
   };
 
+  const getShiftPaymentsByEmployeeAndMonth = async (employeeId: string, month: string, year: number) => {
+    try {
+      const startDate = `${year}-${month.padStart(2, '0')}-01`;
+      const endDate = new Date(year, parseInt(month), 0).toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('shift_payments')
+        .select(`
+          *,
+          sobreaviso_employees!inner(id, full_name)
+        `)
+        .eq('sobreaviso_employees.id', employeeId)
+        .gte('shift_date', startDate)
+        .lte('shift_date', endDate)
+        .order('shift_date');
+
+      if (error) throw error;
+
+      return data || [];
+    } catch (err) {
+      console.error('Error fetching shift payments:', err);
+      return [];
+    }
+  };
+
   return (
     <PayrollContext.Provider value={{
       payrolls,
@@ -262,6 +287,7 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
       getPayrollsByMonth,
       addAdjustment,
       getAdjustmentsByPayroll,
+      getShiftPaymentsByEmployeeAndMonth,
     }}>
       {children}
     </PayrollContext.Provider>
