@@ -281,6 +281,7 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
       if (employeeData.status !== undefined) updateData.status = employeeData.status;
       if (employeeData.photo !== undefined) updateData.photo = employeeData.photo;
       if (employeeData.observations !== undefined) updateData.observations = employeeData.observations;
+      if (employeeData.receivesTransportation !== undefined) updateData.receives_transportation = employeeData.receivesTransportation;
       if (employeeData.professionalLicense !== undefined) {
         updateData.professional_license_council = employeeData.professionalLicense.council;
         updateData.professional_license_number = employeeData.professionalLicense.licenseNumber;
