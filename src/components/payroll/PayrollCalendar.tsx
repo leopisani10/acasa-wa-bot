@@ -60,11 +60,36 @@ export const PayrollCalendar: React.FC = () => {
     return payrolls.map(payroll => {
       const employee = employees.find(emp => emp.id === payroll.employeeId);
 
+      // Função auxiliar para normalizar CPF (remover pontos, traços e espaços)
+      const normalizeCPF = (cpf: string | undefined) => {
+        if (!cpf) return '';
+        return cpf.replace(/[.\-\s]/g, '').trim();
+      };
+
+      // Função auxiliar para normalizar nome (remover acentos, espaços extras, lowercase)
+      const normalizeName = (name: string | undefined) => {
+        if (!name) return '';
+        return name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      };
+
       // Verificar se está no quadro de sobreaviso (busca por CPF ou nome)
-      const isSobreaviso = sobreavisoEmployees.some(sa =>
-        (sa.cpf && employee?.cpf && sa.cpf === employee.cpf) ||
-        (sa.fullName && employee?.name && sa.fullName.toLowerCase() === employee.name.toLowerCase())
-      );
+      const employeeCPF = normalizeCPF(employee?.cpf);
+      const employeeName = normalizeName(employee?.name || payroll.employeeName);
+
+      const isSobreaviso = sobreavisoEmployees.some(sa => {
+        const saCPF = normalizeCPF(sa.cpf);
+        const saName = normalizeName(sa.fullName);
+
+        const cpfMatch = employeeCPF && saCPF && employeeCPF === saCPF;
+        const nameMatch = employeeName && saName && employeeName === saName;
+
+        return cpfMatch || nameMatch;
+      });
 
       // Se está no sobreaviso, é Curinga
       const position = isSobreaviso ? 'Curinga' : (employee?.position || 'Não especificado');
