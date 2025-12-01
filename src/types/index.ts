@@ -461,6 +461,7 @@ export interface PayrollRecord {
   id: string;
   employeeId: string;
   employeeName?: string;
+  employmentType?: 'CLT' | 'Contrato' | 'Terceirizado' | 'Estágio' | 'Outro';
   referenceMonth: string;
   referenceYear: number;
   baseSalary: number;
@@ -482,6 +483,8 @@ export interface PayrollRecord {
   paymentStatus: 'pending' | 'processing' | 'paid' | 'cancelled';
   paymentMethod?: 'bank_transfer' | 'check' | 'cash';
   notes?: string;
+  workDates?: string[];
+  simplifiedPayment?: boolean;
   createdBy: string;
   createdAt: string;
   updatedAt: string;

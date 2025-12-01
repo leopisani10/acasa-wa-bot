@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, Filter, Download, DollarSign, Calendar, User, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Filter, Download, DollarSign, Calendar, User, CheckCircle, Clock, XCircle, Briefcase } from 'lucide-react';
 import { usePayroll } from '../../contexts/PayrollContext';
 import { PayrollRecord } from '../../types';
 
@@ -80,6 +80,26 @@ export const PayrollList: React.FC<PayrollListProps> = ({ onAddPayroll, onEditPa
       '09': 'Setembro', '10': 'Outubro', '11': 'Novembro', '12': 'Dezembro',
     };
     return months[month as keyof typeof months] || month;
+  };
+
+  const getEmploymentTypeBadge = (type?: string) => {
+    const badges = {
+      CLT: { color: 'bg-blue-100 text-blue-800', label: 'CLT' },
+      Contrato: { color: 'bg-purple-100 text-purple-800', label: 'Contrato' },
+      Terceirizado: { color: 'bg-orange-100 text-orange-800', label: 'Terceirizado' },
+      Estágio: { color: 'bg-green-100 text-green-800', label: 'Estágio' },
+      Outro: { color: 'bg-gray-100 text-gray-800', label: 'Outro' },
+    };
+
+    if (!type) return null;
+
+    const badge = badges[type as keyof typeof badges] || badges.Outro;
+
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${badge.color}`}>
+        {badge.label}
+      </span>
+    );
   };
 
   const totalPending = payrolls.filter(p => p.paymentStatus === 'pending').reduce((sum, p) => sum + p.netSalary, 0);
@@ -188,6 +208,9 @@ export const PayrollList: React.FC<PayrollListProps> = ({ onAddPayroll, onEditPa
                   Colaborador
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Tipo
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Período
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -210,7 +233,7 @@ export const PayrollList: React.FC<PayrollListProps> = ({ onAddPayroll, onEditPa
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPayrolls.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                     <DollarSign className="w-12 h-12 mx-auto text-gray-400 mb-2" />
                     <p>Nenhuma folha de pagamento encontrada</p>
                   </td>
@@ -219,12 +242,22 @@ export const PayrollList: React.FC<PayrollListProps> = ({ onAddPayroll, onEditPa
                 filteredPayrolls.map((payroll) => (
                   <tr key={payroll.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <User className="w-5 h-5 text-gray-400 mr-2" />
-                        <span className="text-sm font-medium text-gray-900">
-                          {payroll.employeeName}
-                        </span>
+                      <div className="flex flex-col">
+                        <div className="flex items-center">
+                          <User className="w-5 h-5 text-gray-400 mr-2" />
+                          <span className="text-sm font-medium text-gray-900">
+                            {payroll.employeeName}
+                          </span>
+                        </div>
+                        {payroll.workDates && payroll.workDates.length > 0 && (
+                          <span className="text-xs text-gray-500 ml-7 mt-1">
+                            {payroll.workDates.length} {payroll.workDates.length === 1 ? 'dia' : 'dias'}
+                          </span>
+                        )}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getEmploymentTypeBadge(payroll.employmentType)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900">

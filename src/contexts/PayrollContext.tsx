@@ -37,6 +37,7 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
         id: record.id,
         employeeId: record.employee_id,
         employeeName: record.employees?.full_name,
+        employmentType: record.employment_type,
         referenceMonth: record.reference_month,
         referenceYear: record.reference_year,
         baseSalary: parseFloat(record.base_salary),
@@ -58,6 +59,8 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
         paymentStatus: record.payment_status,
         paymentMethod: record.payment_method,
         notes: record.notes,
+        workDates: record.work_dates || [],
+        simplifiedPayment: record.simplified_payment || false,
         createdBy: record.created_by,
         createdAt: record.created_at,
         updatedAt: record.updated_at,
@@ -104,6 +107,7 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
         .from('payroll_records')
         .insert([{
           employee_id: payroll.employeeId,
+          employment_type: payroll.employmentType,
           reference_month: payroll.referenceMonth,
           reference_year: payroll.referenceYear,
           base_salary: payroll.baseSalary,
@@ -125,6 +129,8 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
           payment_status: payroll.paymentStatus,
           payment_method: payroll.paymentMethod,
           notes: payroll.notes,
+          work_dates: payroll.workDates || [],
+          simplified_payment: payroll.simplifiedPayment || false,
           created_by: user?.id,
         }])
         .select()
@@ -144,6 +150,7 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const updateData: any = {};
 
       if (payroll.employeeId !== undefined) updateData.employee_id = payroll.employeeId;
+      if (payroll.employmentType !== undefined) updateData.employment_type = payroll.employmentType;
       if (payroll.referenceMonth !== undefined) updateData.reference_month = payroll.referenceMonth;
       if (payroll.referenceYear !== undefined) updateData.reference_year = payroll.referenceYear;
       if (payroll.baseSalary !== undefined) updateData.base_salary = payroll.baseSalary;
@@ -165,6 +172,8 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (payroll.paymentStatus !== undefined) updateData.payment_status = payroll.paymentStatus;
       if (payroll.paymentMethod !== undefined) updateData.payment_method = payroll.paymentMethod;
       if (payroll.notes !== undefined) updateData.notes = payroll.notes;
+      if (payroll.workDates !== undefined) updateData.work_dates = payroll.workDates;
+      if (payroll.simplifiedPayment !== undefined) updateData.simplified_payment = payroll.simplifiedPayment;
 
       const { error: updateError } = await supabase
         .from('payroll_records')
