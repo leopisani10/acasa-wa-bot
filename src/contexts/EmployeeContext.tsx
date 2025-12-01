@@ -195,18 +195,21 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
           exit_date: employeeData.exitDate || null,
           exit_reason: employeeData.exitReason || null,
           employment_type: employeeData.employmentType,
-          clt_data: employeeData.cltData,
-          contract_data: employeeData.contractData,
-          outsourced_data: employeeData.outsourcedData,
+          clt_data: employeeData.cltData || null,
+          contract_data: employeeData.contractData || null,
+          outsourced_data: employeeData.outsourcedData || null,
           created_by: userId,
         }])
         .select()
         .single();
       
-      if (error) throw error;
-      
+      if (error) {
+        console.error('Error inserting employee:', error);
+        throw new Error(`Erro ao inserir colaborador: ${error.message}`);
+      }
+
       // Add COVID vaccines if any
-      if (employeeData.covidVaccines.length > 0) {
+      if (employeeData.covidVaccines && employeeData.covidVaccines.length > 0) {
         const vaccineInserts = employeeData.covidVaccines.map(vaccine => ({
           employee_id: data.id,
           dose: vaccine.dose,
@@ -215,12 +218,16 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
           expiry_date: vaccine.expiryDate,
           notes: vaccine.notes,
         }));
-        
-        await supabase.from('employee_covid_vaccines').insert(vaccineInserts);
+
+        const { error: vaccineError } = await supabase.from('employee_covid_vaccines').insert(vaccineInserts);
+        if (vaccineError) {
+          console.error('Error inserting COVID vaccines:', vaccineError);
+          throw new Error(`Erro ao inserir vacinas COVID: ${vaccineError.message}`);
+        }
       }
-      
+
       // Add medical exams if CLT
-      if (employeeData.employmentType === 'CLT' && employeeData.cltData?.medicalExams.length > 0) {
+      if (employeeData.employmentType === 'CLT' && employeeData.cltData?.medicalExams && employeeData.cltData.medicalExams.length > 0) {
         const examInserts = employeeData.cltData.medicalExams.map(exam => ({
           employee_id: data.id,
           type: exam.type,
@@ -230,12 +237,16 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
           notes: exam.notes,
           attachment: exam.attachment,
         }));
-        
-        await supabase.from('employee_medical_exams').insert(examInserts);
+
+        const { error: examError } = await supabase.from('employee_medical_exams').insert(examInserts);
+        if (examError) {
+          console.error('Error inserting medical exams:', examError);
+          throw new Error(`Erro ao inserir exames médicos: ${examError.message}`);
+        }
       }
-      
+
       // Add general vaccines if CLT
-      if (employeeData.employmentType === 'CLT' && employeeData.cltData?.generalVaccines.length > 0) {
+      if (employeeData.employmentType === 'CLT' && employeeData.cltData?.generalVaccines && employeeData.cltData.generalVaccines.length > 0) {
         const vaccineInserts = employeeData.cltData.generalVaccines.map(vaccine => ({
           employee_id: data.id,
           type: vaccine.type,
@@ -243,12 +254,16 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
           expiry_date: vaccine.expiryDate,
           notes: vaccine.notes,
         }));
-        
-        await supabase.from('employee_general_vaccines').insert(vaccineInserts);
+
+        const { error: genVaccineError } = await supabase.from('employee_general_vaccines').insert(vaccineInserts);
+        if (genVaccineError) {
+          console.error('Error inserting general vaccines:', genVaccineError);
+          throw new Error(`Erro ao inserir vacinas gerais: ${genVaccineError.message}`);
+        }
       }
-      
+
       // Add vacations if CLT
-      if (employeeData.employmentType === 'CLT' && employeeData.cltData?.vacations.length > 0) {
+      if (employeeData.employmentType === 'CLT' && employeeData.cltData?.vacations && employeeData.cltData.vacations.length > 0) {
         const vacationInserts = employeeData.cltData.vacations.map(vacation => ({
           employee_id: data.id,
           start_date: vacation.startDate,
@@ -257,8 +272,12 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
           period: vacation.period,
           status: vacation.status,
         }));
-        
-        await supabase.from('employee_vacations').insert(vacationInserts);
+
+        const { error: vacationError } = await supabase.from('employee_vacations').insert(vacationInserts);
+        if (vacationError) {
+          console.error('Error inserting vacations:', vacationError);
+          throw new Error(`Erro ao inserir férias: ${vacationError.message}`);
+        }
       }
       
       await fetchEmployees();
