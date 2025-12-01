@@ -22,21 +22,31 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const fetchPayrolls = async () => {
     try {
       setLoading(true);
+
       const { data, error: fetchError } = await supabase
         .from('payroll_records')
-        .select(`
-          *,
-          employees!inner(full_name)
-        `)
+        .select('*')
         .order('reference_year', { ascending: false })
         .order('reference_month', { ascending: false });
 
       if (fetchError) throw fetchError;
 
+      const { data: employeesData } = await supabase
+        .from('employees')
+        .select('id, full_name');
+
+      const { data: sobreavisoData } = await supabase
+        .from('sobreaviso_employees')
+        .select('id, full_name');
+
+      const employeesMap = new Map();
+      employeesData?.forEach(emp => employeesMap.set(emp.id, emp.full_name));
+      sobreavisoData?.forEach(emp => employeesMap.set(emp.id, emp.full_name));
+
       const formattedData = data?.map((record: any) => ({
         id: record.id,
         employeeId: record.employee_id,
-        employeeName: record.employees?.full_name,
+        employeeName: employeesMap.get(record.employee_id) || 'Nome não encontrado',
         employmentType: record.employment_type,
         referenceMonth: record.reference_month,
         referenceYear: record.reference_year,
