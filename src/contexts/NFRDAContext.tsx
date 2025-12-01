@@ -83,7 +83,7 @@ export const NFRDAProvider: React.FC<NFRDAProviderProps> = ({ children }) => {
   const addEntry = async (entryData: Omit<NFRDAEntry, 'id' | 'createdAt' | 'updatedAt' | 'lastUpdate'>) => {
     try {
       const userId = await getCurrentUserId();
-      
+
       const { data, error } = await supabase
         .from('nfrda_entries')
         .insert([{
@@ -101,12 +101,17 @@ export const NFRDAProvider: React.FC<NFRDAProviderProps> = ({ children }) => {
         }])
         .select()
         .single();
-      
-      if (error) throw error;
-      
+
+      if (error) {
+        console.error('Supabase error adding NFRDA entry:', error);
+        throw new Error(`Erro ao adicionar entrada: ${error.message}`);
+      }
+
+      console.log('NFRDA entry added successfully:', data);
       await fetchEntries();
     } catch (error) {
       console.error('Error adding NFRDA entry:', error);
+      throw error;
     }
   };
 

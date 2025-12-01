@@ -63,14 +63,15 @@ export const NFRDAForm: React.FC<NFRDAFormProps> = ({ entry, onClose, onSave }) 
 
     try {
       if (entry) {
-        updateEntry(entry.id, formData);
+        await updateEntry(entry.id, formData);
       } else {
-        addEntry(formData);
+        await addEntry(formData);
       }
       onSave();
       onClose();
     } catch (error) {
       console.error('Erro ao salvar entrada:', error);
+      alert(`Erro ao salvar entrada: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setIsLoading(false);
     }
