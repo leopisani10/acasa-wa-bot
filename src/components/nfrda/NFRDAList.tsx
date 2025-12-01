@@ -215,75 +215,106 @@ export const NFRDAList: React.FC<NFRDAListProps> = ({ onAddEntry, onEditEntry })
         </div>
       </div>
 
-      {/* Entry Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredEntries.map((entry) => (
-          <div key={entry.id} className="bg-white rounded-lg border border-gray-100 hover:border-acasa-purple transition-all duration-200">
-            <div className="p-4">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-base font-semibold text-gray-900 mb-1 font-sans">{entry.contractorName}</h3>
-                  <div className="text-sm text-gray-500 space-y-0.5 font-sans">
-                    <div className="font-sans">{entry.unit}</div>
-                    <div className="font-sans">{formatMonth(entry.referenceMonth, entry.referenceYear)}</div>
-                  </div>
-                </div>
-                <div className="flex flex-col space-y-1">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full font-sans ${getDeliveryStatusColor(entry.deliveryStatus)}`}>
-                    {entry.deliveryStatus}
-                  </span>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full font-sans ${getPaymentStatusColor(entry.paymentStatus)}`}>
-                    Pago: {entry.paymentStatus}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-1 text-sm text-gray-500 mb-4 border-t border-gray-50 pt-3 font-sans">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400 font-sans">RDA:</span>
-                  <span className={`font-sans ${entry.activityReportUpload ? 'text-green-600' : 'text-red-600'}`}>
-                    {entry.activityReportUpload ? '✓' : '✗'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400 font-sans">NF:</span>
-                  <span className={`font-sans ${entry.invoiceUpload ? 'text-green-600' : 'text-red-600'}`}>
-                    {entry.invoiceUpload ? '✓' : '✗'}
-                  </span>
-                </div>
-                {entry.paymentDate && (
-                  <div>
-                    <span className="text-gray-400 font-sans">Pagamento:</span> <span className="font-sans">{formatDate(entry.paymentDate)}</span>
-                  </div>
-                )}
-                <div>
-                  <span className="text-gray-400 font-sans">Atualização:</span> <span className="font-sans">{formatDate(entry.lastUpdate)}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-1 pt-3 border-t border-gray-50">
-                <button
-                  onClick={() => setSelectedEntry(entry)}
-                  className="flex-1 text-center py-2 text-acasa-purple hover:bg-gray-50 rounded transition-colors text-sm font-medium font-sans"
-                >
-                  Ver
-                </button>
-                <button
-                  onClick={() => onEditEntry(entry)}
-                  className="flex-1 text-center py-2 text-green-600 hover:bg-gray-50 rounded transition-colors text-sm font-medium font-sans"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => handleDelete(entry)}
-                  className="p-2 text-red-600 hover:bg-gray-50 rounded transition-colors"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* Entry Table */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Contratado
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Unidade
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Referência
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  RDA
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  NF
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Status Entrega
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Pago
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Data Pagamento
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Ações
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredEntries.map((entry) => (
+                <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                    {entry.contractorName}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {entry.unit}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {formatMonth(entry.referenceMonth, entry.referenceYear)}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`text-lg ${entry.activityReportUpload ? 'text-green-600' : 'text-red-600'}`}>
+                      {entry.activityReportUpload ? '✓' : '✗'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`text-lg ${entry.invoiceUpload ? 'text-green-600' : 'text-red-600'}`}>
+                      {entry.invoiceUpload ? '✓' : '✗'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getDeliveryStatusColor(entry.deliveryStatus)}`}>
+                      {entry.deliveryStatus}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentStatusColor(entry.paymentStatus)}`}>
+                      {entry.paymentStatus}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {entry.paymentDate ? formatDate(entry.paymentDate) : '-'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center space-x-2">
+                      <button
+                        onClick={() => setSelectedEntry(entry)}
+                        className="p-1.5 text-acasa-purple hover:bg-purple-50 rounded transition-colors"
+                        title="Ver detalhes"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        onClick={() => onEditEntry(entry)}
+                        className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+                        title="Editar"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(entry)}
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {filteredEntries.length === 0 && (
