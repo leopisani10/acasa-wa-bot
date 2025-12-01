@@ -21,7 +21,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onClose, o
     birthDate: employee?.birthDate || '',
     address: employee?.address || '',
     position: employee?.position || '',
-    unit: employee?.unit || 'Botafogo I',
+    unit: employee?.unit || 'Botafogo',
     status: employee?.status || 'Ativo',
     photo: employee?.photo || '',
     covidVaccines: employee?.covidVaccines || [],
@@ -432,6 +432,8 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onClose, o
                     required
                   >
                     <option value="Botafogo">Botafogo</option>
+                    <option value="Tijuca">Tijuca</option>
+                    <option value="Ambas">Ambas</option>
                   </select>
                 </div>
                 <div>
