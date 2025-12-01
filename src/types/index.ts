@@ -456,6 +456,67 @@ export * from './prontuario';
 // Re-export CRM types
 export * from './crm';
 
+// Labor Agreement Types
+export type PaymentStatus = 'pending' | 'paid' | 'overdue';
+
+export interface LaborAgreement {
+  id: string;
+  claimantName: string;
+  companyName: string;
+  lawyerFullName: string;
+  pixKey: string;
+  processNumber?: string;
+  laborCourt?: string;
+  jurisdiction?: string;
+  totalAmount: number;
+  installmentCount: number;
+  notes?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LaborAgreementInstallment {
+  id: string;
+  agreementId: string;
+  installmentNumber: number;
+  amount: number;
+  dueDate: string;
+  paymentStatus: PaymentStatus;
+  paymentDate?: string;
+  paymentProof?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LaborAgreementWithInstallments extends LaborAgreement {
+  installments: LaborAgreementInstallment[];
+}
+
+export interface LaborAgreementStatistics {
+  totalAgreements: number;
+  totalPendingAmount: number;
+  totalPaidAmount: number;
+  overdueInstallments: number;
+  upcomingInstallments: number;
+}
+
+export interface LaborAgreementContextType {
+  agreements: LaborAgreementWithInstallments[];
+  loading: boolean;
+  error: string | null;
+  fetchAgreements: () => Promise<void>;
+  fetchAgreementById: (id: string) => Promise<LaborAgreementWithInstallments | null>;
+  addAgreement: (agreement: Omit<LaborAgreement, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>, installments: Omit<LaborAgreementInstallment, 'id' | 'agreementId' | 'createdAt' | 'updatedAt'>[]) => Promise<void>;
+  updateAgreement: (id: string, agreement: Partial<LaborAgreement>) => Promise<void>;
+  deleteAgreement: (id: string) => Promise<void>;
+  updateInstallment: (id: string, installment: Partial<LaborAgreementInstallment>) => Promise<void>;
+  markInstallmentAsPaid: (id: string, paymentDate: string, paymentProof?: string) => Promise<void>;
+  getUpcomingInstallments: (days: number) => LaborAgreementInstallment[];
+  getOverdueInstallments: () => LaborAgreementInstallment[];
+  getStatistics: () => LaborAgreementStatistics;
+}
+
 // Payroll Types
 export interface PayrollRecord {
   id: string;

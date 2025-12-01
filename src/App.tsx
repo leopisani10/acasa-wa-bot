@@ -42,6 +42,8 @@ import { TransportationVoucherProvider } from './contexts/TransportationVoucherC
 import { TransportationVoucherList } from './components/transportation-voucher/TransportationVoucherList';
 import { PayrollProvider } from './contexts/PayrollContext';
 import { PayrollManager } from './components/payroll/PayrollManager';
+import { LaborAgreementProvider } from './contexts/LaborAgreementContext';
+import { LaborAgreementManager } from './components/labor-agreements/LaborAgreementManager';
 import { Guest, Employee, DocumentTemplate, Certificate, NFRDAEntry, SobreavisoEmployee } from './types';
 
 function App() {
@@ -219,6 +221,7 @@ function App() {
                         <CRMProvider>
                         <TransportationVoucherProvider>
                         <PayrollProvider>
+                        <LaborAgreementProvider>
                         <div className="min-h-screen bg-gray-50 lg:flex lg:overflow-hidden">
                           <div className={`lg:flex-shrink-0 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'}`}>
                             <Header 
@@ -276,6 +279,7 @@ function App() {
                               {activeView === 'crm-reports' && <CRMReports />}
                               {activeView === 'transportation-voucher' && <TransportationVoucherList />}
                               {activeView === 'payroll' && <PayrollManager />}
+                              {activeView === 'labor-agreements' && <LaborAgreementManager />}
                             </main>
                           </div>
                         </div>
@@ -335,6 +339,7 @@ function App() {
                             onSave={handleSaveSobreaviso}
                           />
                         )}
+                        </LaborAgreementProvider>
                         </PayrollProvider>
                         </TransportationVoucherProvider>
                         </CRMProvider>
