@@ -76,6 +76,35 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
   const [selectedEmployee, setSelectedEmployee] = useState<CombinedEmployee | null>(null);
 
   useEffect(() => {
+    if (payroll) {
+      setFormData({
+        employeeId: payroll.employeeId || '',
+        referenceMonth: payroll.referenceMonth || new Date().toISOString().slice(0, 7).split('-')[1],
+        referenceYear: payroll.referenceYear || new Date().getFullYear(),
+        baseSalary: payroll.baseSalary || 0,
+        overtimeHours: payroll.overtimeHours || 0,
+        overtimeAmount: payroll.overtimeAmount || 0,
+        nightShiftHours: payroll.nightShiftHours || 0,
+        nightShiftAmount: payroll.nightShiftAmount || 0,
+        hazardPay: payroll.hazardPay || 0,
+        foodAllowance: payroll.foodAllowance || 0,
+        transportationAllowance: payroll.transportationAllowance || 0,
+        healthInsurance: payroll.healthInsurance || 0,
+        otherBenefits: payroll.otherBenefits || 0,
+        inssDeduction: payroll.inssDeduction || 0,
+        irrfDeduction: payroll.irrfDeduction || 0,
+        otherDeductions: payroll.otherDeductions || 0,
+        paymentDate: payroll.paymentDate || '',
+        paymentStatus: payroll.paymentStatus || 'pending',
+        paymentMethod: payroll.paymentMethod || '',
+        notes: payroll.notes || '',
+        workDates: payroll.workDates || [],
+        simplifiedPayment: payroll.simplifiedPayment || false,
+      });
+    }
+  }, [payroll]);
+
+  useEffect(() => {
     if (formData.employeeId) {
       const employee = allEmployees.find(e => e.id === formData.employeeId);
       setSelectedEmployee(employee || null);
@@ -103,7 +132,7 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
     }
   }, [formData.referenceMonth, formData.referenceYear]);
 
-  const loadShiftPayments = async (employeeId: string) => {
+  const loadShiftPayments = async (employeeId: string, forceUpdate = false) => {
     setLoadingShifts(true);
     try {
       const shifts = await getShiftPaymentsByEmployeeAndMonth(
@@ -113,14 +142,16 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
       );
       setShiftPayments(shifts);
 
-      const dates = shifts.map(s => s.shift_date);
-      const totalAmount = shifts.reduce((sum, s) => sum + parseFloat(s.total_amount.toString()), 0);
+      if (!payroll || forceUpdate) {
+        const dates = shifts.map(s => s.shift_date);
+        const totalAmount = shifts.reduce((sum, s) => sum + parseFloat(s.total_amount.toString()), 0);
 
-      setFormData(prev => ({
-        ...prev,
-        workDates: dates,
-        baseSalary: totalAmount,
-      }));
+        setFormData(prev => ({
+          ...prev,
+          workDates: dates,
+          baseSalary: totalAmount,
+        }));
+      }
 
       console.log('Plantões carregados:', shifts);
     } catch (error) {
@@ -372,7 +403,7 @@ export const PayrollForm: React.FC<PayrollFormProps> = ({ payroll, onClose, onSa
                           </label>
                           <button
                             type="button"
-                            onClick={() => loadShiftPayments(formData.employeeId)}
+                            onClick={() => loadShiftPayments(formData.employeeId, true)}
                             disabled={loadingShifts}
                             className="flex items-center gap-2 text-sm text-acasa-purple hover:text-purple-700 disabled:opacity-50"
                           >
