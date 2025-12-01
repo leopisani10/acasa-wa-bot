@@ -23,7 +23,6 @@ export const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, sideba
       { key: 'guests', label: 'Hóspedes', icon: User },
       { key: 'employees', label: 'Colaboradores', icon: Users },
       { key: 'transportation-voucher', label: 'Vale Transporte', icon: Bus },
-      { key: 'payroll', label: 'Folha de Pagamento', icon: DollarSign },
     ] : []),
     // Menu para profissionais de saúde (enfermagem, médicos, etc.)
     ...((user?.position?.toLowerCase().includes('enfermagem') || 
