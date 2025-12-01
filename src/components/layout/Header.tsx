@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, User, Home, Menu, FileText, Users, FileCheck, Receipt, Settings, Clipboard, AlertTriangle, Calendar, Clock, ChefHat, ChevronLeft, ChevronRight, UserCog, UserPlus, Kanban, MessageCircle, BarChart3, ChevronDown, ChevronUp, TrendingUp, Bus } from 'lucide-react';
+import { LogOut, User, Home, Menu, FileText, Users, FileCheck, Receipt, Settings, Clipboard, AlertTriangle, Calendar, Clock, ChefHat, ChevronLeft, ChevronRight, UserCog, UserPlus, Kanban, MessageCircle, BarChart3, ChevronDown, ChevronUp, TrendingUp, Bus, DollarSign } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface HeaderProps {
