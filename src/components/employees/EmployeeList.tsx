@@ -292,7 +292,7 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onAddEmployee, onEdi
         </div>
       </div>
 
-      {/* Employee Groups */}
+      {/* Employee Table */}
       {Object.entries(grouped).map(([groupName, groupEmployees]) => (
         <div key={groupName}>
           {groupBy !== 'none' && (
@@ -301,65 +301,95 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onAddEmployee, onEdi
             </h3>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {groupEmployees.map((employee) => (
-              <div key={employee.id} className="bg-white rounded-lg border border-gray-100 hover:border-acasa-purple transition-all duration-200">
-                <div className="p-4">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-base font-semibold text-gray-900 mb-1 font-sans">{employee.fullName}</h3>
-                      <div className="text-sm text-gray-500 space-y-0.5 font-sans">
-                        <div className="font-sans">{employee.position} • {employee.unit}</div>
-                        <div className="font-sans">{calculateAge(employee.birthDate)} anos</div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col space-y-1">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full font-sans ${getStatusColor(employee.status)}`}>
-                        {employee.status}
-                      </span>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full font-sans ${getEmploymentTypeColor(employee.employmentType)}`}>
-                        {employee.employmentType}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 text-sm text-gray-500 mb-4 border-t border-gray-50 pt-3 font-sans">
-                    <div>
-                      <span className="text-gray-400 font-sans">CPF:</span> <span className="font-mono font-sans">{employee.cpf}</span>
-                    </div>
-                    {employee.professionalLicense?.council !== 'Não Possui' && (
-                      <div>
-                        <span className="text-gray-400 font-sans">Conselho:</span> <span className="font-sans">{employee.professionalLicense?.council}</span>
-                      </div>
-                    )}
-                    <div>
-                      <span className="text-gray-400 font-sans">Vacinas COVID:</span> <span className="font-sans">{employee.covidVaccines.length}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-1 pt-3 border-t border-gray-50">
-                    <button
-                      onClick={() => setSelectedEmployee(employee)}
-                      className="flex-1 text-center py-2 text-acasa-purple hover:bg-gray-50 rounded transition-colors text-sm font-medium font-sans"
-                    >
-                      Ver
-                    </button>
-                    <button
-                      onClick={() => onEditEmployee(employee)}
-                      className="flex-1 text-center py-2 text-green-600 hover:bg-gray-50 rounded transition-colors text-sm font-medium font-sans"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(employee)}
-                      className="p-2 text-red-600 hover:bg-gray-50 rounded transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Nome
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Cargo
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Unidade
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      CPF
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Idade
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Tipo
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {groupEmployees.map((employee) => (
+                    <tr key={employee.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {employee.fullName}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {employee.position}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {employee.unit}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 font-mono">
+                        {employee.cpf}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 text-center">
+                        {calculateAge(employee.birthDate)} anos
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getEmploymentTypeColor(employee.employmentType)}`}>
+                          {employee.employmentType}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(employee.status)}`}>
+                          {employee.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center space-x-2">
+                          <button
+                            onClick={() => setSelectedEmployee(employee)}
+                            className="p-1.5 text-acasa-purple hover:bg-purple-50 rounded transition-colors"
+                            title="Ver detalhes"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            onClick={() => onEditEmployee(employee)}
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+                            title="Editar"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(employee)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Excluir"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       ))}

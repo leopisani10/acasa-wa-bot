@@ -139,76 +139,106 @@ export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest })
         </div>
       </div>
 
-      {/* Guest Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">
-        {filteredGuests.map((guest) => (
-          <div key={guest.id} className="bg-white rounded-xl border border-gray-100 hover:border-acasa-purple hover:shadow-lg transition-all duration-300 overflow-hidden font-sans">
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-5">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2 truncate font-sans">{guest.fullName}</h3>
-                  <div className="text-sm text-gray-600 space-y-1.5 font-sans">
-                    <div className="flex items-center">
-                      <Calendar size={16} className="mr-2 text-acasa-purple" />
-                      <span className="font-medium font-sans">{calculateAge(guest.birthDate)} anos</span>
+      {/* Guest Table */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Nome
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Quarto
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Unidade
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  CPF
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Idade
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Dependência
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Plano de Saúde
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Ações
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredGuests.map((guest) => (
+                <tr key={guest.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                    {guest.fullName}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-center">
+                    <span className="font-bold text-acasa-purple">{guest.roomNumber}</span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {guest.unit}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700 font-mono">
+                    {guest.cpf}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700 text-center">
+                    {calculateAge(guest.birthDate)} anos
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-acasa-purple">
+                      Grau {guest.dependencyLevel}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {guest.healthPlan || 'Não informado'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      guest.status === 'Ativo'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-700'
+                    }`}>
+                      {guest.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center space-x-2">
+                      <button
+                        onClick={() => setSelectedGuest(guest)}
+                        className="p-1.5 text-acasa-purple hover:bg-purple-50 rounded transition-colors"
+                        title="Ver detalhes"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        onClick={() => onEditGuest(guest)}
+                        className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+                        title="Editar"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(guest)}
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
-                    <div className="flex items-center">
-                      <MapPin size={16} className="mr-2 text-acasa-purple" />
-                      <span className="font-sans">Quarto <strong className="font-sans">{guest.roomNumber}</strong> • {guest.unit}</span>
-                    </div>
-                  </div>
-                </div>
-                <span
-                  className={`px-3 py-1.5 text-xs font-bold rounded-full shadow-sm font-sans ${
-                    guest.status === 'Ativo'
-                      ? 'bg-green-100 text-green-800 border border-green-200'
-                      : 'bg-red-100 text-red-800 border border-red-200'
-                  }`}
-                >
-                  {guest.status}
-                </span>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4 mb-5">
-                <div className="grid grid-cols-1 gap-3 text-sm font-sans">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500 font-medium font-sans">CPF:</span> 
-                    <span className="font-mono font-bold text-gray-900 font-sans">{guest.cpf}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500 font-medium font-sans">Dependência:</span>
-                    <span className="font-bold text-acasa-purple font-sans">Grau {guest.dependencyLevel}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500 font-medium font-sans">Plano de Saúde:</span>
-                    <span className="font-medium text-gray-900 font-sans">{guest.healthPlan || 'Não informado'}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setSelectedGuest(guest)}
-                  className="flex-1 text-center py-2.5 text-acasa-purple hover:bg-purple-50 rounded-lg transition-colors text-sm font-bold border border-acasa-purple hover:border-purple-600 font-sans"
-                >
-                  Ver
-                </button>
-                <button
-                  onClick={() => onEditGuest(guest)}
-                  className="flex-1 text-center py-2.5 text-green-700 hover:bg-green-50 rounded-lg transition-colors text-sm font-bold border border-green-600 hover:border-green-700 font-sans"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => handleDelete(guest)}
-                  className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-600 hover:border-red-700 font-sans"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {filteredGuests.length === 0 && (
