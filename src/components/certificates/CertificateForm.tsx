@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Save, X, Upload } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Save, X, Upload, History } from 'lucide-react';
 import { Certificate } from '../../types';
 import { useCertificates } from '../../contexts/CertificateContext';
 
@@ -9,9 +9,21 @@ interface CertificateFormProps {
   onSave: () => void;
 }
 
+interface CertificateHistory {
+  id: string;
+  executedDate: string;
+  expiryDate: string;
+  certificateUrl: string | null;
+  responsible: string;
+  observations: string | null;
+  replacedAt: string;
+}
+
 export const CertificateForm: React.FC<CertificateFormProps> = ({ certificate, onClose, onSave }) => {
-  const { addCertificate, updateCertificate } = useCertificates();
+  const { addCertificate, updateCertificate, getCertificateHistory } = useCertificates();
   const [isLoading, setIsLoading] = useState(false);
+  const [history, setHistory] = useState<CertificateHistory[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   const [formData, setFormData] = useState<Omit<Certificate, 'id' | 'createdAt' | 'updatedAt' | 'lastUpdate' | 'status'>>({
     service: certificate?.service || 'Dedetização',
@@ -22,6 +34,23 @@ export const CertificateForm: React.FC<CertificateFormProps> = ({ certificate, o
     responsible: certificate?.responsible || '',
     observations: certificate?.observations || '',
   });
+
+  useEffect(() => {
+    if (certificate) {
+      loadHistory();
+    }
+  }, [certificate]);
+
+  const loadHistory = async () => {
+    if (certificate) {
+      const historyData = await getCertificateHistory(certificate.id);
+      setHistory(historyData);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  };
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -43,14 +72,15 @@ export const CertificateForm: React.FC<CertificateFormProps> = ({ certificate, o
 
     try {
       if (certificate) {
-        updateCertificate(certificate.id, formData);
+        await updateCertificate(certificate.id, formData);
       } else {
-        addCertificate(formData);
+        await addCertificate(formData);
       }
       onSave();
       onClose();
     } catch (error) {
       console.error('Erro ao salvar certificado:', error);
+      alert(`Erro ao salvar certificado: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setIsLoading(false);
     }
@@ -221,20 +251,91 @@ export const CertificateForm: React.FC<CertificateFormProps> = ({ certificate, o
                   <div>
                     <span className="text-gray-600">Última Atualização:</span>
                     <span className="ml-2 text-gray-900">
-                      {new Date(certificate.lastUpdate).toLocaleDateString('pt-BR')}
+                      {formatDate(certificate.lastUpdate)}
                     </span>
                   </div>
                   <div>
                     <span className="text-gray-600">Criado em:</span>
                     <span className="ml-2 text-gray-900">
-                      {new Date(certificate.createdAt).toLocaleDateString('pt-BR')}
+                      {formatDate(certificate.createdAt)}
                     </span>
                   </div>
                   <div>
                     <span className="text-gray-600">ID do Certificado:</span>
-                    <span className="ml-2 font-mono text-gray-900">#{certificate.id}</span>
+                    <span className="ml-2 font-mono text-gray-900">#{certificate.id.slice(0, 8)}</span>
                   </div>
                 </div>
+              </section>
+            )}
+
+            {/* Histórico de Versões */}
+            {certificate && history.length > 0 && (
+              <section>
+                <button
+                  type="button"
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="flex items-center justify-between w-full p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <History size={20} className="text-gray-600 mr-2" />
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Histórico de Versões ({history.length})
+                    </h3>
+                  </div>
+                  <span className="text-gray-500">
+                    {showHistory ? '▼' : '▶'}
+                  </span>
+                </button>
+
+                {showHistory && (
+                  <div className="mt-4 space-y-3">
+                    {history.map((item, index) => (
+                      <div key={item.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-900">
+                            Versão {history.length - index}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            Substituído em: {formatDate(item.replacedAt)}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="text-gray-600">Execução:</span>
+                            <span className="ml-2 text-gray-900">{formatDate(item.executedDate)}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Vencimento:</span>
+                            <span className="ml-2 text-gray-900">{formatDate(item.expiryDate)}</span>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-gray-600">Responsável:</span>
+                            <span className="ml-2 text-gray-900">{item.responsible}</span>
+                          </div>
+                          {item.observations && (
+                            <div className="col-span-2">
+                              <span className="text-gray-600">Observações:</span>
+                              <p className="text-gray-900 mt-1">{item.observations}</p>
+                            </div>
+                          )}
+                          {item.certificateUrl && (
+                            <div className="col-span-2">
+                              <a
+                                href={item.certificateUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-acasa-purple hover:underline text-sm flex items-center"
+                              >
+                                <Upload size={14} className="mr-1" />
+                                Ver certificado antigo
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </section>
             )}
           </div>
