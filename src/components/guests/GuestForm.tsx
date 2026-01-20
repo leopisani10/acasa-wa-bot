@@ -133,6 +133,8 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
         ? formData
         : {
             ...formData,
+            legalResponsibleRelationship: '',
+            legalResponsibleCpf: '',
             financialResponsibleName: '',
             financialResponsibleRg: '',
             financialResponsibleCpf: '',
@@ -400,30 +402,6 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Parentesco do Responsável
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.legalResponsibleRelationship}
-                    onChange={(e) => handleInputChange('legalResponsibleRelationship', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Ex: Filho(a), Cônjuge"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    CPF do Responsável
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.legalResponsibleCpf}
-                    onChange={(e) => handleInputChange('legalResponsibleCpf', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="000.000.000-00"
-                  />
-                </div>
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -469,6 +447,30 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                       value={formData.financialResponsibleName}
                       onChange={(e) => handleInputChange('financialResponsibleName', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Parentesco do Responsável
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.legalResponsibleRelationship}
+                      onChange={(e) => handleInputChange('legalResponsibleRelationship', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Ex: Filho(a), Cônjuge"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      CPF do Responsável Legal
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.legalResponsibleCpf}
+                      onChange={(e) => handleInputChange('legalResponsibleCpf', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="000.000.000-00"
                     />
                   </div>
                   <div>
