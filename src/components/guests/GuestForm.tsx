@@ -13,6 +13,10 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
   const { addGuest, updateGuest } = useGuests();
   const [isLoading, setIsLoading] = useState(false);
 
+  const [hasFinancialResponsible, setHasFinancialResponsible] = useState(
+    !!(guest?.financialResponsibleName || guest?.financialResponsibleCpf)
+  );
+
   const [formData, setFormData] = useState<Omit<Guest, 'id' | 'createdAt' | 'updatedAt'>>({
     // Informações Pessoais
     fullName: guest?.fullName || '',
@@ -43,7 +47,7 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
     dependencyLevel: guest?.dependencyLevel || 'I',
     legalResponsibleRelationship: guest?.legalResponsibleRelationship || '',
     legalResponsibleCpf: guest?.legalResponsibleCpf || '',
-    
+
     // Responsável Financeiro
     financialResponsibleName: guest?.financialResponsibleName || '',
     financialResponsibleRg: guest?.financialResponsibleRg || '',
@@ -124,15 +128,31 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
     setIsLoading(true);
 
     try {
+      // Prepare data, clear financial responsible if not needed
+      const dataToSave = hasFinancialResponsible
+        ? formData
+        : {
+            ...formData,
+            financialResponsibleName: '',
+            financialResponsibleRg: '',
+            financialResponsibleCpf: '',
+            financialResponsibleMaritalStatus: 'Solteiro(a)',
+            financialResponsiblePhone: '',
+            financialResponsibleEmail: '',
+            financialResponsibleAddress: '',
+            financialResponsibleProfession: '',
+          };
+
       if (guest) {
-        updateGuest(guest.id, formData);
+        await updateGuest(guest.id, dataToSave);
       } else {
-        addGuest(formData);
+        await addGuest(dataToSave);
       }
       onSave();
       onClose();
     } catch (error) {
       console.error('Erro ao salvar hóspede:', error);
+      alert(`Erro ao salvar hóspede: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setIsLoading(false);
     }
@@ -163,25 +183,23 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2 font-sans">
-                    Nome Completo *
+                    Nome Completo
                   </label>
                   <input
                     type="text"
                     value={formData.fullName}
                     onChange={(e) => handleInputChange('fullName', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-sans"
-                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sexo *
+                    Sexo
                   </label>
                   <select
                     value={formData.gender}
                     onChange={(e) => handleInputChange('gender', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
                   >
                     <option value="Masculino">Masculino</option>
                     <option value="Feminino">Feminino</option>
@@ -189,19 +207,18 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Data de Nascimento *
+                    Data de Nascimento
                   </label>
                   <input
                     type="date"
                     value={formData.birthDate}
                     onChange={(e) => handleInputChange('birthDate', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    CPF *
+                    CPF
                   </label>
                   <input
                     type="text"
@@ -209,24 +226,22 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                     onChange={(e) => handleInputChange('cpf', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="000.000.000-00"
-                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    RG *
+                    RG
                   </label>
                   <input
                     type="text"
                     value={formData.rg}
                     onChange={(e) => handleInputChange('rg', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Órgão Emissor *
+                    Órgão Emissor
                   </label>
                   <input
                     type="text"
@@ -234,7 +249,6 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                     onChange={(e) => handleInputChange('documentIssuer', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Ex: SSP/RJ"
-                    required
                   />
                 </div>
                 <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -274,13 +288,12 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status *
+                    Status
                   </label>
                   <select
                     value={formData.status}
                     onChange={(e) => handleInputChange('status', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
                   >
                     <option value="Ativo">Ativo</option>
                     <option value="Inativo">Inativo</option>
@@ -288,13 +301,12 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo de Permanência *
+                    Tipo de Permanência
                   </label>
                   <select
                     value={formData.stayType}
                     onChange={(e) => handleInputChange('stayType', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
                   >
                     <option value="Longa Permanência">Longa Permanência</option>
                     <option value="Centro Dia">Centro Dia</option>
@@ -304,13 +316,12 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                   <>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Motivo da Inativação *
+                        Motivo da Inativação
                       </label>
                       <select
                         value={formData.exitReason || ''}
                         onChange={(e) => handleInputChange('exitReason', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        required
                       >
                         <option value="">Selecione o motivo...</option>
                         <option value="Óbito">Óbito</option>
@@ -319,52 +330,48 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Data do Último Dia na Instituição *
+                        Data do Último Dia na Instituição
                       </label>
                       <input
                         type="date"
                         value={formData.exitDate || ''}
                         onChange={(e) => handleInputChange('exitDate', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        required
                       />
                     </div>
                   </>
                 )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Data de Admissão *
+                    Data de Admissão
                   </label>
                   <input
                     type="date"
                     value={formData.admissionDate}
                     onChange={(e) => handleInputChange('admissionDate', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Unidade *
+                    Unidade
                   </label>
                   <select
                     value={formData.unit}
                     onChange={(e) => handleInputChange('unit', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
                   >
                     <option value="Botafogo">Botafogo</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Grau de Dependência *
+                    Grau de Dependência
                   </label>
                   <select
                     value={formData.dependencyLevel}
                     onChange={(e) => handleInputChange('dependencyLevel', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
                   >
                     <option value="I">Grau I</option>
                     <option value="II">Grau II</option>
@@ -373,31 +380,29 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Data Vencimento Contrato *
+                    Data Vencimento Contrato
                   </label>
                   <input
                     type="date"
                     value={formData.contractExpiryDate}
                     onChange={(e) => handleInputChange('contractExpiryDate', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Número do Quarto *
+                    Número do Quarto
                   </label>
                   <input
                     type="text"
                     value={formData.roomNumber}
                     onChange={(e) => handleInputChange('roomNumber', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Parentesco do Responsável *
+                    Parentesco do Responsável
                   </label>
                   <input
                     type="text"
@@ -405,12 +410,11 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                     onChange={(e) => handleInputChange('legalResponsibleRelationship', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Ex: Filho(a), Cônjuge"
-                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    CPF do Responsável *
+                    CPF do Responsável
                   </label>
                   <input
                     type="text"
@@ -418,7 +422,6 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                     onChange={(e) => handleInputChange('legalResponsibleCpf', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="000.000.000-00"
-                    required
                   />
                 </div>
                 <div className="flex items-center">
@@ -441,112 +444,122 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
               <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
                 Dados do Responsável Financeiro
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nome Completo do Responsável *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.financialResponsibleName}
-                    onChange={(e) => handleInputChange('financialResponsibleName', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Estado Civil *
-                  </label>
-                  <select
-                    value={formData.financialResponsibleMaritalStatus}
-                    onChange={(e) => handleInputChange('financialResponsibleMaritalStatus', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="Solteiro(a)">Solteiro(a)</option>
-                    <option value="Casado(a)">Casado(a)</option>
-                    <option value="Divorciado(a)">Divorciado(a)</option>
-                    <option value="Viúvo(a)">Viúvo(a)</option>
-                    <option value="União Estável">União Estável</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    RG *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.financialResponsibleRg}
-                    onChange={(e) => handleInputChange('financialResponsibleRg', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    CPF *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.financialResponsibleCpf}
-                    onChange={(e) => handleInputChange('financialResponsibleCpf', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="000.000.000-00"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Profissão
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.financialResponsibleProfession}
-                    onChange={(e) => handleInputChange('financialResponsibleProfession', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Ex: Engenheiro, Aposentado"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Telefone *
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.financialResponsiblePhone}
-                    onChange={(e) => handleInputChange('financialResponsiblePhone', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="(21) 99999-9999"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.financialResponsibleEmail}
-                    onChange={(e) => handleInputChange('financialResponsibleEmail', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="email@exemplo.com"
-                  />
-                </div>
-                <div className="lg:col-span-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Endereço Completo *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.financialResponsibleAddress}
-                    onChange={(e) => handleInputChange('financialResponsibleAddress', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Rua, número, bairro, cidade, CEP"
-                    required
-                  />
-                </div>
+
+              <div className="mb-4 flex items-center bg-gray-50 p-4 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="hasFinancialResponsible"
+                  checked={hasFinancialResponsible}
+                  onChange={(e) => setHasFinancialResponsible(e.target.checked)}
+                  className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="hasFinancialResponsible" className="text-sm font-medium text-gray-700">
+                  Possui Responsável Financeiro
+                </label>
               </div>
+
+              {hasFinancialResponsible && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nome Completo do Responsável
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.financialResponsibleName}
+                      onChange={(e) => handleInputChange('financialResponsibleName', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Estado Civil
+                    </label>
+                    <select
+                      value={formData.financialResponsibleMaritalStatus}
+                      onChange={(e) => handleInputChange('financialResponsibleMaritalStatus', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="Solteiro(a)">Solteiro(a)</option>
+                      <option value="Casado(a)">Casado(a)</option>
+                      <option value="Divorciado(a)">Divorciado(a)</option>
+                      <option value="Viúvo(a)">Viúvo(a)</option>
+                      <option value="União Estável">União Estável</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      RG
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.financialResponsibleRg}
+                      onChange={(e) => handleInputChange('financialResponsibleRg', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      CPF
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.financialResponsibleCpf}
+                      onChange={(e) => handleInputChange('financialResponsibleCpf', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="000.000.000-00"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Profissão
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.financialResponsibleProfession}
+                      onChange={(e) => handleInputChange('financialResponsibleProfession', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Ex: Engenheiro, Aposentado"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Telefone
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.financialResponsiblePhone}
+                      onChange={(e) => handleInputChange('financialResponsiblePhone', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="(21) 99999-9999"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.financialResponsibleEmail}
+                      onChange={(e) => handleInputChange('financialResponsibleEmail', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="email@exemplo.com"
+                    />
+                  </div>
+                  <div className="lg:col-span-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Endereço Completo
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.financialResponsibleAddress}
+                      onChange={(e) => handleInputChange('financialResponsibleAddress', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Rua, número, bairro, cidade, CEP"
+                    />
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* Taxas */}
