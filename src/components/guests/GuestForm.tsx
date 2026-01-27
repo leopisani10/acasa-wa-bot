@@ -152,9 +152,31 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
       }
       onSave();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar hóspede:', error);
-      alert(`Erro ao salvar hóspede: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+
+      let errorMessage = 'Erro desconhecido ao salvar hóspede';
+
+      // Check for specific error types
+      if (error?.message) {
+        if (error.message.includes('duplicate key value violates unique constraint "guests_cpf_key"')) {
+          errorMessage = 'Já existe um hóspede cadastrado com este CPF. Por favor, verifique o CPF informado.';
+        } else if (error.message.includes('duplicate key')) {
+          errorMessage = 'Já existe um registro com estes dados. Por favor, verifique as informações.';
+        } else if (error.message.includes('violates check constraint')) {
+          errorMessage = 'Alguns dados estão em formato inválido. Por favor, verifique os campos.';
+        } else if (error.message.includes('violates not-null constraint')) {
+          errorMessage = 'Alguns campos obrigatórios não foram preenchidos. Por favor, verifique.';
+        } else {
+          errorMessage = error.message;
+        }
+      } else if (error?.error_description) {
+        errorMessage = error.error_description;
+      } else if (error?.hint) {
+        errorMessage = error.hint;
+      }
+
+      alert(`Erro ao salvar hóspede:\n\n${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

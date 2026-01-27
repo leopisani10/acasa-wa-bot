@@ -162,8 +162,11 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
         .single();
       
       console.log('GuestContext: Database response:', { data, error });
-      
-      if (error) throw error;
+
+      if (error) {
+        console.error('GuestContext: Database error:', error);
+        throw new Error(error.message || error.hint || 'Erro ao salvar no banco de dados');
+      }
       
       console.log('GuestContext: Guest inserted successfully:', data);
       
@@ -242,8 +245,11 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
         .from('guests')
         .update(updateData)
         .eq('id', id);
-      
-      if (error) throw error;
+
+      if (error) {
+        console.error('GuestContext: Update error:', error);
+        throw new Error(error.message || error.hint || 'Erro ao atualizar no banco de dados');
+      }
       
       // Handle vaccines update if provided
       if (guestData.vaccines !== undefined) {
@@ -266,6 +272,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
       await fetchGuests();
     } catch (error) {
       console.error('Error updating guest:', error);
+      throw error;
     }
   };
 
@@ -275,12 +282,16 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
         .from('guests')
         .delete()
         .eq('id', id);
-      
-      if (error) throw error;
-      
+
+      if (error) {
+        console.error('GuestContext: Delete error:', error);
+        throw new Error(error.message || error.hint || 'Erro ao excluir do banco de dados');
+      }
+
       await fetchGuests();
     } catch (error) {
       console.error('Error deleting guest:', error);
+      throw error;
     }
   };
 
