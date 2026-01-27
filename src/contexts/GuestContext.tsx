@@ -119,7 +119,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
         .insert([{
           full_name: guestData.fullName,
           gender: guestData.gender,
-          birth_date: guestData.birthDate,
+          birth_date: guestData.birthDate || null,
           cpf: guestData.cpf,
           rg: guestData.rg,
           document_issuer: guestData.documentIssuer,
@@ -128,11 +128,11 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
           image_usage_authorized: guestData.imageUsageAuthorized,
           status: guestData.status,
           stay_type: guestData.stayType,
-          admission_date: guestData.admissionDate,
-          exit_date: guestData.exitDate,
+          admission_date: guestData.admissionDate || null,
+          exit_date: guestData.exitDate || null,
           exit_reason: guestData.exitReason || null,
           has_new_contract: guestData.hasNewContract,
-          contract_expiry_date: guestData.contractExpiryDate,
+          contract_expiry_date: guestData.contractExpiryDate || null,
           dependency_level: guestData.dependencyLevel,
           legal_responsible_relationship: guestData.legalResponsibleRelationship,
           legal_responsible_cpf: guestData.legalResponsibleCpf,
@@ -173,7 +173,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
         const vaccineInserts = guestData.vaccines.map(vaccine => ({
           guest_id: data.id,
           type: vaccine.type,
-          application_date: vaccine.applicationDate,
+          application_date: vaccine.applicationDate || null,
           notes: vaccine.notes,
         }));
         
@@ -255,7 +255,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
           const vaccineInserts = guestData.vaccines.map(vaccine => ({
             guest_id: id,
             type: vaccine.type,
-            application_date: vaccine.applicationDate,
+            application_date: vaccine.applicationDate || null,
             notes: vaccine.notes,
           }));
           
