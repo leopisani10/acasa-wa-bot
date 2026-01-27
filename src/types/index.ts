@@ -607,6 +607,10 @@ export interface Bed {
   roomId: string;
   bedNumber: number;
   guestId?: string | null;
+  status: 'Ativa' | 'Inativa';
+  inactiveReason?: string;
+  deactivatedAt?: string;
+  deactivatedBy?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;

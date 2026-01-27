@@ -30,6 +30,7 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           *,
           guest:guests(*)
         `)
+        .order('status', { ascending: false })
         .order('bed_number', { ascending: true });
 
       if (bedsError) throw bedsError;
@@ -50,6 +51,10 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             roomId: bed.room_id,
             bedNumber: bed.bed_number,
             guestId: bed.guest_id,
+            status: bed.status || 'Ativa',
+            inactiveReason: bed.inactive_reason,
+            deactivatedAt: bed.deactivated_at,
+            deactivatedBy: bed.deactivated_by,
             notes: bed.notes || '',
             createdAt: bed.created_at,
             updatedAt: bed.updated_at,
@@ -137,6 +142,7 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         room_id: newRoom.id,
         bed_number: i + 1,
         guest_id: null,
+        status: 'Ativa',
         notes: '',
       }));
 
@@ -333,9 +339,13 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      // Otherwise just update other fields like notes
+      // Build update object
       const bedUpdates: any = {};
       if (updates.notes !== undefined) bedUpdates.notes = updates.notes;
+      if (updates.status !== undefined) bedUpdates.status = updates.status;
+      if (updates.inactiveReason !== undefined) bedUpdates.inactive_reason = updates.inactiveReason;
+      if (updates.deactivatedAt !== undefined) bedUpdates.deactivated_at = updates.deactivatedAt;
+      if (updates.deactivatedBy !== undefined) bedUpdates.deactivated_by = updates.deactivatedBy;
 
       const { error: updateError } = await supabase
         .from('beds')
@@ -356,7 +366,7 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const getAvailableBeds = (): BedWithGuest[] => {
-    return rooms.flatMap(room => room.beds.filter(bed => !bed.guestId));
+    return rooms.flatMap(room => room.beds.filter(bed => bed.status === 'Ativa' && !bed.guestId));
   };
 
   return (

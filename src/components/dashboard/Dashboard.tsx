@@ -186,13 +186,15 @@ export const Dashboard: React.FC = () => {
     },
   ];
 
-  // Calcular capacidade total e ocupação baseado nas camas dos quartos
-  const totalBeds = rooms.reduce((sum, room) => sum + room.beds.length, 0);
-  const occupiedBeds = rooms.reduce((sum, room) => {
-    return sum + room.beds.filter(bed => bed.guestId !== null).length;
+  // Calcular capacidade total e ocupação baseado apenas nas camas ATIVAS dos quartos
+  const totalActiveBeds = rooms.reduce((sum, room) => {
+    return sum + room.beds.filter(bed => bed.status === 'Ativa').length;
   }, 0);
-  const availableBeds = totalBeds - occupiedBeds;
-  const totalOccupancyRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+  const occupiedBeds = rooms.reduce((sum, room) => {
+    return sum + room.beds.filter(bed => bed.status === 'Ativa' && bed.guestId !== null).length;
+  }, 0);
+  const availableBeds = totalActiveBeds - occupiedBeds;
+  const totalOccupancyRate = totalActiveBeds > 0 ? Math.round((occupiedBeds / totalActiveBeds) * 100) : 0;
 
   const stayTypeStats = [
     {
@@ -259,13 +261,13 @@ export const Dashboard: React.FC = () => {
             <div>
               <p className="text-sm text-gray-500 mb-1">Ocupação Total da Instituição</p>
               <p className="text-4xl font-bold text-gray-900">
-                {occupiedBeds} <span className="text-2xl text-gray-400">/ {totalBeds}</span>
+                {occupiedBeds} <span className="text-2xl text-gray-400">/ {totalActiveBeds}</span>
               </p>
               <p className="text-sm text-gray-500 mt-2">
                 {availableBeds} cama{availableBeds !== 1 ? 's disponíveis' : ' disponível'}
               </p>
               <p className="text-xs text-gray-400 mt-1">
-                Baseado nas camas dos quartos cadastrados
+                Baseado nas camas ativas dos quartos
               </p>
             </div>
             <div className="text-right">
