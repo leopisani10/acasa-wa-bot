@@ -33,6 +33,10 @@ const RoomManager: React.FC = () => {
       (sum, room) => sum + room.beds.filter(bed => bed.status === 'Ativa').length,
       0
     );
+    const totalInactiveBeds = floorRooms.reduce(
+      (sum, room) => sum + room.beds.filter(bed => bed.status === 'Inativa').length,
+      0
+    );
     const occupiedBeds = floorRooms.reduce(
       (sum, room) => sum + room.beds.filter(bed => bed.status === 'Ativa' && bed.guestId).length,
       0
@@ -40,6 +44,7 @@ const RoomManager: React.FC = () => {
     return {
       totalRooms: floorRooms.length,
       totalBeds: totalActiveBeds,
+      inactiveBeds: totalInactiveBeds,
       occupiedBeds,
       availableBeds: totalActiveBeds - occupiedBeds
     };
@@ -75,6 +80,11 @@ const RoomManager: React.FC = () => {
                   <p className="text-xs text-gray-500">
                     {stats.occupiedBeds}/{stats.totalBeds} camas ativas ocupadas
                   </p>
+                  {stats.inactiveBeds > 0 && (
+                    <p className="text-xs text-amber-600 font-medium mt-1">
+                      {stats.inactiveBeds} {stats.inactiveBeds === 1 ? 'cama inativa' : 'camas inativas'}
+                    </p>
+                  )}
                 </div>
                 <Building className="w-10 h-10 text-blue-500 opacity-20" />
               </div>
@@ -87,6 +97,18 @@ const RoomManager: React.FC = () => {
               <p className="text-sm text-blue-100">Total Geral</p>
               <p className="text-2xl font-bold">{rooms.length}</p>
               <p className="text-xs text-blue-100">quartos cadastrados</p>
+              {(() => {
+                const totalActive = floors.reduce((sum, f) => sum + getFloorStats(f).totalBeds, 0);
+                const totalInactive = floors.reduce((sum, f) => sum + getFloorStats(f).inactiveBeds, 0);
+                return (
+                  <>
+                    <p className="text-xs text-blue-100 mt-1">{totalActive} camas ativas</p>
+                    {totalInactive > 0 && (
+                      <p className="text-xs text-amber-300 font-medium">{totalInactive} camas inativas</p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             <Building className="w-10 h-10 text-white opacity-30" />
           </div>
