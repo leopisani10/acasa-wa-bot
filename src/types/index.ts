@@ -590,3 +590,46 @@ export interface PayrollContextType {
   getAdjustmentsByPayroll: (payrollId: string) => PayrollAdjustment[];
   getShiftPaymentsByEmployeeAndMonth: (employeeId: string, month: string, year: number) => Promise<ShiftPayment[]>;
 }
+
+// Room Management Types
+export interface Room {
+  id: string;
+  roomNumber: string;
+  floor: 1 | 2 | 3;
+  bedCount: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Bed {
+  id: string;
+  roomId: string;
+  bedNumber: number;
+  guestId?: string | null;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoomWithBeds extends Room {
+  beds: BedWithGuest[];
+}
+
+export interface BedWithGuest extends Bed {
+  guest?: Guest | null;
+}
+
+export interface RoomContextType {
+  rooms: RoomWithBeds[];
+  loading: boolean;
+  error: string | null;
+  addRoom: (room: Omit<Room, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateRoom: (id: string, room: Partial<Room>) => Promise<void>;
+  deleteRoom: (id: string) => Promise<void>;
+  allocateGuestToBed: (bedId: string, guestId: string | null) => Promise<void>;
+  updateBed: (bedId: string, updates: Partial<Bed>) => Promise<void>;
+  getRoomsByFloor: (floor: number) => RoomWithBeds[];
+  getAvailableBeds: () => BedWithGuest[];
+  fetchRooms: () => Promise<void>;
+}

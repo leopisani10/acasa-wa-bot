@@ -44,6 +44,8 @@ import { PayrollProvider } from './contexts/PayrollContext';
 import { PayrollManager } from './components/payroll/PayrollManager';
 import { LaborAgreementProvider } from './contexts/LaborAgreementContext';
 import { LaborAgreementManager } from './components/labor-agreements/LaborAgreementManager';
+import { RoomProvider } from './contexts/RoomContext';
+import RoomManager from './components/rooms/RoomManager';
 import { Guest, Employee, DocumentTemplate, Certificate, NFRDAEntry, SobreavisoEmployee } from './types';
 
 function App() {
@@ -222,6 +224,7 @@ function App() {
                         <TransportationVoucherProvider>
                         <PayrollProvider>
                         <LaborAgreementProvider>
+                        <RoomProvider>
                         <div className="min-h-screen bg-gray-50 lg:flex lg:overflow-hidden">
                           <div className={`lg:flex-shrink-0 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'}`}>
                             <Header 
@@ -280,6 +283,7 @@ function App() {
                               {activeView === 'transportation-voucher' && <TransportationVoucherList />}
                               {activeView === 'payroll' && <PayrollManager />}
                               {activeView === 'labor-agreements' && <LaborAgreementManager />}
+                              {activeView === 'rooms' && <RoomManager />}
                             </main>
                           </div>
                         </div>
@@ -339,6 +343,7 @@ function App() {
                             onSave={handleSaveSobreaviso}
                           />
                         )}
+                        </RoomProvider>
                         </LaborAgreementProvider>
                         </PayrollProvider>
                         </TransportationVoucherProvider>
