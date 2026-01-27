@@ -25,16 +25,24 @@ const RoomManager: React.FC = () => {
     );
   }
 
-  const floors = [3, 2, 1]; // Display from top to bottom
+  const floors = [1, 2, 3]; // Display from first to third floor
 
   const getFloorStats = (floor: number) => {
     const floorRooms = getRoomsByFloor(floor);
-    const totalBeds = floorRooms.reduce((sum, room) => sum + room.bedCount, 0);
-    const occupiedBeds = floorRooms.reduce(
-      (sum, room) => sum + room.beds.filter(bed => bed.guestId).length,
+    const totalActiveBeds = floorRooms.reduce(
+      (sum, room) => sum + room.beds.filter(bed => bed.status === 'Ativa').length,
       0
     );
-    return { totalRooms: floorRooms.length, totalBeds, occupiedBeds, availableBeds: totalBeds - occupiedBeds };
+    const occupiedBeds = floorRooms.reduce(
+      (sum, room) => sum + room.beds.filter(bed => bed.status === 'Ativa' && bed.guestId).length,
+      0
+    );
+    return {
+      totalRooms: floorRooms.length,
+      totalBeds: totalActiveBeds,
+      occupiedBeds,
+      availableBeds: totalActiveBeds - occupiedBeds
+    };
   };
 
   return (
@@ -65,7 +73,7 @@ const RoomManager: React.FC = () => {
                   <p className="text-sm text-gray-600">{floor}º Andar</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.totalRooms}</p>
                   <p className="text-xs text-gray-500">
-                    {stats.occupiedBeds}/{stats.totalBeds} camas ocupadas
+                    {stats.occupiedBeds}/{stats.totalBeds} camas ativas ocupadas
                   </p>
                 </div>
                 <Building className="w-10 h-10 text-blue-500 opacity-20" />
