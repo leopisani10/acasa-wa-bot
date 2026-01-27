@@ -5,6 +5,7 @@ import { useEmployees } from '../../contexts/EmployeeContext';
 import { useDocuments } from '../../contexts/DocumentContext';
 import { useCertificates } from '../../contexts/CertificateContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRooms } from '../../contexts/RoomContext';
 
 export const Dashboard: React.FC = () => {
   const { guests } = useGuests();
@@ -12,6 +13,7 @@ export const Dashboard: React.FC = () => {
   const { documents } = useDocuments();
   const { certificates, getExpiringCertificates } = useCertificates();
   const { user } = useAuth();
+  const { rooms } = useRooms();
   const [showExpiredModal, setShowExpiredModal] = useState(false);
 
   const activeGuests = guests.filter(g => g.status === 'Ativo');
@@ -184,10 +186,13 @@ export const Dashboard: React.FC = () => {
     },
   ];
 
-  const TOTAL_CAPACITY = 40;
-  const totalActiveGuests = activeLongStayGuests.length + activeDayCenterGuests.length;
-  const totalOccupancyRate = Math.round((totalActiveGuests / TOTAL_CAPACITY) * 100);
-  const availableSpots = TOTAL_CAPACITY - totalActiveGuests;
+  // Calcular capacidade total e ocupação baseado nas camas dos quartos
+  const totalBeds = rooms.reduce((sum, room) => sum + room.beds.length, 0);
+  const occupiedBeds = rooms.reduce((sum, room) => {
+    return sum + room.beds.filter(bed => bed.guestId !== null).length;
+  }, 0);
+  const availableBeds = totalBeds - occupiedBeds;
+  const totalOccupancyRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
 
   const stayTypeStats = [
     {
@@ -254,10 +259,13 @@ export const Dashboard: React.FC = () => {
             <div>
               <p className="text-sm text-gray-500 mb-1">Ocupação Total da Instituição</p>
               <p className="text-4xl font-bold text-gray-900">
-                {totalActiveGuests} <span className="text-2xl text-gray-400">/ {TOTAL_CAPACITY}</span>
+                {occupiedBeds} <span className="text-2xl text-gray-400">/ {totalBeds}</span>
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                {availableSpots} vaga{availableSpots !== 1 ? 's disponíveis' : ' disponível'}
+                {availableBeds} cama{availableBeds !== 1 ? 's disponíveis' : ' disponível'}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Baseado nas camas dos quartos cadastrados
               </p>
             </div>
             <div className="text-right">
