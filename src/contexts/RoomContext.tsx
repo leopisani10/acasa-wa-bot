@@ -170,6 +170,29 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (updateError) throw updateError;
 
+      // If room number changed, update all guests in this room
+      if (roomUpdate.roomNumber !== undefined) {
+        // Get all beds in this room with their guests
+        const { data: bedsData, error: bedsError } = await supabase
+          .from('beds')
+          .select('guest_id')
+          .eq('room_id', id)
+          .not('guest_id', 'is', null);
+
+        if (bedsError) throw bedsError;
+
+        // Update room_number for all guests in this room
+        if (bedsData && bedsData.length > 0) {
+          const guestIds = bedsData.map(bed => bed.guest_id);
+          const { error: updateGuestsError } = await supabase
+            .from('guests')
+            .update({ room_number: roomUpdate.roomNumber })
+            .in('id', guestIds);
+
+          if (updateGuestsError) throw updateGuestsError;
+        }
+      }
+
       // If bed count changed, adjust beds
       if (roomUpdate.bedCount !== undefined) {
         const room = rooms.find(r => r.id === id);
@@ -245,12 +268,53 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setError(null);
 
+      // Get bed info to find the room
+      const { data: bedData, error: bedError } = await supabase
+        .from('beds')
+        .select('guest_id, room_id')
+        .eq('id', bedId)
+        .single();
+
+      if (bedError) throw bedError;
+
+      const previousGuestId = bedData.guest_id;
+
+      // Get room info
+      const { data: roomData, error: roomError } = await supabase
+        .from('rooms')
+        .select('room_number')
+        .eq('id', bedData.room_id)
+        .single();
+
+      if (roomError) throw roomError;
+
+      // If removing a guest from bed, clear their room_number
+      if (previousGuestId && previousGuestId !== guestId) {
+        const { error: clearGuestError } = await supabase
+          .from('guests')
+          .update({ room_number: '' })
+          .eq('id', previousGuestId);
+
+        if (clearGuestError) throw clearGuestError;
+      }
+
+      // Update the bed with new guest
       const { error: updateError } = await supabase
         .from('beds')
         .update({ guest_id: guestId })
         .eq('id', bedId);
 
       if (updateError) throw updateError;
+
+      // If allocating a guest, update their room_number
+      if (guestId) {
+        const { error: updateGuestError } = await supabase
+          .from('guests')
+          .update({ room_number: roomData.room_number })
+          .eq('id', guestId);
+
+        if (updateGuestError) throw updateGuestError;
+      }
 
       await fetchRooms();
     } catch (err: any) {
@@ -263,9 +327,15 @@ export const RoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setError(null);
 
+      // If updating guest allocation, use the allocateGuestToBed function
+      if (updates.guestId !== undefined) {
+        await allocateGuestToBed(bedId, updates.guestId);
+        return;
+      }
+
+      // Otherwise just update other fields like notes
       const bedUpdates: any = {};
       if (updates.notes !== undefined) bedUpdates.notes = updates.notes;
-      if (updates.guestId !== undefined) bedUpdates.guest_id = updates.guestId;
 
       const { error: updateError } = await supabase
         .from('beds')
