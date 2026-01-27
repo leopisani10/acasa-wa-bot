@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { RoomWithBeds } from '../../types';
 import { Bed, User, Edit, Trash2, UserX } from 'lucide-react';
 import BedAllocationModal from './BedAllocationModal';
+import RoomFormModal from './RoomFormModal';
 import { useRooms } from '../../contexts/RoomContext';
 
 interface RoomCardProps {
@@ -13,6 +14,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
   const [selectedBedId, setSelectedBedId] = useState<string | null>(null);
   const [showAllocationModal, setShowAllocationModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const occupiedBeds = room.beds.filter(bed => bed.guestId).length;
   const availableBeds = room.bedCount - occupiedBeds;
@@ -132,6 +134,13 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
           {/* Room Actions */}
           <div className="flex gap-2 pt-3 border-t border-gray-200">
             <button
+              onClick={() => setShowEditModal(true)}
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              <Edit className="w-4 h-4" />
+              Editar
+            </button>
+            <button
               onClick={() => setShowDeleteConfirm(true)}
               className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
             >
@@ -151,6 +160,14 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
             setShowAllocationModal(false);
             setSelectedBedId(null);
           }}
+        />
+      )}
+
+      {/* Edit Room Modal */}
+      {showEditModal && (
+        <RoomFormModal
+          room={room}
+          onClose={() => setShowEditModal(false)}
         />
       )}
 

@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
-import { X, Building } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Building, AlertTriangle, Plus, Minus } from 'lucide-react';
 import { useRooms } from '../../contexts/RoomContext';
+import { RoomWithBeds } from '../../types';
 
 interface RoomFormModalProps {
+  room?: RoomWithBeds;
   onClose: () => void;
 }
 
-const RoomFormModal: React.FC<RoomFormModalProps> = ({ onClose }) => {
-  const { addRoom } = useRooms();
+const RoomFormModal: React.FC<RoomFormModalProps> = ({ room, onClose }) => {
+  const { addRoom, updateRoom } = useRooms();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     roomNumber: '',
@@ -15,6 +17,20 @@ const RoomFormModal: React.FC<RoomFormModalProps> = ({ onClose }) => {
     bedCount: 1,
     notes: '',
   });
+
+  const isEditing = !!room;
+  const occupiedBeds = room?.beds.filter(bed => bed.guestId).length || 0;
+
+  useEffect(() => {
+    if (room) {
+      setFormData({
+        roomNumber: room.roomNumber,
+        floor: room.floor,
+        bedCount: room.bedCount,
+        notes: room.notes || '',
+      });
+    }
+  }, [room]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,12 +45,22 @@ const RoomFormModal: React.FC<RoomFormModalProps> = ({ onClose }) => {
       return;
     }
 
+    // Validation for editing: cannot reduce beds below occupied count
+    if (isEditing && formData.bedCount < occupiedBeds) {
+      alert(`Não é possível reduzir para ${formData.bedCount} cama(s). Existem ${occupiedBeds} cama(s) ocupada(s) neste quarto.`);
+      return;
+    }
+
     try {
       setIsLoading(true);
-      await addRoom(formData);
+      if (isEditing && room) {
+        await updateRoom(room.id, formData);
+      } else {
+        await addRoom(formData);
+      }
       onClose();
     } catch (error) {
-      alert('Erro ao criar quarto');
+      alert(isEditing ? 'Erro ao atualizar quarto' : 'Erro ao criar quarto');
     } finally {
       setIsLoading(false);
     }
@@ -48,8 +74,10 @@ const RoomFormModal: React.FC<RoomFormModalProps> = ({ onClose }) => {
           <div className="flex items-center gap-3">
             <Building className="w-6 h-6" />
             <div>
-              <h2 className="text-xl font-bold">Novo Quarto</h2>
-              <p className="text-sm text-blue-100">Cadastre um novo quarto</p>
+              <h2 className="text-xl font-bold">{isEditing ? 'Editar Quarto' : 'Novo Quarto'}</h2>
+              <p className="text-sm text-blue-100">
+                {isEditing ? 'Altere as informações do quarto' : 'Cadastre um novo quarto'}
+              </p>
             </div>
           </div>
           <button
@@ -105,16 +133,48 @@ const RoomFormModal: React.FC<RoomFormModalProps> = ({ onClose }) => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Quantidade de Camas *
             </label>
-            <input
-              type="number"
-              value={formData.bedCount}
-              onChange={(e) => setFormData({ ...formData, bedCount: parseInt(e.target.value) || 1 })}
-              min="1"
-              max="10"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-            <p className="text-xs text-gray-500 mt-1">Máximo: 10 camas por quarto</p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, bedCount: Math.max(1, formData.bedCount - 1) })}
+                disabled={formData.bedCount <= 1 || (isEditing && formData.bedCount <= occupiedBeds)}
+                className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
+              >
+                <Minus className="w-5 h-5 text-gray-700" />
+              </button>
+              <input
+                type="number"
+                value={formData.bedCount}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value) || 1;
+                  if (!isEditing || value >= occupiedBeds) {
+                    setFormData({ ...formData, bedCount: Math.min(10, Math.max(1, value)) });
+                  }
+                }}
+                min={isEditing ? occupiedBeds : 1}
+                max="10"
+                className="flex-1 px-3 py-2 text-center text-2xl font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, bedCount: Math.min(10, formData.bedCount + 1) })}
+                disabled={formData.bedCount >= 10}
+                className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+            {isEditing && occupiedBeds > 0 ? (
+              <div className="mt-2 flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded p-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-yellow-800">
+                  {occupiedBeds} cama(s) ocupada(s). Você pode adicionar mais camas, mas não pode reduzir abaixo deste número.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 mt-1">Mínimo: 1 cama • Máximo: 10 camas por quarto</p>
+            )}
           </div>
 
           {/* Notes */}
@@ -145,7 +205,10 @@ const RoomFormModal: React.FC<RoomFormModalProps> = ({ onClose }) => {
               disabled={isLoading}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
-              {isLoading ? 'Criando...' : 'Criar Quarto'}
+              {isLoading
+                ? (isEditing ? 'Salvando...' : 'Criando...')
+                : (isEditing ? 'Salvar Alterações' : 'Criar Quarto')
+              }
             </button>
           </div>
         </form>
