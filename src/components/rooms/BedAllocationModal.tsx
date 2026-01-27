@@ -15,14 +15,26 @@ const BedAllocationModal: React.FC<BedAllocationModalProps> = ({
   currentGuest,
   onClose,
 }) => {
-  const { allocateGuestToBed } = useRooms();
+  const { allocateGuestToBed, rooms } = useRooms();
   const { guests } = useGuests();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGuestId, setSelectedGuestId] = useState<string | null>(currentGuest?.id || null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Filter only active guests
-  const activeGuests = guests.filter(g => g.status === 'Ativo');
+  // Get all allocated guest IDs (except current guest in this bed)
+  const allocatedGuestIds = new Set(
+    rooms
+      .flatMap(room => room.beds)
+      .filter(bed => bed.guestId && bed.id !== bedId) // Exclude current bed
+      .map(bed => bed.guestId)
+      .filter(Boolean) as string[]
+  );
+
+  // Filter only active guests that are not already allocated
+  const activeGuests = guests.filter(g =>
+    g.status === 'Ativo' &&
+    (!allocatedGuestIds.has(g.id) || g.id === currentGuest?.id) // Allow current guest
+  );
 
   // Filter guests based on search
   const filteredGuests = activeGuests.filter(guest =>
@@ -84,6 +96,11 @@ const BedAllocationModal: React.FC<BedAllocationModalProps> = ({
               autoFocus
             />
           </div>
+          {allocatedGuestIds.size > 0 && (
+            <p className="text-xs text-gray-500 mt-2">
+              {allocatedGuestIds.size} hóspede(s) já alocado(s) em outras camas não aparecem na lista
+            </p>
+          )}
         </div>
 
         {/* Guest List */}
