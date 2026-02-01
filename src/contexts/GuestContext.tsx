@@ -200,7 +200,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
   const updateGuest = async (id: string, guestData: Partial<Guest>) => {
     try {
       const updateData: any = {};
-      
+
       if (guestData.fullName !== undefined) updateData.full_name = guestData.fullName;
       if (guestData.gender !== undefined) updateData.gender = guestData.gender;
       if (guestData.birthDate !== undefined) updateData.birth_date = guestData.birthDate || null;
@@ -240,7 +240,7 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
       if (guestData.paisi !== undefined) updateData.paisi = guestData.paisi;
       if (guestData.digitalizedContract !== undefined) updateData.digitalized_contract = guestData.digitalizedContract;
       if (guestData.vaccinationUpToDate !== undefined) updateData.vaccination_up_to_date = guestData.vaccinationUpToDate;
-      
+
       const { error } = await supabase
         .from('guests')
         .update(updateData)
@@ -249,6 +249,18 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
       if (error) {
         console.error('GuestContext: Update error:', error);
         throw new Error(error.message || error.hint || 'Erro ao atualizar no banco de dados');
+      }
+
+      // If guest is being inactivated, remove them from any bed they occupy
+      if (guestData.status === 'Inativo') {
+        const { error: bedError } = await supabase
+          .from('beds')
+          .update({ guest_id: null })
+          .eq('guest_id', id);
+
+        if (bedError) {
+          console.error('Error removing guest from bed:', bedError);
+        }
       }
       
       // Handle vaccines update if provided
