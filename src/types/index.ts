@@ -52,6 +52,9 @@ export interface Guest {
 
   // Acomodação e Cuidados
   roomNumber: string;
+  roomNumberRaw?: string;
+  floor?: number | null;
+  bedNumber?: number | null;
 
   // Plano de Saúde e Serviços de Saúde
   healthPlan?: string;

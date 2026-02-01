@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit, Trash2, Eye, User, Calendar, MapPin, FileText, Upload } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, User, Calendar, MapPin, FileText, Upload, Download } from 'lucide-react';
 import { useGuests } from '../../contexts/GuestContext';
 import { Guest } from '../../types';
 import { GuestImport } from './GuestImport';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface GuestListProps {
   onAddGuest: () => void;
@@ -47,6 +49,59 @@ export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest })
     return age;
   };
 
+  const exportToPDF = () => {
+    const doc = new jsPDF('l', 'mm', 'a4');
+
+    doc.setFontSize(18);
+    doc.text('Lista de Hóspedes - ACASA', 14, 15);
+
+    doc.setFontSize(11);
+    doc.text(`Data de Geração: ${new Date().toLocaleDateString('pt-BR')}`, 14, 22);
+
+    const tableData = filteredGuests.map(guest => [
+      guest.fullName,
+      guest.roomNumber,
+      guest.unit,
+      guest.cpf,
+      `${calculateAge(guest.birthDate)} anos`,
+      `Grau ${guest.dependencyLevel}`,
+      guest.healthPlan || 'Não informado',
+      guest.status
+    ]);
+
+    autoTable(doc, {
+      startY: 28,
+      head: [['Nome', 'Quarto', 'Unidade', 'CPF', 'Idade', 'Dependência', 'Plano de Saúde', 'Status']],
+      body: tableData,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [103, 58, 183], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 245, 250] },
+      columnStyles: {
+        0: { cellWidth: 50 },
+        1: { cellWidth: 25, halign: 'center' },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 20, halign: 'center' },
+        5: { cellWidth: 25, halign: 'center' },
+        6: { cellWidth: 35 },
+        7: { cellWidth: 20, halign: 'center' }
+      },
+      didDrawPage: (data) => {
+        const pageCount = doc.getNumberOfPages();
+        const pageSize = doc.internal.pageSize;
+        const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
+        doc.setFontSize(9);
+        doc.text(
+          `Página ${data.pageNumber} de ${pageCount}`,
+          data.settings.margin.left,
+          pageHeight - 10
+        );
+      }
+    });
+
+    doc.save(`hospedes-acasa-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -56,6 +111,14 @@ export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest })
           <p className="text-gray-600 font-sans">Gerencie os residentes da ACASA</p>
         </div>
         <div className="mt-4 sm:mt-0 flex items-center space-x-3">
+          <button
+            onClick={exportToPDF}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-sans font-medium"
+            title="Exportar lista em PDF"
+          >
+            <Download size={20} className="mr-2" />
+            Exportar PDF
+          </button>
           <button
             onClick={() => setShowImport(true)}
             className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-sans font-medium"

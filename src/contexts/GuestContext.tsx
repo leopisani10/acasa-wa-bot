@@ -41,64 +41,83 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
         .from('guests')
         .select(`
           *,
-          guest_vaccines(*)
+          guest_vaccines(*),
+          beds!beds_guest_id_fkey(
+            bed_number,
+            rooms!beds_room_id_fkey(
+              room_number,
+              floor
+            )
+          )
         `)
         .order('full_name');
-      
+
       if (error) throw error;
-      
+
       // Transform data to match our Guest type
-      const transformedGuests: Guest[] = data.map(guest => ({
-        id: guest.id,
-        fullName: guest.full_name,
-        gender: guest.gender,
-        birthDate: guest.birth_date,
-        cpf: guest.cpf,
-        rg: guest.rg,
-        documentIssuer: guest.document_issuer,
-        photo: guest.photo,
-        hasCuratorship: guest.has_curatorship,
-        imageUsageAuthorized: guest.image_usage_authorized,
-        status: guest.status,
-        stayType: guest.stay_type || 'Longa Permanência',
-        admissionDate: guest.admission_date,
-        exitDate: guest.exit_date,
-        exitReason: guest.exit_reason,
-        hasNewContract: guest.has_new_contract,
-        contractExpiryDate: guest.contract_expiry_date,
-        dependencyLevel: guest.dependency_level,
-        legalResponsibleRelationship: guest.legal_responsible_relationship,
-        legalResponsibleCpf: guest.legal_responsible_cpf,
-        financialResponsibleName: guest.financial_responsible_name,
-        financialResponsibleRg: guest.financial_responsible_rg,
-        financialResponsibleCpf: guest.financial_responsible_cpf,
-        financialResponsibleMaritalStatus: guest.financial_responsible_marital_status,
-        financialResponsiblePhone: guest.financial_responsible_phone,
-        financialResponsibleEmail: guest.financial_responsible_email || '',
-        financialResponsibleAddress: guest.financial_responsible_address,
-        financialResponsibleProfession: guest.financial_responsible_profession || '',
-        unit: guest.unit,
-        climatizationFee: guest.climatization_fee,
-        maintenanceFee: guest.maintenance_fee,
-        trousseauFee: guest.trousseau_fee,
-        administrativeFee: guest.administrative_fee,
-        roomNumber: guest.room_number,
-        healthPlan: guest.health_plan || '',
-        hasSpeechTherapy: guest.has_speech_therapy,
-        pia: guest.pia || '',
-        paisi: guest.paisi || '',
-        digitalizedContract: guest.digitalized_contract || '',
-        vaccinationUpToDate: guest.vaccination_up_to_date,
-        vaccines: guest.guest_vaccines?.map((vaccine: any) => ({
-          id: vaccine.id,
-          type: vaccine.type,
-          applicationDate: vaccine.application_date,
-          notes: vaccine.notes || '',
-        })) || [],
-        createdAt: guest.created_at,
-        updatedAt: guest.updated_at,
-      }));
-      
+      const transformedGuests: Guest[] = data.map(guest => {
+        // Get room info from beds relationship
+        const bedInfo = guest.beds?.[0];
+        const roomInfo = bedInfo?.rooms;
+        const roomDisplay = roomInfo
+          ? `${roomInfo.room_number} (${roomInfo.floor}º)`
+          : guest.room_number || 'Sem quarto';
+
+        return {
+          id: guest.id,
+          fullName: guest.full_name,
+          gender: guest.gender,
+          birthDate: guest.birth_date,
+          cpf: guest.cpf,
+          rg: guest.rg,
+          documentIssuer: guest.document_issuer,
+          photo: guest.photo,
+          hasCuratorship: guest.has_curatorship,
+          imageUsageAuthorized: guest.image_usage_authorized,
+          status: guest.status,
+          stayType: guest.stay_type || 'Longa Permanência',
+          admissionDate: guest.admission_date,
+          exitDate: guest.exit_date,
+          exitReason: guest.exit_reason,
+          hasNewContract: guest.has_new_contract,
+          contractExpiryDate: guest.contract_expiry_date,
+          dependencyLevel: guest.dependency_level,
+          legalResponsibleRelationship: guest.legal_responsible_relationship,
+          legalResponsibleCpf: guest.legal_responsible_cpf,
+          financialResponsibleName: guest.financial_responsible_name,
+          financialResponsibleRg: guest.financial_responsible_rg,
+          financialResponsibleCpf: guest.financial_responsible_cpf,
+          financialResponsibleMaritalStatus: guest.financial_responsible_marital_status,
+          financialResponsiblePhone: guest.financial_responsible_phone,
+          financialResponsibleEmail: guest.financial_responsible_email || '',
+          financialResponsibleAddress: guest.financial_responsible_address,
+          financialResponsibleProfession: guest.financial_responsible_profession || '',
+          unit: guest.unit,
+          climatizationFee: guest.climatization_fee,
+          maintenanceFee: guest.maintenance_fee,
+          trousseauFee: guest.trousseau_fee,
+          administrativeFee: guest.administrative_fee,
+          roomNumber: roomDisplay,
+          roomNumberRaw: roomInfo?.room_number || guest.room_number || '',
+          floor: roomInfo?.floor || null,
+          bedNumber: bedInfo?.bed_number || null,
+          healthPlan: guest.health_plan || '',
+          hasSpeechTherapy: guest.has_speech_therapy,
+          pia: guest.pia || '',
+          paisi: guest.paisi || '',
+          digitalizedContract: guest.digitalized_contract || '',
+          vaccinationUpToDate: guest.vaccination_up_to_date,
+          vaccines: guest.guest_vaccines?.map((vaccine: any) => ({
+            id: vaccine.id,
+            type: vaccine.type,
+            applicationDate: vaccine.application_date,
+            notes: vaccine.notes || '',
+          })) || [],
+          createdAt: guest.created_at,
+          updatedAt: guest.updated_at,
+        };
+      });
+
       setGuests(transformedGuests);
     } catch (error) {
       console.error('Error fetching guests:', error);
