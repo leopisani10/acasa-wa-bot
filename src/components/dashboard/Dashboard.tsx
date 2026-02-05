@@ -17,6 +17,7 @@ export const Dashboard: React.FC = () => {
   const [showExpiredModal, setShowExpiredModal] = useState(false);
 
   const activeGuests = guests.filter(g => g.status === 'Ativo');
+  const reservedGuests = guests.filter(g => g.status === 'Reservado');
   const inactiveGuests = guests.filter(g => g.status === 'Inativo');
 
   // Filtros por tipo de permanência
@@ -169,6 +170,14 @@ export const Dashboard: React.FC = () => {
       textColor: 'text-acasa-red',
     },
     {
+      title: 'Reservas (Aguardando Entrada)',
+      value: reservedGuests.length,
+      icon: Calendar,
+      color: 'bg-blue-500',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-600',
+    },
+    {
       title: 'Contratos Vencendo (30 dias)',
       value: expiringContracts.length,
       icon: AlertTriangle,
@@ -232,7 +241,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
