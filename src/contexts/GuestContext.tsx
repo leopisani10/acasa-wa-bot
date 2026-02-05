@@ -84,6 +84,9 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
           dependencyLevel: guest.dependency_level,
           legalResponsibleRelationship: guest.legal_responsible_relationship,
           legalResponsibleCpf: guest.legal_responsible_cpf,
+          reservationDate: guest.reservation_date,
+          expectedEntryDate: guest.expected_entry_date,
+          reservationNotes: guest.reservation_notes || '',
           financialResponsibleName: guest.financial_responsible_name,
           financialResponsibleRg: guest.financial_responsible_rg,
           financialResponsibleCpf: guest.financial_responsible_cpf,
@@ -155,6 +158,9 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
           dependency_level: guestData.dependencyLevel,
           legal_responsible_relationship: guestData.legalResponsibleRelationship,
           legal_responsible_cpf: guestData.legalResponsibleCpf,
+          reservation_date: guestData.reservationDate || null,
+          expected_entry_date: guestData.expectedEntryDate || null,
+          reservation_notes: guestData.reservationNotes || null,
           financial_responsible_name: guestData.financialResponsibleName,
           financial_responsible_rg: guestData.financialResponsibleRg,
           financial_responsible_cpf: guestData.financialResponsibleCpf,
@@ -239,6 +245,9 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
       if (guestData.dependencyLevel !== undefined) updateData.dependency_level = guestData.dependencyLevel;
       if (guestData.legalResponsibleRelationship !== undefined) updateData.legal_responsible_relationship = guestData.legalResponsibleRelationship;
       if (guestData.legalResponsibleCpf !== undefined) updateData.legal_responsible_cpf = guestData.legalResponsibleCpf;
+      if (guestData.reservationDate !== undefined) updateData.reservation_date = guestData.reservationDate || null;
+      if (guestData.expectedEntryDate !== undefined) updateData.expected_entry_date = guestData.expectedEntryDate || null;
+      if (guestData.reservationNotes !== undefined) updateData.reservation_notes = guestData.reservationNotes || null;
       if (guestData.financialResponsibleName !== undefined) updateData.financial_responsible_name = guestData.financialResponsibleName;
       if (guestData.financialResponsibleRg !== undefined) updateData.financial_responsible_rg = guestData.financialResponsibleRg;
       if (guestData.financialResponsibleCpf !== undefined) updateData.financial_responsible_cpf = guestData.financialResponsibleCpf;
@@ -270,8 +279,8 @@ export const GuestProvider: React.FC<GuestProviderProps> = ({ children }) => {
         throw new Error(error.message || error.hint || 'Erro ao atualizar no banco de dados');
       }
 
-      // If guest is being inactivated, remove them from any bed they occupy
-      if (guestData.status === 'Inativo') {
+      // If guest is being inactivated or marked as reserved, remove them from any bed they occupy
+      if (guestData.status === 'Inativo' || guestData.status === 'Reservado') {
         const { error: bedError } = await supabase
           .from('beds')
           .update({ guest_id: null })

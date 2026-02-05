@@ -48,6 +48,11 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
     legalResponsibleRelationship: guest?.legalResponsibleRelationship || '',
     legalResponsibleCpf: guest?.legalResponsibleCpf || '',
 
+    // Reserva
+    reservationDate: guest?.reservationDate || '',
+    expectedEntryDate: guest?.expectedEntryDate || '',
+    reservationNotes: guest?.reservationNotes || '',
+
     // Responsável Financeiro
     financialResponsibleName: guest?.financialResponsibleName || '',
     financialResponsibleRg: guest?.financialResponsibleRg || '',
@@ -83,13 +88,20 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
-      
-      // Clear exit fields when status changes to 'Ativo'
-      if (field === 'status' && value === 'Ativo') {
+
+      // Clear exit fields when status changes to 'Ativo' or 'Reservado'
+      if (field === 'status' && (value === 'Ativo' || value === 'Reservado')) {
         newData.exitReason = undefined;
         newData.exitDate = '';
       }
-      
+
+      // Clear reservation fields when status is not 'Reservado'
+      if (field === 'status' && value !== 'Reservado') {
+        newData.reservationDate = '';
+        newData.expectedEntryDate = '';
+        newData.reservationNotes = '';
+      }
+
       return newData;
     });
   };
@@ -320,6 +332,7 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="Ativo">Ativo</option>
+                    <option value="Reservado">Reservado (Aguardando Entrada)</option>
                     <option value="Inativo">Inativo</option>
                   </select>
                 </div>
@@ -362,6 +375,48 @@ export const GuestForm: React.FC<GuestFormProps> = ({ guest, onClose, onSave }) 
                         onChange={(e) => handleInputChange('exitDate', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
+                    </div>
+                  </>
+                )}
+                {formData.status === 'Reservado' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Data da Reserva <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.reservationDate || ''}
+                        onChange={(e) => handleInputChange('reservationDate', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Previsão de Entrada
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.expectedEntryDate || ''}
+                        onChange={(e) => handleInputChange('expectedEntryDate', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div className="md:col-span-2 lg:col-span-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Observações sobre a Reserva
+                      </label>
+                      <textarea
+                        value={formData.reservationNotes || ''}
+                        onChange={(e) => handleInputChange('reservationNotes', e.target.value)}
+                        placeholder="Ex: Idoso hospitalizado, aguardando alta médica..."
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <p className="text-sm text-gray-500 mt-1">
+                        Informe o motivo da espera, situação atual do idoso, etc.
+                      </p>
                     </div>
                   </>
                 )}

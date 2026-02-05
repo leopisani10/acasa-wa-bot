@@ -14,7 +14,7 @@ interface GuestListProps {
 export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest }) => {
   const { guests, deleteGuest } = useGuests();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'Ativo' | 'Inativo'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Ativo' | 'Inativo' | 'Reservado'>('all');
   const [unitFilter, setUnitFilter] = useState<'all' | 'Botafogo'>('all');
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [showImport, setShowImport] = useState(false);
@@ -150,11 +150,12 @@ export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest })
         </div>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as 'all' | 'Ativo' | 'Inativo')}
+          onChange={(e) => setStatusFilter(e.target.value as 'all' | 'Ativo' | 'Inativo' | 'Reservado')}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-sans"
         >
           <option value="all">Todos os Status</option>
           <option value="Ativo">Ativo</option>
+          <option value="Reservado">Reservado</option>
           <option value="Inativo">Inativo</option>
         </select>
         <select
@@ -168,7 +169,7 @@ export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest })
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-sans">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-sans">
         <div className="bg-white border border-gray-100 p-4 rounded-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -187,6 +188,17 @@ export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest })
               </p>
             </div>
             <User className="text-green-600" size={20} />
+          </div>
+        </div>
+        <div className="bg-white border border-gray-100 p-4 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 font-medium font-sans">Reservas</p>
+              <p className="text-2xl font-bold text-gray-900 font-sans">
+                {guests.filter(g => g.status === 'Reservado').length}
+              </p>
+            </div>
+            <Calendar className="text-blue-600" size={20} />
           </div>
         </div>
         <div className="bg-white border border-gray-100 p-4 rounded-lg">
@@ -267,6 +279,8 @@ export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest })
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                       guest.status === 'Ativo'
                         ? 'bg-green-100 text-green-700'
+                        : guest.status === 'Reservado'
+                        ? 'bg-blue-100 text-blue-700'
                         : 'bg-red-100 text-red-700'
                     }`}>
                       {guest.status}
@@ -350,11 +364,43 @@ export const GuestList: React.FC<GuestListProps> = ({ onAddGuest, onEditGuest })
                   <span className={`px-3 py-1 text-xs font-medium rounded-full ${
                     selectedGuest.status === 'Ativo'
                       ? 'bg-green-100 text-green-700'
+                      : selectedGuest.status === 'Reservado'
+                      ? 'bg-blue-100 text-blue-700'
                       : 'bg-red-100 text-red-700'
                   } font-sans`}>
                     {selectedGuest.status}
                   </span>
                 </div>
+
+                {/* Reservation Info - only show if status is Reservado */}
+                {selectedGuest.status === 'Reservado' && (
+                  <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-6 border border-blue-200">
+                    <h3 className="font-bold text-gray-900 mb-4 text-lg flex items-center font-sans">
+                      <Calendar className="mr-2 text-blue-600" size={20} />
+                      Informações da Reserva
+                    </h3>
+                    <div className="space-y-3 text-sm font-sans">
+                      {selectedGuest.reservationDate && (
+                        <div className="flex justify-between items-center py-2 border-b border-blue-100">
+                          <span className="font-medium text-gray-600 font-sans">Data da Reserva:</span>
+                          <span className="font-bold text-gray-900 font-sans">{formatDate(selectedGuest.reservationDate)}</span>
+                        </div>
+                      )}
+                      {selectedGuest.expectedEntryDate && (
+                        <div className="flex justify-between items-center py-2 border-b border-blue-100">
+                          <span className="font-medium text-gray-600 font-sans">Previsão de Entrada:</span>
+                          <span className="font-bold text-blue-600 font-sans">{formatDate(selectedGuest.expectedEntryDate)}</span>
+                        </div>
+                      )}
+                      {selectedGuest.reservationNotes && (
+                        <div className="py-2">
+                          <span className="font-medium text-gray-600 block mb-2 font-sans">Observações:</span>
+                          <p className="text-gray-900 font-sans bg-white p-3 rounded-lg border border-blue-100">{selectedGuest.reservationNotes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Main Info Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -22,7 +22,7 @@ export interface Guest {
   imageUsageAuthorized: boolean;
 
   // Informações Contratuais e Status
-  status: 'Ativo' | 'Inativo';
+  status: 'Ativo' | 'Inativo' | 'Reservado';
   stayType: 'Longa Permanência' | 'Centro Dia';
   admissionDate: string;
   exitDate?: string;
@@ -32,6 +32,11 @@ export interface Guest {
   dependencyLevel: 'I' | 'II' | 'III';
   legalResponsibleRelationship: string;
   legalResponsibleCpf: string;
+
+  // Informações de Reserva (quando status = 'Reservado')
+  reservationDate?: string;
+  expectedEntryDate?: string;
+  reservationNotes?: string;
   
   // Informações Completas do Responsável Financeiro
   financialResponsibleName: string;
