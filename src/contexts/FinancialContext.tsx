@@ -245,6 +245,17 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }, 0);
   };
 
+  const isMonthInInstallmentPeriod = (currentMonth: string, startMonth: string, installments: number): boolean => {
+    const [startYear, startMonthNum] = startMonth.split('-').map(Number);
+    const [currentYear, currentMonthNum] = currentMonth.split('-').map(Number);
+
+    const startMonthIndex = startYear * 12 + startMonthNum;
+    const currentMonthIndex = currentYear * 12 + currentMonthNum;
+    const endMonthIndex = startMonthIndex + installments - 1;
+
+    return currentMonthIndex >= startMonthIndex && currentMonthIndex <= endMonthIndex;
+  };
+
   const getMonthlyRevenue = (year: number = 2026): MonthlyRevenue[] => {
     const months: MonthlyRevenue[] = [];
 
@@ -255,16 +266,16 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const revenue = activeRecords.reduce((sum, r) => {
         let total = r.monthlyFee;
 
-        if (r.climatizationStartMonth && r.climatizationStartMonth <= monthKey) {
+        if (r.climatizationStartMonth && isMonthInInstallmentPeriod(monthKey, r.climatizationStartMonth, r.climatizationInstallments)) {
           total += r.climatizationFee;
         }
-        if (r.maintenanceStartMonth && r.maintenanceStartMonth <= monthKey) {
+        if (r.maintenanceStartMonth && isMonthInInstallmentPeriod(monthKey, r.maintenanceStartMonth, r.maintenanceInstallments)) {
           total += r.maintenanceFee;
         }
-        if (r.trousseauStartMonth && r.trousseauStartMonth <= monthKey) {
+        if (r.trousseauStartMonth && isMonthInInstallmentPeriod(monthKey, r.trousseauStartMonth, r.trousseauInstallments)) {
           total += r.trousseauFee;
         }
-        if (r.thirteenthSalaryStartMonth && r.thirteenthSalaryStartMonth <= monthKey) {
+        if (r.thirteenthSalaryStartMonth && isMonthInInstallmentPeriod(monthKey, r.thirteenthSalaryStartMonth, r.thirteenthSalaryInstallments)) {
           total += r.thirteenthSalaryFee;
         }
 

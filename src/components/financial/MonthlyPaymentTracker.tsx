@@ -29,6 +29,17 @@ export const MonthlyPaymentTracker: React.FC<MonthlyPaymentTrackerProps> = ({ gu
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
+  const isMonthInInstallmentPeriod = (currentMonth: string, startMonth: string, installments: number): boolean => {
+    const [startYear, startMonthNum] = startMonth.split('-').map(Number);
+    const [currentYear, currentMonthNum] = currentMonth.split('-').map(Number);
+
+    const startMonthIndex = startYear * 12 + startMonthNum;
+    const currentMonthIndex = currentYear * 12 + currentMonthNum;
+    const endMonthIndex = startMonthIndex + installments - 1;
+
+    return currentMonthIndex >= startMonthIndex && currentMonthIndex <= endMonthIndex;
+  };
+
   const getExpectedAmount = (monthIndex: number): number => {
     if (!financialRecord) return 0;
 
@@ -36,16 +47,16 @@ export const MonthlyPaymentTracker: React.FC<MonthlyPaymentTrackerProps> = ({ gu
 
     const monthKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, '0')}`;
 
-    if (financialRecord.climatizationStartMonth && financialRecord.climatizationStartMonth <= monthKey) {
+    if (financialRecord.climatizationStartMonth && isMonthInInstallmentPeriod(monthKey, financialRecord.climatizationStartMonth, financialRecord.climatizationInstallments)) {
       total += financialRecord.climatizationFee;
     }
-    if (financialRecord.maintenanceStartMonth && financialRecord.maintenanceStartMonth <= monthKey) {
+    if (financialRecord.maintenanceStartMonth && isMonthInInstallmentPeriod(monthKey, financialRecord.maintenanceStartMonth, financialRecord.maintenanceInstallments)) {
       total += financialRecord.maintenanceFee;
     }
-    if (financialRecord.trousseauStartMonth && financialRecord.trousseauStartMonth <= monthKey) {
+    if (financialRecord.trousseauStartMonth && isMonthInInstallmentPeriod(monthKey, financialRecord.trousseauStartMonth, financialRecord.trousseauInstallments)) {
       total += financialRecord.trousseauFee;
     }
-    if (financialRecord.thirteenthSalaryStartMonth && financialRecord.thirteenthSalaryStartMonth <= monthKey) {
+    if (financialRecord.thirteenthSalaryStartMonth && isMonthInInstallmentPeriod(monthKey, financialRecord.thirteenthSalaryStartMonth, financialRecord.thirteenthSalaryInstallments)) {
       total += financialRecord.thirteenthSalaryFee;
     }
 
