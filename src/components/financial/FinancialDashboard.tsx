@@ -233,7 +233,17 @@ export const FinancialDashboard: React.FC = () => {
                   >
                     <div>
                       <p className="font-medium text-gray-900">{guest.fullName}</p>
-                      <p className="text-sm text-gray-600">Quarto {guest.roomNumber} - {guest.status}</p>
+                      <div className="flex items-center space-x-3 text-sm text-gray-600">
+                        <span>Quarto {guest.roomNumber}</span>
+                        <span className="text-gray-400">•</span>
+                        <span>{guest.status}</span>
+                        {guest.responsibleName && (
+                          <>
+                            <span className="text-gray-400">•</span>
+                            <span>Responsável: <span className="font-medium">{guest.responsibleName}</span></span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => setSelectedGuest(guest)}
@@ -276,7 +286,15 @@ export const FinancialDashboard: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600">Quarto {guest.roomNumber}</p>
+                      <div className="flex items-center space-x-3 text-sm text-gray-600">
+                        <span>Quarto {guest.roomNumber}</span>
+                        {guest.responsibleName && (
+                          <>
+                            <span className="text-gray-400">•</span>
+                            <span>Responsável: <span className="font-medium">{guest.responsibleName}</span></span>
+                          </>
+                        )}
+                      </div>
                       {record && (
                         <div className="mt-2 grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
                           <div>
