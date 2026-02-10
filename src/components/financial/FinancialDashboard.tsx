@@ -51,6 +51,7 @@ export const FinancialDashboard: React.FC = () => {
   );
 
   const guestsWithoutFinancial = guests.filter(g =>
+    g.status === 'Ativo' &&
     !financialRecords.some(r => r.guestId === g.id) &&
     (g.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
      g.roomNumber.includes(searchTerm))
@@ -183,7 +184,9 @@ export const FinancialDashboard: React.FC = () => {
             </div>
             <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
               <span className="text-sm text-gray-700">Sem Dados Financeiros</span>
-              <span className="text-lg font-bold text-acasa-purple">{guests.length - financialRecords.length}</span>
+              <span className="text-lg font-bold text-acasa-purple">
+                {guests.filter(g => g.status === 'Ativo' && !financialRecords.some(r => r.guestId === g.id)).length}
+              </span>
             </div>
           </div>
         </div>
