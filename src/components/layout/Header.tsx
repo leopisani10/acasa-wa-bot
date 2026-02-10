@@ -7,9 +7,10 @@ interface HeaderProps {
   onViewChange: (view: string) => void;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  onFinancialClick?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, sidebarCollapsed, setSidebarCollapsed }) => {
+export const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, sidebarCollapsed, setSidebarCollapsed, onFinancialClick }) => {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [crmExpanded, setCrmExpanded] = useState(
@@ -49,6 +50,7 @@ export const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, sideba
       { key: 'agravos', label: 'Agravos', icon: AlertTriangle },
       { key: 'certificates', label: 'Certificados', icon: FileCheck },
       { key: 'nfrda', label: 'NF + RDA', icon: Receipt },
+      { key: 'financial', label: 'Financeiro', icon: DollarSign },
     ] : []),
     { key: 'profile', label: 'Meu Perfil', icon: Settings },
     // Menu de usuários só para admins
@@ -71,6 +73,11 @@ export const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, sideba
   };
 
   const handleNavClick = (key: string) => {
+    if (key === 'financial' && onFinancialClick) {
+      onFinancialClick();
+      setSidebarOpen(false);
+      return;
+    }
     if (key.startsWith('crm-')) {
       setCrmExpanded(true);
     }

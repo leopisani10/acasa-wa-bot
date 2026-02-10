@@ -223,6 +223,17 @@ export const SYSTEM_MODULES: Record<string, SystemModule> = {
     minRole: 'admin',
     isRequired: false,
   },
+  financial: {
+    id: 'financial',
+    name: 'Financeiro',
+    description: 'Gestão financeira e receitas dos hóspedes',
+    icon: 'DollarSign',
+    category: 'administrative',
+    dependencies: ['guests'],
+    requiredBy: [],
+    minRole: 'admin',
+    isRequired: false,
+  },
 };
 
 // Helper functions for dependency management

@@ -46,6 +46,9 @@ import { LaborAgreementProvider } from './contexts/LaborAgreementContext';
 import { LaborAgreementManager } from './components/labor-agreements/LaborAgreementManager';
 import { RoomProvider } from './contexts/RoomContext';
 import RoomManager from './components/rooms/RoomManager';
+import { FinancialProvider } from './contexts/FinancialContext';
+import { FinancialPasswordModal } from './components/financial/FinancialPasswordModal';
+import { FinancialDashboard } from './components/financial/FinancialDashboard';
 import { Guest, Employee, DocumentTemplate, Certificate, NFRDAEntry, SobreavisoEmployee } from './types';
 
 function App() {
@@ -68,6 +71,8 @@ function App() {
     const [editingNFRDA, setEditingNFRDA] = useState<NFRDAEntry | undefined>();
     const [showSobreavisoForm, setShowSobreavisoForm] = useState(false);
     const [editingSobreaviso, setEditingSobreaviso] = useState<SobreavisoEmployee | undefined>();
+    const [showFinancialPassword, setShowFinancialPassword] = useState(false);
+    const [financialUnlocked, setFinancialUnlocked] = useState(false);
 
     const handleAddGuest = () => {
       setEditingGuest(undefined);
@@ -193,6 +198,20 @@ function App() {
       setActiveView('sobreaviso');
     };
 
+    const handleFinancialAccess = () => {
+      if (!financialUnlocked) {
+        setShowFinancialPassword(true);
+      } else {
+        setActiveView('financial');
+      }
+    };
+
+    const handleFinancialUnlock = () => {
+      setFinancialUnlocked(true);
+      setShowFinancialPassword(false);
+      setActiveView('financial');
+    };
+
     if (isLoading) {
       return (
         <div className="min-h-screen bg-white flex items-center justify-center">
@@ -225,13 +244,15 @@ function App() {
                         <PayrollProvider>
                         <LaborAgreementProvider>
                         <RoomProvider>
+                        <FinancialProvider>
                         <div className="min-h-screen bg-gray-50 lg:flex lg:overflow-hidden">
                           <div className={`lg:flex-shrink-0 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'}`}>
-                            <Header 
-                              activeView={activeView} 
+                            <Header
+                              activeView={activeView}
                               onViewChange={setActiveView}
                               sidebarCollapsed={sidebarCollapsed}
                               setSidebarCollapsed={setSidebarCollapsed}
+                              onFinancialClick={handleFinancialAccess}
                             />
                           </div>
                           
@@ -284,6 +305,7 @@ function App() {
                               {activeView === 'payroll' && <PayrollManager />}
                               {activeView === 'labor-agreements' && <LaborAgreementManager />}
                               {activeView === 'rooms' && <RoomManager />}
+                              {activeView === 'financial' && financialUnlocked && <FinancialDashboard />}
                             </main>
                           </div>
                         </div>
@@ -343,6 +365,14 @@ function App() {
                             onSave={handleSaveSobreaviso}
                           />
                         )}
+
+                        {showFinancialPassword && (
+                          <FinancialPasswordModal
+                            onSuccess={handleFinancialUnlock}
+                            onClose={() => setShowFinancialPassword(false)}
+                          />
+                        )}
+                        </FinancialProvider>
                         </RoomProvider>
                         </LaborAgreementProvider>
                         </PayrollProvider>
