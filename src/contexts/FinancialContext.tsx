@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
-import { GuestFinancialRecord, FinancialAdjustment, MonthlyRevenue, MonthlyPayment } from '../types/financial';
+import { GuestFinancialRecord, FinancialAdjustment, MonthlyRevenue, MonthlyPayment, NoAdjustmentHistory } from '../types/financial';
 import { useAuth } from './AuthContext';
 
 interface FinancialContextData {
   financialRecords: GuestFinancialRecord[];
   adjustments: FinancialAdjustment[];
   monthlyPayments: MonthlyPayment[];
+  noAdjustmentHistory: NoAdjustmentHistory[];
   loading: boolean;
   createFinancialRecord: (record: Omit<GuestFinancialRecord, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateFinancialRecord: (id: string, updates: Partial<GuestFinancialRecord>) => Promise<void>;
@@ -21,6 +22,8 @@ interface FinancialContextData {
   getMonthlyPayments: (guestId: string) => MonthlyPayment[];
   getPaymentStatus: (guestId: string, month: string) => MonthlyPayment | undefined;
   getFinancialRecord: (guestId: string) => GuestFinancialRecord | undefined;
+  recordNoAdjustment: (guestId: string, year: number, reason: string) => Promise<void>;
+  getNoAdjustmentHistory: (guestId: string) => NoAdjustmentHistory[];
 }
 
 const FinancialContext = createContext<FinancialContextData | undefined>(undefined);
@@ -29,6 +32,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [financialRecords, setFinancialRecords] = useState<GuestFinancialRecord[]>([]);
   const [adjustments, setAdjustments] = useState<FinancialAdjustment[]>([]);
   const [monthlyPayments, setMonthlyPayments] = useState<MonthlyPayment[]>([]);
+  const [noAdjustmentHistory, setNoAdjustmentHistory] = useState<NoAdjustmentHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -38,10 +42,11 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const loadFinancialData = async () => {
     try {
-      const [recordsResult, adjustmentsResult, paymentsResult] = await Promise.all([
+      const [recordsResult, adjustmentsResult, paymentsResult, noAdjustmentResult] = await Promise.all([
         supabase.from('guest_financial_records').select('*').order('created_at', { ascending: false }),
         supabase.from('financial_adjustments').select('*').order('adjustment_date', { ascending: false }),
-        supabase.from('monthly_payments').select('*').order('payment_month', { ascending: false })
+        supabase.from('monthly_payments').select('*').order('payment_month', { ascending: false }),
+        supabase.from('no_adjustment_history').select('*').order('recorded_date', { ascending: false })
       ]);
 
       if (recordsResult.data) {
@@ -54,6 +59,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       if (paymentsResult.data) {
         setMonthlyPayments(paymentsResult.data.map(mapMonthlyPayment));
+      }
+
+      if (noAdjustmentResult.data) {
+        setNoAdjustmentHistory(noAdjustmentResult.data.map(mapNoAdjustmentHistory));
       }
     } catch (error) {
       console.error('Error loading financial data:', error);
@@ -90,6 +99,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     adjustedCurrentYear: record.adjusted_current_year || false,
     retroactiveAmount: Number(record.retroactive_amount) || 0,
     adjustmentYear: record.adjustment_year,
+    noAdjustmentApplied: record.no_adjustment_applied || false,
+    noAdjustmentReason: record.no_adjustment_reason || '',
+    noAdjustmentYear: record.no_adjustment_year,
+    noAdjustmentDate: record.no_adjustment_date,
     outstandingBalance: Number(record.outstanding_balance) || 0,
     isActive: record.is_active,
     inactivationDate: record.inactivation_date,
@@ -124,6 +137,16 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     notes: payment.notes,
     createdAt: payment.created_at,
     updatedAt: payment.updated_at,
+  });
+
+  const mapNoAdjustmentHistory = (item: any): NoAdjustmentHistory => ({
+    id: item.id,
+    guestId: item.guest_id,
+    year: item.year,
+    reason: item.reason,
+    recordedDate: item.recorded_date,
+    recordedBy: item.recorded_by,
+    createdAt: item.created_at,
   });
 
   const createFinancialRecord = async (record: Omit<GuestFinancialRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -455,12 +478,51 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return financialRecords.find(r => r.guestId === guestId);
   };
 
+  const recordNoAdjustment = async (guestId: string, year: number, reason: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('no_adjustment_history')
+        .insert({
+          guest_id: guestId,
+          year: year,
+          reason: reason,
+          recorded_by: user?.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setNoAdjustmentHistory([...noAdjustmentHistory, mapNoAdjustmentHistory(data)]);
+      }
+
+      const record = financialRecords.find(r => r.guestId === guestId);
+      if (record) {
+        await updateFinancialRecord(record.id, {
+          noAdjustmentApplied: true,
+          noAdjustmentReason: reason,
+          noAdjustmentYear: year,
+          noAdjustmentDate: new Date().toISOString().split('T')[0],
+        });
+      }
+    } catch (error) {
+      console.error('Error recording no adjustment:', error);
+      throw error;
+    }
+  };
+
+  const getNoAdjustmentHistory = (guestId: string): NoAdjustmentHistory[] => {
+    return noAdjustmentHistory.filter(h => h.guestId === guestId).sort((a, b) => b.year - a.year);
+  };
+
   return (
     <FinancialContext.Provider
       value={{
         financialRecords,
         adjustments,
         monthlyPayments,
+        noAdjustmentHistory,
         loading,
         createFinancialRecord,
         updateFinancialRecord,
@@ -475,6 +537,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         getMonthlyPayments,
         getPaymentStatus,
         getFinancialRecord,
+        recordNoAdjustment,
+        getNoAdjustmentHistory,
       }}
     >
       {children}

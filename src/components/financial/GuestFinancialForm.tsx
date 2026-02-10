@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Calendar, Save, TrendingUp, X } from 'lucide-react';
+import { DollarSign, Calendar, Save, TrendingUp, X, AlertCircle } from 'lucide-react';
 import { GuestFinancialRecord } from '../../types/financial';
 import { useFinancial } from '../../contexts/FinancialContext';
 import { Guest } from '../../types';
@@ -13,7 +13,7 @@ interface GuestFinancialFormProps {
 }
 
 export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, record, onClose, onSave }) => {
-  const { createFinancialRecord, updateFinancialRecord, createAdjustment } = useFinancial();
+  const { createFinancialRecord, updateFinancialRecord, createAdjustment, recordNoAdjustment, getNoAdjustmentHistory } = useFinancial();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().toISOString().substring(0, 7);
 
@@ -51,6 +51,14 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
     newMonthlyFee: 0,
     notes: '',
   });
+
+  const [showNoAdjustment, setShowNoAdjustment] = useState(false);
+  const [noAdjustmentData, setNoAdjustmentData] = useState({
+    year: currentYear,
+    reason: '',
+  });
+
+  const noAdjustmentHistory = record ? getNoAdjustmentHistory(guest.id) : [];
 
   useEffect(() => {
     if (record) {
@@ -151,6 +159,24 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
     if (adjustmentData.percentage !== 0 && formData.monthlyFee > 0) {
       const newFee = formData.monthlyFee * (1 + adjustmentData.percentage / 100);
       setAdjustmentData({ ...adjustmentData, newMonthlyFee: Math.round(newFee * 100) / 100 });
+    }
+  };
+
+  const handleNoAdjustment = async () => {
+    if (!record || !noAdjustmentData.reason.trim()) {
+      alert('Por favor, informe o motivo da não aplicação do reajuste');
+      return;
+    }
+
+    try {
+      await recordNoAdjustment(guest.id, noAdjustmentData.year, noAdjustmentData.reason);
+      setShowNoAdjustment(false);
+      setNoAdjustmentData({ year: currentYear, reason: '' });
+      alert('Registro de não reajuste salvo com sucesso!');
+      onSave();
+    } catch (error) {
+      console.error('Error recording no adjustment:', error);
+      alert('Erro ao registrar não reajuste');
     }
   };
 
@@ -487,6 +513,76 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                   </button>
                 </div>
               )}
+
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setShowNoAdjustment(!showNoAdjustment)}
+                  className="flex items-center text-orange-600 hover:text-orange-800 font-medium"
+                >
+                  <AlertCircle className="mr-2" size={20} />
+                  {showNoAdjustment ? 'Cancelar' : 'Registrar Não Reajuste'}
+                </button>
+
+                {showNoAdjustment && (
+                  <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                    <h4 className="font-medium text-gray-900 mb-4">Não Aplicação de Reajuste</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Ano de Referência
+                        </label>
+                        <select
+                          value={noAdjustmentData.year}
+                          onChange={(e) => setNoAdjustmentData({ ...noAdjustmentData, year: parseInt(e.target.value) })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        >
+                          {[currentYear - 1, currentYear, currentYear + 1].map(year => (
+                            <option key={year} value={year}>{year}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Motivo da Não Aplicação do Reajuste *
+                        </label>
+                        <textarea
+                          value={noAdjustmentData.reason}
+                          onChange={(e) => setNoAdjustmentData({ ...noAdjustmentData, reason: e.target.value })}
+                          placeholder="Ex: Acordo com familiar, hóspede em situação financeira delicada, etc."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          rows={3}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleNoAdjustment}
+                      className="mt-4 w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                    >
+                      Confirmar Registro
+                    </button>
+                  </div>
+                )}
+
+                {noAdjustmentHistory.length > 0 && (
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h4 className="font-medium text-gray-900 mb-3 text-sm">Histórico de Não Reajustes</h4>
+                    <div className="space-y-2">
+                      {noAdjustmentHistory.map((item) => (
+                        <div key={item.id} className="text-xs p-2 bg-white rounded border border-gray-200">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-semibold text-gray-900">Ano: {item.year}</span>
+                            <span className="text-gray-500">{new Date(item.recordedDate).toLocaleDateString('pt-BR')}</span>
+                          </div>
+                          <p className="text-gray-700">{item.reason}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

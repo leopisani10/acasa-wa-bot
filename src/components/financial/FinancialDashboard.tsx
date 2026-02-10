@@ -9,7 +9,7 @@ import { MonthlyPaymentTracker } from './MonthlyPaymentTracker';
 import { Guest } from '../../types';
 
 export const FinancialDashboard: React.FC = () => {
-  const { financialRecords, getMonthlyRevenue, getAnnualRevenue, getTotalMonthlyRevenue, getAdjustmentHistory, inactivateGuestFinancial } = useFinancial();
+  const { financialRecords, getMonthlyRevenue, getAnnualRevenue, getTotalMonthlyRevenue, getAdjustmentHistory, inactivateGuestFinancial, getNoAdjustmentHistory } = useFinancial();
   const { guests } = useGuests();
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [showHistory, setShowHistory] = useState<string | null>(null);
@@ -254,6 +254,7 @@ export const FinancialDashboard: React.FC = () => {
             {guestsWithFinancial.map(guest => {
               const record = financialRecords.find(r => r.guestId === guest.id);
               const adjustments = getAdjustmentHistory(guest.id);
+              const noAdjustments = getNoAdjustmentHistory(guest.id);
 
               return (
                 <div
@@ -267,6 +268,11 @@ export const FinancialDashboard: React.FC = () => {
                         {!record?.isActive && (
                           <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded">
                             Inativo
+                          </span>
+                        )}
+                        {record?.noAdjustmentApplied && noAdjustments.length > 0 && (
+                          <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded" title={noAdjustments[0].reason}>
+                            Sem Reajuste {noAdjustments[0].year}
                           </span>
                         )}
                       </div>
@@ -338,6 +344,26 @@ export const FinancialDashboard: React.FC = () => {
                   {showHistory === guest.id && adjustments.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-gray-200">
                       <AdjustmentHistory adjustments={adjustments} guestName={guest.fullName} />
+                    </div>
+                  )}
+
+                  {noAdjustments.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                        <AlertCircle className="mr-2 text-orange-600" size={16} />
+                        Histórico de Não Reajustes
+                      </h4>
+                      <div className="space-y-2">
+                        {noAdjustments.slice(0, 3).map((item) => (
+                          <div key={item.id} className="text-xs p-2 bg-orange-50 rounded border border-orange-200">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-semibold text-gray-900">Ano: {item.year}</span>
+                              <span className="text-gray-500">{new Date(item.recordedDate).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                            <p className="text-gray-700">{item.reason}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
