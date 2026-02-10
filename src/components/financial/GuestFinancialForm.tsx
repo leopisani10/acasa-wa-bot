@@ -13,21 +13,31 @@ interface GuestFinancialFormProps {
 
 export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, record, onClose, onSave }) => {
   const { createFinancialRecord, updateFinancialRecord, createAdjustment } = useFinancial();
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().toISOString().substring(0, 7);
+
   const [formData, setFormData] = useState({
     monthlyFee: 0,
     monthlyDueDay: 10,
     climatizationFee: 0,
     climatizationDueDay: 10,
     climatizationInstallments: 1,
+    climatizationStartMonth: currentMonth,
     maintenanceFee: 0,
     maintenanceDueDay: 10,
     maintenanceInstallments: 1,
+    maintenanceStartMonth: currentMonth,
     trousseauFee: 0,
     trousseauDueDay: 10,
     trousseauInstallments: 1,
+    trousseauStartMonth: currentMonth,
     thirteenthSalaryFee: 0,
     thirteenthSalaryDueDay: 10,
     thirteenthSalaryInstallments: 1,
+    thirteenthSalaryStartMonth: currentMonth,
+    adjustedCurrentYear: false,
+    retroactiveAmount: 0,
+    adjustmentYear: currentYear,
   });
 
   const [showAdjustment, setShowAdjustment] = useState(false);
@@ -45,15 +55,22 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
         climatizationFee: record.climatizationFee,
         climatizationDueDay: record.climatizationDueDay,
         climatizationInstallments: record.climatizationInstallments,
+        climatizationStartMonth: record.climatizationStartMonth || currentMonth,
         maintenanceFee: record.maintenanceFee,
         maintenanceDueDay: record.maintenanceDueDay,
         maintenanceInstallments: record.maintenanceInstallments,
+        maintenanceStartMonth: record.maintenanceStartMonth || currentMonth,
         trousseauFee: record.trousseauFee,
         trousseauDueDay: record.trousseauDueDay,
         trousseauInstallments: record.trousseauInstallments,
+        trousseauStartMonth: record.trousseauStartMonth || currentMonth,
         thirteenthSalaryFee: record.thirteenthSalaryFee,
         thirteenthSalaryDueDay: record.thirteenthSalaryDueDay,
         thirteenthSalaryInstallments: record.thirteenthSalaryInstallments,
+        thirteenthSalaryStartMonth: record.thirteenthSalaryStartMonth || currentMonth,
+        adjustedCurrentYear: record.adjustedCurrentYear,
+        retroactiveAmount: record.retroactiveAmount,
+        adjustmentYear: record.adjustmentYear || currentYear,
       });
     }
   }, [record]);
@@ -224,6 +241,17 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                     <option value={3}>3x</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mês de Início
+                  </label>
+                  <input
+                    type="month"
+                    value={formData.climatizationStartMonth}
+                    onChange={(e) => setFormData({ ...formData, climatizationStartMonth: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
               </div>
             </div>
 
@@ -271,6 +299,17 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                     <option value={2}>2x</option>
                     <option value={3}>3x</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mês de Início
+                  </label>
+                  <input
+                    type="month"
+                    value={formData.maintenanceStartMonth}
+                    onChange={(e) => setFormData({ ...formData, maintenanceStartMonth: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
                 </div>
               </div>
             </div>
@@ -320,6 +359,17 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                     <option value={3}>3x</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mês de Início
+                  </label>
+                  <input
+                    type="month"
+                    value={formData.trousseauStartMonth}
+                    onChange={(e) => setFormData({ ...formData, trousseauStartMonth: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
               </div>
             </div>
 
@@ -368,7 +418,63 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                     <option value={3}>3x</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mês de Início
+                  </label>
+                  <input
+                    type="month"
+                    value={formData.thirteenthSalaryStartMonth}
+                    onChange={(e) => setFormData({ ...formData, thirteenthSalaryStartMonth: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
               </div>
+            </div>
+
+            <div className="border border-gray-200 rounded-lg p-4 md:col-span-2 bg-yellow-50">
+              <h3 className="font-medium text-gray-900 mb-4 flex items-center">
+                <TrendingUp className="mr-2 text-yellow-600" size={20} />
+                Reajuste Anual {currentYear}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="adjustedCurrentYear"
+                    checked={formData.adjustedCurrentYear}
+                    onChange={(e) => setFormData({ ...formData, adjustedCurrentYear: e.target.checked })}
+                    className="w-4 h-4 text-acasa-purple border-gray-300 rounded focus:ring-acasa-purple"
+                  />
+                  <label htmlFor="adjustedCurrentYear" className="ml-2 text-sm font-medium text-gray-700">
+                    Reajustado em {currentYear}
+                  </label>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Valor Retroativo (Jan)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.retroactiveAmount}
+                    onChange={(e) => handleInputChange('retroactiveAmount', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    disabled={!formData.adjustedCurrentYear}
+                  />
+                </div>
+                <div className="flex items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-xs text-gray-600">Cobrado em Fevereiro</p>
+                    <p className="text-lg font-bold text-yellow-600">
+                      + R$ {formData.retroactiveAmount.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mt-3">
+                O reajuste é aplicado em janeiro, mas a diferença (retroativo) é cobrada em fevereiro junto com a mensalidade.
+              </p>
             </div>
           </div>
 

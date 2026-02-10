@@ -69,15 +69,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     climatizationFee: Number(record.climatization_fee) || 0,
     climatizationDueDay: record.climatization_due_day,
     climatizationInstallments: record.climatization_installments || 1,
+    climatizationStartMonth: record.climatization_start_month,
     maintenanceFee: Number(record.maintenance_fee) || 0,
     maintenanceDueDay: record.maintenance_due_day,
     maintenanceInstallments: record.maintenance_installments || 1,
+    maintenanceStartMonth: record.maintenance_start_month,
     trousseauFee: Number(record.trousseau_fee) || 0,
     trousseauDueDay: record.trousseau_due_day,
     trousseauInstallments: record.trousseau_installments || 1,
+    trousseauStartMonth: record.trousseau_start_month,
     thirteenthSalaryFee: Number(record.thirteenth_salary_fee) || 0,
     thirteenthSalaryDueDay: record.thirteenth_salary_due_day,
     thirteenthSalaryInstallments: record.thirteenth_salary_installments || 1,
+    thirteenthSalaryStartMonth: record.thirteenth_salary_start_month,
+    adjustedCurrentYear: record.adjusted_current_year || false,
+    retroactiveAmount: Number(record.retroactive_amount) || 0,
+    adjustmentYear: record.adjustment_year,
     isActive: record.is_active,
     inactivationDate: record.inactivation_date,
     revenueLoss: Number(record.revenue_loss) || 0,
@@ -118,15 +125,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         climatization_fee: record.climatizationFee,
         climatization_due_day: record.climatizationDueDay,
         climatization_installments: record.climatizationInstallments,
+        climatization_start_month: record.climatizationStartMonth || null,
         maintenance_fee: record.maintenanceFee,
         maintenance_due_day: record.maintenanceDueDay,
         maintenance_installments: record.maintenanceInstallments,
+        maintenance_start_month: record.maintenanceStartMonth || null,
         trousseau_fee: record.trousseauFee,
         trousseau_due_day: record.trousseauDueDay,
         trousseau_installments: record.trousseauInstallments,
+        trousseau_start_month: record.trousseauStartMonth || null,
         thirteenth_salary_fee: record.thirteenthSalaryFee,
         thirteenth_salary_due_day: record.thirteenthSalaryDueDay,
         thirteenth_salary_installments: record.thirteenthSalaryInstallments,
+        thirteenth_salary_start_month: record.thirteenthSalaryStartMonth || null,
+        adjusted_current_year: record.adjustedCurrentYear,
+        retroactive_amount: record.retroactiveAmount,
+        adjustment_year: record.adjustmentYear || null,
         is_active: record.isActive,
         revenue_loss: record.revenueLoss,
       })
@@ -147,15 +161,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (updates.climatizationFee !== undefined) updateData.climatization_fee = updates.climatizationFee;
     if (updates.climatizationDueDay !== undefined) updateData.climatization_due_day = updates.climatizationDueDay;
     if (updates.climatizationInstallments !== undefined) updateData.climatization_installments = updates.climatizationInstallments;
+    if (updates.climatizationStartMonth !== undefined) updateData.climatization_start_month = updates.climatizationStartMonth;
     if (updates.maintenanceFee !== undefined) updateData.maintenance_fee = updates.maintenanceFee;
     if (updates.maintenanceDueDay !== undefined) updateData.maintenance_due_day = updates.maintenanceDueDay;
     if (updates.maintenanceInstallments !== undefined) updateData.maintenance_installments = updates.maintenanceInstallments;
+    if (updates.maintenanceStartMonth !== undefined) updateData.maintenance_start_month = updates.maintenanceStartMonth;
     if (updates.trousseauFee !== undefined) updateData.trousseau_fee = updates.trousseauFee;
     if (updates.trousseauDueDay !== undefined) updateData.trousseau_due_day = updates.trousseauDueDay;
     if (updates.trousseauInstallments !== undefined) updateData.trousseau_installments = updates.trousseauInstallments;
+    if (updates.trousseauStartMonth !== undefined) updateData.trousseau_start_month = updates.trousseauStartMonth;
     if (updates.thirteenthSalaryFee !== undefined) updateData.thirteenth_salary_fee = updates.thirteenthSalaryFee;
     if (updates.thirteenthSalaryDueDay !== undefined) updateData.thirteenth_salary_due_day = updates.thirteenthSalaryDueDay;
     if (updates.thirteenthSalaryInstallments !== undefined) updateData.thirteenth_salary_installments = updates.thirteenthSalaryInstallments;
+    if (updates.thirteenthSalaryStartMonth !== undefined) updateData.thirteenth_salary_start_month = updates.thirteenthSalaryStartMonth;
+    if (updates.adjustedCurrentYear !== undefined) updateData.adjusted_current_year = updates.adjustedCurrentYear;
+    if (updates.retroactiveAmount !== undefined) updateData.retroactive_amount = updates.retroactiveAmount;
+    if (updates.adjustmentYear !== undefined) updateData.adjustment_year = updates.adjustmentYear;
     if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
     if (updates.inactivationDate !== undefined) updateData.inactivation_date = updates.inactivationDate;
     if (updates.revenueLoss !== undefined) updateData.revenue_loss = updates.revenueLoss;
