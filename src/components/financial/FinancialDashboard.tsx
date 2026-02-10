@@ -254,9 +254,6 @@ export const FinancialDashboard: React.FC = () => {
             {guestsWithFinancial.map(guest => {
               const record = financialRecords.find(r => r.guestId === guest.id);
               const adjustments = getAdjustmentHistory(guest.id);
-              const totalMonthly = record
-                ? record.monthlyFee + record.climatizationFee + record.maintenanceFee + record.trousseauFee
-                : 0;
 
               return (
                 <div
@@ -275,22 +272,36 @@ export const FinancialDashboard: React.FC = () => {
                       </div>
                       <p className="text-sm text-gray-600">Quarto {guest.roomNumber}</p>
                       {record && (
-                        <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                        <div className="mt-2 grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
                           <div>
                             <span className="text-gray-500">Mensalidade:</span>
-                            <span className="ml-1 font-semibold text-gray-900">R$ {record.monthlyFee.toFixed(2)}</span>
+                            <span className={`ml-1 font-semibold ${record.monthlyFee > 0 ? 'text-gray-900' : 'text-green-600'}`}>
+                              {record.monthlyFee > 0 ? `R$ ${record.monthlyFee.toFixed(2)}` : 'ISENTO'}
+                            </span>
                           </div>
                           <div>
                             <span className="text-gray-500">Climatização:</span>
-                            <span className="ml-1 font-semibold text-gray-900">R$ {record.climatizationFee.toFixed(2)}</span>
+                            <span className={`ml-1 font-semibold ${record.climatizationFee > 0 ? 'text-gray-900' : 'text-green-600'}`}>
+                              {record.climatizationFee > 0 ? `R$ ${record.climatizationFee.toFixed(2)}` : 'ISENTO'}
+                            </span>
                           </div>
                           <div>
                             <span className="text-gray-500">Manutenção:</span>
-                            <span className="ml-1 font-semibold text-gray-900">R$ {record.maintenanceFee.toFixed(2)}</span>
+                            <span className={`ml-1 font-semibold ${record.maintenanceFee > 0 ? 'text-gray-900' : 'text-green-600'}`}>
+                              {record.maintenanceFee > 0 ? `R$ ${record.maintenanceFee.toFixed(2)}` : 'ISENTO'}
+                            </span>
                           </div>
                           <div>
-                            <span className="text-gray-500">Total:</span>
-                            <span className="ml-1 font-bold text-acasa-purple">R$ {totalMonthly.toFixed(2)}</span>
+                            <span className="text-gray-500">Enxoval:</span>
+                            <span className={`ml-1 font-semibold ${record.trousseauFee > 0 ? 'text-gray-900' : 'text-green-600'}`}>
+                              {record.trousseauFee > 0 ? `R$ ${record.trousseauFee.toFixed(2)}` : 'ISENTO'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">13º Salário:</span>
+                            <span className={`ml-1 font-semibold ${record.thirteenthSalaryFee > 0 ? 'text-gray-900' : 'text-green-600'}`}>
+                              {record.thirteenthSalaryFee > 0 ? `R$ ${record.thirteenthSalaryFee.toFixed(2)}` : 'ISENTO'}
+                            </span>
                           </div>
                         </div>
                       )}
