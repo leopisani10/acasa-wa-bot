@@ -154,6 +154,9 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Dados Financeiros</h2>
             <p className="text-sm text-gray-600 mt-1">{guest.fullName}</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Responsável: {guest.financialResponsibleName || 'Sem Responsável'}
+            </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={24} />
