@@ -47,16 +47,39 @@ export const MonthlyPaymentTracker: React.FC<MonthlyPaymentTrackerProps> = ({ gu
 
     const monthKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, '0')}`;
 
-    if (financialRecord.climatizationStartMonth && isMonthInInstallmentPeriod(monthKey, financialRecord.climatizationStartMonth, financialRecord.climatizationInstallments)) {
+    // Climatização: prioriza meses selecionados, senão usa cálculo sequencial
+    if (financialRecord.climatizationSelectedMonths && financialRecord.climatizationSelectedMonths.length > 0) {
+      if (financialRecord.climatizationSelectedMonths.includes(monthKey)) {
+        total += financialRecord.climatizationFee;
+      }
+    } else if (financialRecord.climatizationStartMonth && isMonthInInstallmentPeriod(monthKey, financialRecord.climatizationStartMonth, financialRecord.climatizationInstallments)) {
       total += financialRecord.climatizationFee;
     }
-    if (financialRecord.maintenanceStartMonth && isMonthInInstallmentPeriod(monthKey, financialRecord.maintenanceStartMonth, financialRecord.maintenanceInstallments)) {
+
+    // Manutenção: prioriza meses selecionados, senão usa cálculo sequencial
+    if (financialRecord.maintenanceSelectedMonths && financialRecord.maintenanceSelectedMonths.length > 0) {
+      if (financialRecord.maintenanceSelectedMonths.includes(monthKey)) {
+        total += financialRecord.maintenanceFee;
+      }
+    } else if (financialRecord.maintenanceStartMonth && isMonthInInstallmentPeriod(monthKey, financialRecord.maintenanceStartMonth, financialRecord.maintenanceInstallments)) {
       total += financialRecord.maintenanceFee;
     }
-    if (financialRecord.trousseauStartMonth && isMonthInInstallmentPeriod(monthKey, financialRecord.trousseauStartMonth, financialRecord.trousseauInstallments)) {
+
+    // Enxoval: prioriza meses selecionados, senão usa cálculo sequencial
+    if (financialRecord.trousseauSelectedMonths && financialRecord.trousseauSelectedMonths.length > 0) {
+      if (financialRecord.trousseauSelectedMonths.includes(monthKey)) {
+        total += financialRecord.trousseauFee;
+      }
+    } else if (financialRecord.trousseauStartMonth && isMonthInInstallmentPeriod(monthKey, financialRecord.trousseauStartMonth, financialRecord.trousseauInstallments)) {
       total += financialRecord.trousseauFee;
     }
-    if (financialRecord.thirteenthSalaryStartMonth && isMonthInInstallmentPeriod(monthKey, financialRecord.thirteenthSalaryStartMonth, financialRecord.thirteenthSalaryInstallments)) {
+
+    // Décimo Terceiro: prioriza meses selecionados, senão usa cálculo sequencial
+    if (financialRecord.thirteenthSalarySelectedMonths && financialRecord.thirteenthSalarySelectedMonths.length > 0) {
+      if (financialRecord.thirteenthSalarySelectedMonths.includes(monthKey)) {
+        total += financialRecord.thirteenthSalaryFee;
+      }
+    } else if (financialRecord.thirteenthSalaryStartMonth && isMonthInInstallmentPeriod(monthKey, financialRecord.thirteenthSalaryStartMonth, financialRecord.thirteenthSalaryInstallments)) {
       total += financialRecord.thirteenthSalaryFee;
     }
 

@@ -3,6 +3,7 @@ import { DollarSign, Calendar, Save, TrendingUp, X } from 'lucide-react';
 import { GuestFinancialRecord } from '../../types/financial';
 import { useFinancial } from '../../contexts/FinancialContext';
 import { Guest } from '../../types';
+import { MonthSelector } from './MonthSelector';
 
 interface GuestFinancialFormProps {
   guest: Guest;
@@ -23,18 +24,22 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
     climatizationDueDay: 10,
     climatizationInstallments: 1,
     climatizationStartMonth: currentMonth,
+    climatizationSelectedMonths: [] as string[],
     maintenanceFee: 0,
     maintenanceDueDay: 10,
     maintenanceInstallments: 1,
     maintenanceStartMonth: currentMonth,
+    maintenanceSelectedMonths: [] as string[],
     trousseauFee: 0,
     trousseauDueDay: 10,
     trousseauInstallments: 1,
     trousseauStartMonth: currentMonth,
+    trousseauSelectedMonths: [] as string[],
     thirteenthSalaryFee: 0,
     thirteenthSalaryDueDay: 10,
     thirteenthSalaryInstallments: 1,
     thirteenthSalaryStartMonth: currentMonth,
+    thirteenthSalarySelectedMonths: [] as string[],
     adjustedCurrentYear: false,
     retroactiveAmount: 0,
     adjustmentYear: currentYear,
@@ -56,18 +61,22 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
         climatizationDueDay: record.climatizationDueDay,
         climatizationInstallments: record.climatizationInstallments,
         climatizationStartMonth: record.climatizationStartMonth || currentMonth,
+        climatizationSelectedMonths: record.climatizationSelectedMonths || [],
         maintenanceFee: record.maintenanceFee,
         maintenanceDueDay: record.maintenanceDueDay,
         maintenanceInstallments: record.maintenanceInstallments,
         maintenanceStartMonth: record.maintenanceStartMonth || currentMonth,
+        maintenanceSelectedMonths: record.maintenanceSelectedMonths || [],
         trousseauFee: record.trousseauFee,
         trousseauDueDay: record.trousseauDueDay,
         trousseauInstallments: record.trousseauInstallments,
         trousseauStartMonth: record.trousseauStartMonth || currentMonth,
+        trousseauSelectedMonths: record.trousseauSelectedMonths || [],
         thirteenthSalaryFee: record.thirteenthSalaryFee,
         thirteenthSalaryDueDay: record.thirteenthSalaryDueDay,
         thirteenthSalaryInstallments: record.thirteenthSalaryInstallments,
         thirteenthSalaryStartMonth: record.thirteenthSalaryStartMonth || currentMonth,
+        thirteenthSalarySelectedMonths: record.thirteenthSalarySelectedMonths || [],
         adjustedCurrentYear: record.adjustedCurrentYear,
         retroactiveAmount: record.retroactiveAmount,
         adjustmentYear: record.adjustmentYear || currentYear,
@@ -230,31 +239,12 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Parcelas
-                  </label>
-                  <select
-                    value={formData.climatizationInstallments}
-                    onChange={(e) => setFormData({ ...formData, climatizationInstallments: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value={1}>1x</option>
-                    <option value={2}>2x</option>
-                    <option value={3}>3x</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mês de Início
-                  </label>
-                  <input
-                    type="month"
-                    value={formData.climatizationStartMonth}
-                    onChange={(e) => setFormData({ ...formData, climatizationStartMonth: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                </div>
+                <MonthSelector
+                  label="Selecionar Meses de Cobrança"
+                  selectedMonths={formData.climatizationSelectedMonths}
+                  onChange={(months) => setFormData({ ...formData, climatizationSelectedMonths: months })}
+                  year={2026}
+                />
               </div>
             </div>
 
@@ -289,31 +279,12 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Parcelas
-                  </label>
-                  <select
-                    value={formData.maintenanceInstallments}
-                    onChange={(e) => setFormData({ ...formData, maintenanceInstallments: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value={1}>1x</option>
-                    <option value={2}>2x</option>
-                    <option value={3}>3x</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mês de Início
-                  </label>
-                  <input
-                    type="month"
-                    value={formData.maintenanceStartMonth}
-                    onChange={(e) => setFormData({ ...formData, maintenanceStartMonth: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                </div>
+                <MonthSelector
+                  label="Selecionar Meses de Cobrança"
+                  selectedMonths={formData.maintenanceSelectedMonths}
+                  onChange={(months) => setFormData({ ...formData, maintenanceSelectedMonths: months })}
+                  year={2026}
+                />
               </div>
             </div>
 
@@ -348,31 +319,12 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Parcelas
-                  </label>
-                  <select
-                    value={formData.trousseauInstallments}
-                    onChange={(e) => setFormData({ ...formData, trousseauInstallments: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value={1}>1x</option>
-                    <option value={2}>2x</option>
-                    <option value={3}>3x</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mês de Início
-                  </label>
-                  <input
-                    type="month"
-                    value={formData.trousseauStartMonth}
-                    onChange={(e) => setFormData({ ...formData, trousseauStartMonth: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                </div>
+                <MonthSelector
+                  label="Selecionar Meses de Cobrança"
+                  selectedMonths={formData.trousseauSelectedMonths}
+                  onChange={(months) => setFormData({ ...formData, trousseauSelectedMonths: months })}
+                  year={2026}
+                />
               </div>
             </div>
 
@@ -381,57 +333,40 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                 <DollarSign className="mr-2 text-red-600" size={20} />
                 Décimo Terceiro
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Valor
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.thirteenthSalaryFee}
-                    onChange={(e) => handleInputChange('thirteenthSalaryFee', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  />
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Valor
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.thirteenthSalaryFee}
+                      onChange={(e) => handleInputChange('thirteenthSalaryFee', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Dia do Vencimento
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={formData.thirteenthSalaryDueDay}
+                      onChange={(e) => setFormData({ ...formData, thirteenthSalaryDueDay: parseInt(e.target.value) || 10 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Dia do Vencimento
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={formData.thirteenthSalaryDueDay}
-                    onChange={(e) => setFormData({ ...formData, thirteenthSalaryDueDay: parseInt(e.target.value) || 10 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Parcelas
-                  </label>
-                  <select
-                    value={formData.thirteenthSalaryInstallments}
-                    onChange={(e) => setFormData({ ...formData, thirteenthSalaryInstallments: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value={1}>1x</option>
-                    <option value={2}>2x</option>
-                    <option value={3}>3x</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mês de Início
-                  </label>
-                  <input
-                    type="month"
-                    value={formData.thirteenthSalaryStartMonth}
-                    onChange={(e) => setFormData({ ...formData, thirteenthSalaryStartMonth: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                </div>
+                <MonthSelector
+                  label="Selecionar Meses de Cobrança"
+                  selectedMonths={formData.thirteenthSalarySelectedMonths}
+                  onChange={(months) => setFormData({ ...formData, thirteenthSalarySelectedMonths: months })}
+                  year={2026}
+                />
               </div>
             </div>
 

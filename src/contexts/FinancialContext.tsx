@@ -71,18 +71,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     climatizationDueDay: record.climatization_due_day,
     climatizationInstallments: record.climatization_installments || 1,
     climatizationStartMonth: record.climatization_start_month ? record.climatization_start_month.substring(0, 7) : undefined,
+    climatizationSelectedMonths: Array.isArray(record.climatization_selected_months) ? record.climatization_selected_months : [],
     maintenanceFee: Number(record.maintenance_fee) || 0,
     maintenanceDueDay: record.maintenance_due_day,
     maintenanceInstallments: record.maintenance_installments || 1,
     maintenanceStartMonth: record.maintenance_start_month ? record.maintenance_start_month.substring(0, 7) : undefined,
+    maintenanceSelectedMonths: Array.isArray(record.maintenance_selected_months) ? record.maintenance_selected_months : [],
     trousseauFee: Number(record.trousseau_fee) || 0,
     trousseauDueDay: record.trousseau_due_day,
     trousseauInstallments: record.trousseau_installments || 1,
     trousseauStartMonth: record.trousseau_start_month ? record.trousseau_start_month.substring(0, 7) : undefined,
+    trousseauSelectedMonths: Array.isArray(record.trousseau_selected_months) ? record.trousseau_selected_months : [],
     thirteenthSalaryFee: Number(record.thirteenth_salary_fee) || 0,
     thirteenthSalaryDueDay: record.thirteenth_salary_due_day,
     thirteenthSalaryInstallments: record.thirteenth_salary_installments || 1,
     thirteenthSalaryStartMonth: record.thirteenth_salary_start_month ? record.thirteenth_salary_start_month.substring(0, 7) : undefined,
+    thirteenthSalarySelectedMonths: Array.isArray(record.thirteenth_salary_selected_months) ? record.thirteenth_salary_selected_months : [],
     adjustedCurrentYear: record.adjusted_current_year || false,
     retroactiveAmount: Number(record.retroactive_amount) || 0,
     adjustmentYear: record.adjustment_year,
@@ -133,18 +137,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         climatization_due_day: record.climatizationDueDay,
         climatization_installments: record.climatizationInstallments,
         climatization_start_month: record.climatizationStartMonth && record.climatizationStartMonth.trim() !== '' ? `${record.climatizationStartMonth}-01` : null,
+        climatization_selected_months: record.climatizationSelectedMonths || [],
         maintenance_fee: record.maintenanceFee,
         maintenance_due_day: record.maintenanceDueDay,
         maintenance_installments: record.maintenanceInstallments,
         maintenance_start_month: record.maintenanceStartMonth && record.maintenanceStartMonth.trim() !== '' ? `${record.maintenanceStartMonth}-01` : null,
+        maintenance_selected_months: record.maintenanceSelectedMonths || [],
         trousseau_fee: record.trousseauFee,
         trousseau_due_day: record.trousseauDueDay,
         trousseau_installments: record.trousseauInstallments,
         trousseau_start_month: record.trousseauStartMonth && record.trousseauStartMonth.trim() !== '' ? `${record.trousseauStartMonth}-01` : null,
+        trousseau_selected_months: record.trousseauSelectedMonths || [],
         thirteenth_salary_fee: record.thirteenthSalaryFee,
         thirteenth_salary_due_day: record.thirteenthSalaryDueDay,
         thirteenth_salary_installments: record.thirteenthSalaryInstallments,
         thirteenth_salary_start_month: record.thirteenthSalaryStartMonth && record.thirteenthSalaryStartMonth.trim() !== '' ? `${record.thirteenthSalaryStartMonth}-01` : null,
+        thirteenth_salary_selected_months: record.thirteenthSalarySelectedMonths || [],
         adjusted_current_year: record.adjustedCurrentYear,
         retroactive_amount: record.retroactiveAmount,
         adjustment_year: record.adjustmentYear || null,
@@ -169,18 +177,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (updates.climatizationDueDay !== undefined) updateData.climatization_due_day = updates.climatizationDueDay;
     if (updates.climatizationInstallments !== undefined) updateData.climatization_installments = updates.climatizationInstallments;
     if (updates.climatizationStartMonth !== undefined) updateData.climatization_start_month = updates.climatizationStartMonth && updates.climatizationStartMonth.trim() !== '' ? `${updates.climatizationStartMonth}-01` : null;
+    if (updates.climatizationSelectedMonths !== undefined) updateData.climatization_selected_months = updates.climatizationSelectedMonths;
     if (updates.maintenanceFee !== undefined) updateData.maintenance_fee = updates.maintenanceFee;
     if (updates.maintenanceDueDay !== undefined) updateData.maintenance_due_day = updates.maintenanceDueDay;
     if (updates.maintenanceInstallments !== undefined) updateData.maintenance_installments = updates.maintenanceInstallments;
     if (updates.maintenanceStartMonth !== undefined) updateData.maintenance_start_month = updates.maintenanceStartMonth && updates.maintenanceStartMonth.trim() !== '' ? `${updates.maintenanceStartMonth}-01` : null;
+    if (updates.maintenanceSelectedMonths !== undefined) updateData.maintenance_selected_months = updates.maintenanceSelectedMonths;
     if (updates.trousseauFee !== undefined) updateData.trousseau_fee = updates.trousseauFee;
     if (updates.trousseauDueDay !== undefined) updateData.trousseau_due_day = updates.trousseauDueDay;
     if (updates.trousseauInstallments !== undefined) updateData.trousseau_installments = updates.trousseauInstallments;
     if (updates.trousseauStartMonth !== undefined) updateData.trousseau_start_month = updates.trousseauStartMonth && updates.trousseauStartMonth.trim() !== '' ? `${updates.trousseauStartMonth}-01` : null;
+    if (updates.trousseauSelectedMonths !== undefined) updateData.trousseau_selected_months = updates.trousseauSelectedMonths;
     if (updates.thirteenthSalaryFee !== undefined) updateData.thirteenth_salary_fee = updates.thirteenthSalaryFee;
     if (updates.thirteenthSalaryDueDay !== undefined) updateData.thirteenth_salary_due_day = updates.thirteenthSalaryDueDay;
     if (updates.thirteenthSalaryInstallments !== undefined) updateData.thirteenth_salary_installments = updates.thirteenthSalaryInstallments;
     if (updates.thirteenthSalaryStartMonth !== undefined) updateData.thirteenth_salary_start_month = updates.thirteenthSalaryStartMonth && updates.thirteenthSalaryStartMonth.trim() !== '' ? `${updates.thirteenthSalaryStartMonth}-01` : null;
+    if (updates.thirteenthSalarySelectedMonths !== undefined) updateData.thirteenth_salary_selected_months = updates.thirteenthSalarySelectedMonths;
     if (updates.adjustedCurrentYear !== undefined) updateData.adjusted_current_year = updates.adjustedCurrentYear;
     if (updates.retroactiveAmount !== undefined) updateData.retroactive_amount = updates.retroactiveAmount;
     if (updates.adjustmentYear !== undefined) updateData.adjustment_year = updates.adjustmentYear;
@@ -266,16 +278,39 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const revenue = activeRecords.reduce((sum, r) => {
         let total = r.monthlyFee;
 
-        if (r.climatizationStartMonth && isMonthInInstallmentPeriod(monthKey, r.climatizationStartMonth, r.climatizationInstallments)) {
+        // Climatização: prioriza meses selecionados, senão usa cálculo sequencial
+        if (r.climatizationSelectedMonths && r.climatizationSelectedMonths.length > 0) {
+          if (r.climatizationSelectedMonths.includes(monthKey)) {
+            total += r.climatizationFee;
+          }
+        } else if (r.climatizationStartMonth && isMonthInInstallmentPeriod(monthKey, r.climatizationStartMonth, r.climatizationInstallments)) {
           total += r.climatizationFee;
         }
-        if (r.maintenanceStartMonth && isMonthInInstallmentPeriod(monthKey, r.maintenanceStartMonth, r.maintenanceInstallments)) {
+
+        // Manutenção: prioriza meses selecionados, senão usa cálculo sequencial
+        if (r.maintenanceSelectedMonths && r.maintenanceSelectedMonths.length > 0) {
+          if (r.maintenanceSelectedMonths.includes(monthKey)) {
+            total += r.maintenanceFee;
+          }
+        } else if (r.maintenanceStartMonth && isMonthInInstallmentPeriod(monthKey, r.maintenanceStartMonth, r.maintenanceInstallments)) {
           total += r.maintenanceFee;
         }
-        if (r.trousseauStartMonth && isMonthInInstallmentPeriod(monthKey, r.trousseauStartMonth, r.trousseauInstallments)) {
+
+        // Enxoval: prioriza meses selecionados, senão usa cálculo sequencial
+        if (r.trousseauSelectedMonths && r.trousseauSelectedMonths.length > 0) {
+          if (r.trousseauSelectedMonths.includes(monthKey)) {
+            total += r.trousseauFee;
+          }
+        } else if (r.trousseauStartMonth && isMonthInInstallmentPeriod(monthKey, r.trousseauStartMonth, r.trousseauInstallments)) {
           total += r.trousseauFee;
         }
-        if (r.thirteenthSalaryStartMonth && isMonthInInstallmentPeriod(monthKey, r.thirteenthSalaryStartMonth, r.thirteenthSalaryInstallments)) {
+
+        // Décimo Terceiro: prioriza meses selecionados, senão usa cálculo sequencial
+        if (r.thirteenthSalarySelectedMonths && r.thirteenthSalarySelectedMonths.length > 0) {
+          if (r.thirteenthSalarySelectedMonths.includes(monthKey)) {
+            total += r.thirteenthSalaryFee;
+          }
+        } else if (r.thirteenthSalaryStartMonth && isMonthInInstallmentPeriod(monthKey, r.thirteenthSalaryStartMonth, r.thirteenthSalaryInstallments)) {
           total += r.thirteenthSalaryFee;
         }
 
