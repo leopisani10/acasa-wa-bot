@@ -79,8 +79,8 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
     setFormData({ ...formData, [field]: parseFloat(value) || 0 });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     try {
       if (record) {
@@ -148,9 +148,9 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
   const totalMonthly = formData.monthlyFee + formData.climatizationFee + formData.maintenanceFee + formData.trousseauFee;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full my-8">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full my-8 max-h-[calc(100vh-4rem)]">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white rounded-t-lg z-10">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Dados Financeiros</h2>
             <p className="text-sm text-gray-600 mt-1">{guest.fullName}</p>
@@ -160,7 +160,7 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
+        <div className="p-6 overflow-y-auto max-h-[calc(100vh-16rem)]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="border border-gray-200 rounded-lg p-4">
               <h3 className="font-medium text-gray-900 mb-4 flex items-center">
@@ -551,24 +551,25 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
               )}
             </div>
           )}
+        </div>
 
-          <div className="flex space-x-3 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-acasa-purple text-white rounded-lg hover:bg-acasa-red flex items-center justify-center"
-            >
-              <Save className="mr-2" size={20} />
-              Salvar
-            </button>
-          </div>
-        </form>
+        <div className="flex space-x-3 p-6 border-t border-gray-200 sticky bottom-0 bg-white rounded-b-lg">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="flex-1 px-4 py-2 bg-acasa-purple text-white rounded-lg hover:bg-acasa-red flex items-center justify-center"
+          >
+            <Save className="mr-2" size={20} />
+            Salvar
+          </button>
+        </div>
       </div>
     </div>
   );
