@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
-import { GuestFinancialRecord, FinancialAdjustment, MonthlyRevenue } from '../types/financial';
+import { GuestFinancialRecord, FinancialAdjustment, MonthlyRevenue, MonthlyPayment } from '../types/financial';
 import { useAuth } from './AuthContext';
 
 interface FinancialContextData {
   financialRecords: GuestFinancialRecord[];
   adjustments: FinancialAdjustment[];
+  monthlyPayments: MonthlyPayment[];
   loading: boolean;
   createFinancialRecord: (record: Omit<GuestFinancialRecord, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateFinancialRecord: (id: string, updates: Partial<GuestFinancialRecord>) => Promise<void>;
@@ -16,6 +17,9 @@ interface FinancialContextData {
   getAnnualRevenue: () => number;
   inactivateGuestFinancial: (guestId: string) => Promise<void>;
   getTotalMonthlyRevenue: () => number;
+  recordMonthlyPayment: (guestId: string, month: string, paid: boolean, paymentDate?: string, notes?: string) => Promise<void>;
+  getMonthlyPayments: (guestId: string) => MonthlyPayment[];
+  getPaymentStatus: (guestId: string, month: string) => MonthlyPayment | undefined;
 }
 
 const FinancialContext = createContext<FinancialContextData | undefined>(undefined);
@@ -23,6 +27,7 @@ const FinancialContext = createContext<FinancialContextData | undefined>(undefin
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [financialRecords, setFinancialRecords] = useState<GuestFinancialRecord[]>([]);
   const [adjustments, setAdjustments] = useState<FinancialAdjustment[]>([]);
+  const [monthlyPayments, setMonthlyPayments] = useState<MonthlyPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -32,9 +37,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const loadFinancialData = async () => {
     try {
-      const [recordsResult, adjustmentsResult] = await Promise.all([
+      const [recordsResult, adjustmentsResult, paymentsResult] = await Promise.all([
         supabase.from('guest_financial_records').select('*').order('created_at', { ascending: false }),
-        supabase.from('financial_adjustments').select('*').order('adjustment_date', { ascending: false })
+        supabase.from('financial_adjustments').select('*').order('adjustment_date', { ascending: false }),
+        supabase.from('monthly_payments').select('*').order('payment_month', { ascending: false })
       ]);
 
       if (recordsResult.data) {
@@ -43,6 +49,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       if (adjustmentsResult.data) {
         setAdjustments(adjustmentsResult.data.map(mapAdjustment));
+      }
+
+      if (paymentsResult.data) {
+        setMonthlyPayments(paymentsResult.data.map(mapMonthlyPayment));
       }
     } catch (error) {
       console.error('Error loading financial data:', error);
@@ -58,12 +68,16 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     monthlyDueDay: record.monthly_due_day,
     climatizationFee: Number(record.climatization_fee) || 0,
     climatizationDueDay: record.climatization_due_day,
+    climatizationInstallments: record.climatization_installments || 1,
     maintenanceFee: Number(record.maintenance_fee) || 0,
     maintenanceDueDay: record.maintenance_due_day,
+    maintenanceInstallments: record.maintenance_installments || 1,
     trousseauFee: Number(record.trousseau_fee) || 0,
     trousseauDueDay: record.trousseau_due_day,
+    trousseauInstallments: record.trousseau_installments || 1,
     thirteenthSalaryFee: Number(record.thirteenth_salary_fee) || 0,
     thirteenthSalaryDueDay: record.thirteenth_salary_due_day,
+    thirteenthSalaryInstallments: record.thirteenth_salary_installments || 1,
     isActive: record.is_active,
     inactivationDate: record.inactivation_date,
     revenueLoss: Number(record.revenue_loss) || 0,
@@ -83,6 +97,17 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     createdBy: adjustment.created_by,
   });
 
+  const mapMonthlyPayment = (payment: any): MonthlyPayment => ({
+    id: payment.id,
+    guestId: payment.guest_id,
+    paymentMonth: payment.payment_month,
+    monthlyFeePaid: payment.monthly_fee_paid,
+    paymentDate: payment.payment_date,
+    notes: payment.notes,
+    createdAt: payment.created_at,
+    updatedAt: payment.updated_at,
+  });
+
   const createFinancialRecord = async (record: Omit<GuestFinancialRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
     const { data, error } = await supabase
       .from('guest_financial_records')
@@ -92,12 +117,16 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         monthly_due_day: record.monthlyDueDay,
         climatization_fee: record.climatizationFee,
         climatization_due_day: record.climatizationDueDay,
+        climatization_installments: record.climatizationInstallments,
         maintenance_fee: record.maintenanceFee,
         maintenance_due_day: record.maintenanceDueDay,
+        maintenance_installments: record.maintenanceInstallments,
         trousseau_fee: record.trousseauFee,
         trousseau_due_day: record.trousseauDueDay,
+        trousseau_installments: record.trousseauInstallments,
         thirteenth_salary_fee: record.thirteenthSalaryFee,
         thirteenth_salary_due_day: record.thirteenthSalaryDueDay,
+        thirteenth_salary_installments: record.thirteenthSalaryInstallments,
         is_active: record.isActive,
         revenue_loss: record.revenueLoss,
       })
@@ -117,12 +146,16 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (updates.monthlyDueDay !== undefined) updateData.monthly_due_day = updates.monthlyDueDay;
     if (updates.climatizationFee !== undefined) updateData.climatization_fee = updates.climatizationFee;
     if (updates.climatizationDueDay !== undefined) updateData.climatization_due_day = updates.climatizationDueDay;
+    if (updates.climatizationInstallments !== undefined) updateData.climatization_installments = updates.climatizationInstallments;
     if (updates.maintenanceFee !== undefined) updateData.maintenance_fee = updates.maintenanceFee;
     if (updates.maintenanceDueDay !== undefined) updateData.maintenance_due_day = updates.maintenanceDueDay;
+    if (updates.maintenanceInstallments !== undefined) updateData.maintenance_installments = updates.maintenanceInstallments;
     if (updates.trousseauFee !== undefined) updateData.trousseau_fee = updates.trousseauFee;
     if (updates.trousseauDueDay !== undefined) updateData.trousseau_due_day = updates.trousseauDueDay;
+    if (updates.trousseauInstallments !== undefined) updateData.trousseau_installments = updates.trousseauInstallments;
     if (updates.thirteenthSalaryFee !== undefined) updateData.thirteenth_salary_fee = updates.thirteenthSalaryFee;
     if (updates.thirteenthSalaryDueDay !== undefined) updateData.thirteenth_salary_due_day = updates.thirteenthSalaryDueDay;
+    if (updates.thirteenthSalaryInstallments !== undefined) updateData.thirteenth_salary_installments = updates.thirteenthSalaryInstallments;
     if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
     if (updates.inactivationDate !== undefined) updateData.inactivation_date = updates.inactivationDate;
     if (updates.revenueLoss !== undefined) updateData.revenue_loss = updates.revenueLoss;
@@ -258,11 +291,69 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
+  const recordMonthlyPayment = async (
+    guestId: string,
+    month: string,
+    paid: boolean,
+    paymentDate?: string,
+    notes?: string
+  ) => {
+    const existingPayment = monthlyPayments.find(
+      p => p.guestId === guestId && p.paymentMonth === month
+    );
+
+    if (existingPayment) {
+      const { data, error } = await supabase
+        .from('monthly_payments')
+        .update({
+          monthly_fee_paid: paid,
+          payment_date: paymentDate || null,
+          notes: notes || '',
+        })
+        .eq('id', existingPayment.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setMonthlyPayments(monthlyPayments.map(p =>
+          p.id === existingPayment.id ? mapMonthlyPayment(data) : p
+        ));
+      }
+    } else {
+      const { data, error } = await supabase
+        .from('monthly_payments')
+        .insert({
+          guest_id: guestId,
+          payment_month: month,
+          monthly_fee_paid: paid,
+          payment_date: paymentDate || null,
+          notes: notes || '',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setMonthlyPayments([...monthlyPayments, mapMonthlyPayment(data)]);
+      }
+    }
+  };
+
+  const getMonthlyPayments = (guestId: string): MonthlyPayment[] => {
+    return monthlyPayments.filter(p => p.guestId === guestId);
+  };
+
+  const getPaymentStatus = (guestId: string, month: string): MonthlyPayment | undefined => {
+    return monthlyPayments.find(p => p.guestId === guestId && p.paymentMonth === month);
+  };
+
   return (
     <FinancialContext.Provider
       value={{
         financialRecords,
         adjustments,
+        monthlyPayments,
         loading,
         createFinancialRecord,
         updateFinancialRecord,
@@ -273,6 +364,9 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         getAnnualRevenue,
         inactivateGuestFinancial,
         getTotalMonthlyRevenue,
+        recordMonthlyPayment,
+        getMonthlyPayments,
+        getPaymentStatus,
       }}
     >
       {children}

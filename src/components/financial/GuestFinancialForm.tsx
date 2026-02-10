@@ -18,12 +18,16 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
     monthlyDueDay: 10,
     climatizationFee: 0,
     climatizationDueDay: 10,
+    climatizationInstallments: 1,
     maintenanceFee: 0,
     maintenanceDueDay: 10,
+    maintenanceInstallments: 1,
     trousseauFee: 0,
     trousseauDueDay: 10,
+    trousseauInstallments: 1,
     thirteenthSalaryFee: 0,
     thirteenthSalaryDueDay: 10,
+    thirteenthSalaryInstallments: 1,
   });
 
   const [showAdjustment, setShowAdjustment] = useState(false);
@@ -40,12 +44,16 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
         monthlyDueDay: record.monthlyDueDay,
         climatizationFee: record.climatizationFee,
         climatizationDueDay: record.climatizationDueDay,
+        climatizationInstallments: record.climatizationInstallments,
         maintenanceFee: record.maintenanceFee,
         maintenanceDueDay: record.maintenanceDueDay,
+        maintenanceInstallments: record.maintenanceInstallments,
         trousseauFee: record.trousseauFee,
         trousseauDueDay: record.trousseauDueDay,
+        trousseauInstallments: record.trousseauInstallments,
         thirteenthSalaryFee: record.thirteenthSalaryFee,
         thirteenthSalaryDueDay: record.thirteenthSalaryDueDay,
+        thirteenthSalaryInstallments: record.thirteenthSalaryInstallments,
       });
     }
   }, [record]);
@@ -202,6 +210,20 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Parcelas
+                  </label>
+                  <select
+                    value={formData.climatizationInstallments}
+                    onChange={(e) => setFormData({ ...formData, climatizationInstallments: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value={1}>1x</option>
+                    <option value={2}>2x</option>
+                    <option value={3}>3x</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -235,6 +257,20 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                     onChange={(e) => setFormData({ ...formData, maintenanceDueDay: parseInt(e.target.value) || 10 })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Parcelas
+                  </label>
+                  <select
+                    value={formData.maintenanceInstallments}
+                    onChange={(e) => setFormData({ ...formData, maintenanceInstallments: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value={1}>1x</option>
+                    <option value={2}>2x</option>
+                    <option value={3}>3x</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -270,6 +306,20 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Parcelas
+                  </label>
+                  <select
+                    value={formData.trousseauInstallments}
+                    onChange={(e) => setFormData({ ...formData, trousseauInstallments: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value={1}>1x</option>
+                    <option value={2}>2x</option>
+                    <option value={3}>3x</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -278,7 +328,7 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                 <DollarSign className="mr-2 text-red-600" size={20} />
                 Décimo Terceiro
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Valor
@@ -303,6 +353,20 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
                     onChange={(e) => setFormData({ ...formData, thirteenthSalaryDueDay: parseInt(e.target.value) || 10 })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Parcelas
+                  </label>
+                  <select
+                    value={formData.thirteenthSalaryInstallments}
+                    onChange={(e) => setFormData({ ...formData, thirteenthSalaryInstallments: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value={1}>1x</option>
+                    <option value={2}>2x</option>
+                    <option value={3}>3x</option>
+                  </select>
                 </div>
               </div>
             </div>

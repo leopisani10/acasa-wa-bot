@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Users, TrendingUp, TrendingDown, Calendar, AlertCircle, History, Edit } from 'lucide-react';
+import { DollarSign, Users, TrendingUp, TrendingDown, Calendar, AlertCircle, History, Edit, CheckCircle } from 'lucide-react';
 import { useFinancial } from '../../contexts/FinancialContext';
 import { useGuests } from '../../contexts/GuestContext';
 import { GuestFinancialForm } from './GuestFinancialForm';
 import { AdjustmentHistory } from './AdjustmentHistory';
 import { RevenueChart } from './RevenueChart';
+import { MonthlyPaymentTracker } from './MonthlyPaymentTracker';
 import { Guest } from '../../types';
 
 export const FinancialDashboard: React.FC = () => {
@@ -13,6 +14,7 @@ export const FinancialDashboard: React.FC = () => {
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [showHistory, setShowHistory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [paymentTrackingGuest, setPaymentTrackingGuest] = useState<Guest | null>(null);
 
   const monthlyRevenue = getMonthlyRevenue();
   const annualRevenue = getAnnualRevenue();
@@ -291,6 +293,15 @@ export const FinancialDashboard: React.FC = () => {
                           <History size={20} />
                         </button>
                       )}
+                      {record?.isActive && (
+                        <button
+                          onClick={() => setPaymentTrackingGuest(guest)}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
+                          title="Controlar Pagamentos"
+                        >
+                          <CheckCircle size={20} />
+                        </button>
+                      )}
                       <button
                         onClick={() => setSelectedGuest(guest)}
                         className="p-2 text-acasa-purple hover:bg-purple-50 rounded-lg"
@@ -319,6 +330,13 @@ export const FinancialDashboard: React.FC = () => {
           record={financialRecords.find(r => r.guestId === selectedGuest.id)}
           onClose={() => setSelectedGuest(null)}
           onSave={() => setSelectedGuest(null)}
+        />
+      )}
+
+      {paymentTrackingGuest && (
+        <MonthlyPaymentTracker
+          guest={paymentTrackingGuest}
+          onClose={() => setPaymentTrackingGuest(null)}
         />
       )}
     </div>

@@ -5,12 +5,16 @@ export interface GuestFinancialRecord {
   monthlyDueDay: number;
   climatizationFee: number;
   climatizationDueDay: number;
+  climatizationInstallments: number;
   maintenanceFee: number;
   maintenanceDueDay: number;
+  maintenanceInstallments: number;
   trousseauFee: number;
   trousseauDueDay: number;
+  trousseauInstallments: number;
   thirteenthSalaryFee: number;
   thirteenthSalaryDueDay: number;
+  thirteenthSalaryInstallments: number;
   isActive: boolean;
   inactivationDate?: string;
   revenueLoss: number;
@@ -46,4 +50,15 @@ export interface RevenueComparison {
   percentageChange: number;
   newGuests: number;
   lostGuests: number;
+}
+
+export interface MonthlyPayment {
+  id: string;
+  guestId: string;
+  paymentMonth: string;
+  monthlyFeePaid: boolean;
+  paymentDate?: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
 }
