@@ -237,10 +237,10 @@ export const FinancialDashboard: React.FC = () => {
                         <span>Quarto {guest.roomNumber}</span>
                         <span className="text-gray-400">•</span>
                         <span>{guest.status}</span>
-                        {guest.responsibleName && (
+                        {guest.financialResponsibleName && (
                           <>
                             <span className="text-gray-400">•</span>
-                            <span>Responsável: <span className="font-medium">{guest.responsibleName}</span></span>
+                            <span>Responsável: <span className="font-medium">{guest.financialResponsibleName}</span></span>
                           </>
                         )}
                       </div>
@@ -288,10 +288,10 @@ export const FinancialDashboard: React.FC = () => {
                       </div>
                       <div className="flex items-center space-x-3 text-sm text-gray-600">
                         <span>Quarto {guest.roomNumber}</span>
-                        {guest.responsibleName && (
+                        {guest.financialResponsibleName && (
                           <>
                             <span className="text-gray-400">•</span>
-                            <span>Responsável: <span className="font-medium">{guest.responsibleName}</span></span>
+                            <span>Responsável: <span className="font-medium">{guest.financialResponsibleName}</span></span>
                           </>
                         )}
                       </div>
