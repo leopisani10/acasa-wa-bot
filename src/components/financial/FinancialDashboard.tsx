@@ -15,8 +15,9 @@ export const FinancialDashboard: React.FC = () => {
   const [showHistory, setShowHistory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentTrackingGuest, setPaymentTrackingGuest] = useState<Guest | null>(null);
+  const [selectedYear, setSelectedYear] = useState(2026);
 
-  const monthlyRevenue = getMonthlyRevenue();
+  const monthlyRevenue = getMonthlyRevenue(selectedYear);
   const annualRevenue = getAnnualRevenue();
   const totalMonthlyRevenue = getTotalMonthlyRevenue();
 
@@ -163,8 +164,19 @@ export const FinancialDashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Gráfico de Receita</h2>
-          <RevenueChart data={monthlyRevenue} />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Gráfico de Receita</h2>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            >
+              {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+          <RevenueChart data={monthlyRevenue} year={selectedYear} />
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-6">

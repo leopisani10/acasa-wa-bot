@@ -4,17 +4,19 @@ import { MonthlyRevenue } from '../../types/financial';
 
 interface RevenueChartProps {
   data: MonthlyRevenue[];
+  year: number;
 }
 
-export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
+export const RevenueChart: React.FC<RevenueChartProps> = ({ data, year }) => {
   const maxRevenue = Math.max(...data.map(d => d.revenue));
-  const currentMonth = new Date().toISOString().substring(0, 7);
-  const currentMonthIndex = data.findIndex(d => d.month === currentMonth);
+  const currentDate = new Date();
+  const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+  const isCurrentYear = year === currentDate.getFullYear();
 
   const formatMonth = (monthStr: string) => {
-    const [year, month] = monthStr.split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1);
-    return date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+    const [, month] = monthStr.split('-');
+    const date = new Date(year, parseInt(month) - 1);
+    return date.toLocaleDateString('pt-BR', { month: 'long' });
   };
 
   const calculateChange = (current: number, previous: number): number => {
@@ -26,9 +28,7 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
     <div className="space-y-6">
       <div className="space-y-3">
         {data.map((item, index) => {
-          const isPast = index < currentMonthIndex;
-          const isCurrent = index === currentMonthIndex;
-          const isFuture = index > currentMonthIndex;
+          const isCurrent = isCurrentYear && item.month === currentMonth;
           const heightPercentage = (item.revenue / maxRevenue) * 100;
           const previousRevenue = index > 0 ? data[index - 1].revenue : item.revenue;
           const change = calculateChange(item.revenue, previousRevenue);
@@ -40,7 +40,6 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
                   <span className={`font-medium ${isCurrent ? 'text-acasa-purple' : 'text-gray-700'}`}>
                     {formatMonth(item.month)}
                     {isCurrent && ' (Atual)'}
-                    {isFuture && ' (Previsão)'}
                   </span>
                   {index > 0 && (
                     <span className={`text-xs flex items-center ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -57,11 +56,7 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
               <div className="relative h-8 bg-gray-100 rounded-lg overflow-hidden">
                 <div
                   className={`h-full transition-all duration-500 ${
-                    isPast
-                      ? 'bg-green-500'
-                      : isCurrent
-                      ? 'bg-acasa-purple'
-                      : 'bg-blue-300'
+                    isCurrent ? 'bg-acasa-purple' : 'bg-blue-500'
                   }`}
                   style={{ width: `${heightPercentage}%` }}
                 />
@@ -86,20 +81,18 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
         })}
       </div>
 
-      <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-200">
-        <div className="text-center">
-          <div className="w-4 h-4 bg-green-500 rounded mx-auto mb-2" />
-          <p className="text-xs text-gray-600">Realizado</p>
+      {isCurrentYear && (
+        <div className="flex items-center justify-center gap-4 pt-6 border-t border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-acasa-purple rounded" />
+            <p className="text-xs text-gray-600">Mês Atual</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-blue-500 rounded" />
+            <p className="text-xs text-gray-600">Outros Meses</p>
+          </div>
         </div>
-        <div className="text-center">
-          <div className="w-4 h-4 bg-acasa-purple rounded mx-auto mb-2" />
-          <p className="text-xs text-gray-600">Mês Atual</p>
-        </div>
-        <div className="text-center">
-          <div className="w-4 h-4 bg-blue-300 rounded mx-auto mb-2" />
-          <p className="text-xs text-gray-600">Previsão</p>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

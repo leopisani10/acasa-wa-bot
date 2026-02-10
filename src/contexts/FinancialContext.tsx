@@ -13,7 +13,7 @@ interface FinancialContextData {
   deleteFinancialRecord: (id: string) => Promise<void>;
   createAdjustment: (adjustment: Omit<FinancialAdjustment, 'id' | 'createdAt' | 'createdBy'>) => Promise<void>;
   getAdjustmentHistory: (guestId: string) => FinancialAdjustment[];
-  getMonthlyRevenue: () => MonthlyRevenue[];
+  getMonthlyRevenue: (year?: number) => MonthlyRevenue[];
   getAnnualRevenue: () => number;
   inactivateGuestFinancial: (guestId: string) => Promise<void>;
   getTotalMonthlyRevenue: () => number;
@@ -245,17 +245,34 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }, 0);
   };
 
-  const getMonthlyRevenue = (): MonthlyRevenue[] => {
+  const getMonthlyRevenue = (year: number = 2026): MonthlyRevenue[] => {
     const months: MonthlyRevenue[] = [];
-    const currentDate = new Date();
 
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    for (let month = 1; month <= 12; month++) {
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
 
       const activeRecords = financialRecords.filter(r => r.isActive);
       const revenue = activeRecords.reduce((sum, r) => {
-        return sum + r.monthlyFee + r.climatizationFee + r.maintenanceFee + r.trousseauFee;
+        let total = r.monthlyFee;
+
+        if (r.climatizationStartMonth && r.climatizationStartMonth <= monthKey) {
+          total += r.climatizationFee;
+        }
+        if (r.maintenanceStartMonth && r.maintenanceStartMonth <= monthKey) {
+          total += r.maintenanceFee;
+        }
+        if (r.trousseauStartMonth && r.trousseauStartMonth <= monthKey) {
+          total += r.trousseauFee;
+        }
+        if (r.thirteenthSalaryStartMonth && r.thirteenthSalaryStartMonth <= monthKey) {
+          total += r.thirteenthSalaryFee;
+        }
+
+        if (month === 2 && r.adjustedCurrentYear && year === r.adjustmentYear) {
+          total += r.retroactiveAmount;
+        }
+
+        return sum + total;
       }, 0);
 
       const inactiveInMonth = financialRecords.filter(r => {
@@ -273,25 +290,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         inactiveGuests: inactiveInMonth.length,
         revenueLoss: revenueLoss,
         netRevenue: revenue - revenueLoss,
-      });
-    }
-
-    for (let i = 1; i <= 6; i++) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-
-      const activeRecords = financialRecords.filter(r => r.isActive);
-      const projectedRevenue = activeRecords.reduce((sum, r) => {
-        return sum + r.monthlyFee + r.climatizationFee + r.maintenanceFee + r.trousseauFee;
-      }, 0);
-
-      months.push({
-        month: monthKey,
-        revenue: projectedRevenue,
-        activeGuests: activeRecords.length,
-        inactiveGuests: 0,
-        revenueLoss: 0,
-        netRevenue: projectedRevenue,
       });
     }
 
