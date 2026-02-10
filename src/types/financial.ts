@@ -22,6 +22,7 @@ export interface GuestFinancialRecord {
   adjustedCurrentYear: boolean;
   retroactiveAmount: number;
   adjustmentYear?: number;
+  outstandingBalance: number;
   isActive: boolean;
   inactivationDate?: string;
   revenueLoss: number;
@@ -63,8 +64,13 @@ export interface MonthlyPayment {
   id: string;
   guestId: string;
   paymentMonth: string;
+  expectedAmount: number;
+  amountPaid?: number;
+  amountDifference: number;
+  hasDifference: boolean;
   monthlyFeePaid: boolean;
   paymentDate?: string;
+  paymentNotes?: string;
   notes: string;
   createdAt: string;
   updatedAt: string;

@@ -17,9 +17,10 @@ interface FinancialContextData {
   getAnnualRevenue: () => number;
   inactivateGuestFinancial: (guestId: string) => Promise<void>;
   getTotalMonthlyRevenue: () => number;
-  recordMonthlyPayment: (guestId: string, month: string, paid: boolean, paymentDate?: string, notes?: string) => Promise<void>;
+  recordMonthlyPayment: (guestId: string, month: string, paid: boolean, expectedAmount: number, amountPaid?: number, paymentDate?: string, paymentNotes?: string, notes?: string) => Promise<void>;
   getMonthlyPayments: (guestId: string) => MonthlyPayment[];
   getPaymentStatus: (guestId: string, month: string) => MonthlyPayment | undefined;
+  getFinancialRecord: (guestId: string) => GuestFinancialRecord | undefined;
 }
 
 const FinancialContext = createContext<FinancialContextData | undefined>(undefined);
@@ -85,6 +86,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     adjustedCurrentYear: record.adjusted_current_year || false,
     retroactiveAmount: Number(record.retroactive_amount) || 0,
     adjustmentYear: record.adjustment_year,
+    outstandingBalance: Number(record.outstanding_balance) || 0,
     isActive: record.is_active,
     inactivationDate: record.inactivation_date,
     revenueLoss: Number(record.revenue_loss) || 0,
@@ -108,8 +110,13 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     id: payment.id,
     guestId: payment.guest_id,
     paymentMonth: payment.payment_month,
+    expectedAmount: Number(payment.expected_amount) || 0,
+    amountPaid: payment.amount_paid ? Number(payment.amount_paid) : undefined,
+    amountDifference: Number(payment.amount_difference) || 0,
+    hasDifference: payment.has_difference || false,
     monthlyFeePaid: payment.monthly_fee_paid,
     paymentDate: payment.payment_date,
+    paymentNotes: payment.payment_notes,
     notes: payment.notes,
     createdAt: payment.created_at,
     updatedAt: payment.updated_at,
@@ -177,6 +184,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (updates.adjustedCurrentYear !== undefined) updateData.adjusted_current_year = updates.adjustedCurrentYear;
     if (updates.retroactiveAmount !== undefined) updateData.retroactive_amount = updates.retroactiveAmount;
     if (updates.adjustmentYear !== undefined) updateData.adjustment_year = updates.adjustmentYear;
+    if (updates.outstandingBalance !== undefined) updateData.outstanding_balance = updates.outstandingBalance;
     if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
     if (updates.inactivationDate !== undefined) updateData.inactivation_date = updates.inactivationDate;
     if (updates.revenueLoss !== undefined) updateData.revenue_loss = updates.revenueLoss;
@@ -316,21 +324,35 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     guestId: string,
     month: string,
     paid: boolean,
+    expectedAmount: number,
+    amountPaid?: number,
     paymentDate?: string,
+    paymentNotes?: string,
     notes?: string
   ) => {
     const existingPayment = monthlyPayments.find(
       p => p.guestId === guestId && p.paymentMonth === month
     );
 
+    const actualAmountPaid = amountPaid ?? (paid ? expectedAmount : 0);
+    const difference = expectedAmount - actualAmountPaid;
+    const hasDiff = Math.abs(difference) > 0.01;
+
+    const paymentData = {
+      monthly_fee_paid: paid,
+      expected_amount: expectedAmount,
+      amount_paid: actualAmountPaid > 0 ? actualAmountPaid : null,
+      amount_difference: difference,
+      has_difference: hasDiff,
+      payment_date: paymentDate || null,
+      payment_notes: paymentNotes || null,
+      notes: notes || '',
+    };
+
     if (existingPayment) {
       const { data, error } = await supabase
         .from('monthly_payments')
-        .update({
-          monthly_fee_paid: paid,
-          payment_date: paymentDate || null,
-          notes: notes || '',
-        })
+        .update(paymentData)
         .eq('id', existingPayment.id)
         .select()
         .single();
@@ -340,6 +362,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setMonthlyPayments(monthlyPayments.map(p =>
           p.id === existingPayment.id ? mapMonthlyPayment(data) : p
         ));
+
+        if (hasDiff) {
+          await updateOutstandingBalance(guestId);
+        }
       }
     } else {
       const { data, error } = await supabase
@@ -347,9 +373,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         .insert({
           guest_id: guestId,
           payment_month: month,
-          monthly_fee_paid: paid,
-          payment_date: paymentDate || null,
-          notes: notes || '',
+          ...paymentData,
         })
         .select()
         .single();
@@ -357,7 +381,21 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (error) throw error;
       if (data) {
         setMonthlyPayments([...monthlyPayments, mapMonthlyPayment(data)]);
+
+        if (hasDiff) {
+          await updateOutstandingBalance(guestId);
+        }
       }
+    }
+  };
+
+  const updateOutstandingBalance = async (guestId: string) => {
+    const guestPayments = monthlyPayments.filter(p => p.guestId === guestId);
+    const totalOutstanding = guestPayments.reduce((sum, p) => sum + (p.amountDifference || 0), 0);
+
+    const record = financialRecords.find(r => r.guestId === guestId);
+    if (record) {
+      await updateFinancialRecord(record.id, { outstandingBalance: totalOutstanding });
     }
   };
 
@@ -367,6 +405,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const getPaymentStatus = (guestId: string, month: string): MonthlyPayment | undefined => {
     return monthlyPayments.find(p => p.guestId === guestId && p.paymentMonth === month);
+  };
+
+  const getFinancialRecord = (guestId: string): GuestFinancialRecord | undefined => {
+    return financialRecords.find(r => r.guestId === guestId);
   };
 
   return (
@@ -388,6 +430,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         recordMonthlyPayment,
         getMonthlyPayments,
         getPaymentStatus,
+        getFinancialRecord,
       }}
     >
       {children}
