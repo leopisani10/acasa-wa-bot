@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Calendar, Save, TrendingUp, X, AlertCircle } from 'lucide-react';
-import { GuestFinancialRecord } from '../../types/financial';
+import { GuestFinancialRecord, NoAdjustmentHistory } from '../../types/financial';
 import { useFinancial } from '../../contexts/FinancialContext';
 import { Guest } from '../../types';
 import { MonthSelector } from './MonthSelector';
@@ -58,7 +58,13 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
     reason: '',
   });
 
-  const noAdjustmentHistory = record ? getNoAdjustmentHistory(guest.id) : [];
+  const [noAdjustmentHistory, setNoAdjustmentHistoryLocal] = useState<NoAdjustmentHistory[]>([]);
+
+  useEffect(() => {
+    if (getNoAdjustmentHistory) {
+      setNoAdjustmentHistoryLocal(getNoAdjustmentHistory(guest.id));
+    }
+  }, [guest.id, getNoAdjustmentHistory]);
 
   useEffect(() => {
     if (record) {
@@ -163,20 +169,26 @@ export const GuestFinancialForm: React.FC<GuestFinancialFormProps> = ({ guest, r
   };
 
   const handleNoAdjustment = async () => {
-    if (!record || !noAdjustmentData.reason.trim()) {
+    if (!noAdjustmentData.reason.trim()) {
       alert('Por favor, informe o motivo da não aplicação do reajuste');
+      return;
+    }
+
+    if (!record) {
+      alert('É necessário salvar o registro financeiro primeiro');
       return;
     }
 
     try {
       await recordNoAdjustment(guest.id, noAdjustmentData.year, noAdjustmentData.reason);
+      setNoAdjustmentHistoryLocal(getNoAdjustmentHistory(guest.id));
       setShowNoAdjustment(false);
       setNoAdjustmentData({ year: currentYear, reason: '' });
       alert('Registro de não reajuste salvo com sucesso!');
       onSave();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error recording no adjustment:', error);
-      alert('Erro ao registrar não reajuste');
+      alert(`Erro ao registrar não reajuste: ${error.message || 'Erro desconhecido'}`);
     }
   };
 

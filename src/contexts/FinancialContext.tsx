@@ -480,35 +480,65 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const recordNoAdjustment = async (guestId: string, year: number, reason: string) => {
     try {
+      if (!reason.trim()) {
+        throw new Error('O motivo é obrigatório');
+      }
+
       const { data, error } = await supabase
         .from('no_adjustment_history')
         .insert({
           guest_id: guestId,
           year: year,
-          reason: reason,
-          recorded_by: user?.id,
+          reason: reason.trim(),
+          recorded_by: user?.id || null,
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
       if (data) {
-        setNoAdjustmentHistory([...noAdjustmentHistory, mapNoAdjustmentHistory(data)]);
+        setNoAdjustmentHistory([mapNoAdjustmentHistory(data), ...noAdjustmentHistory]);
       }
 
       const record = financialRecords.find(r => r.guestId === guestId);
       if (record) {
-        await updateFinancialRecord(record.id, {
-          noAdjustmentApplied: true,
-          noAdjustmentReason: reason,
-          noAdjustmentYear: year,
-          noAdjustmentDate: new Date().toISOString().split('T')[0],
-        });
+        const updates: any = {
+          no_adjustment_applied: true,
+          no_adjustment_reason: reason.trim(),
+          no_adjustment_year: year,
+          no_adjustment_date: new Date().toISOString().split('T')[0],
+        };
+
+        const { error: updateError } = await supabase
+          .from('guest_financial_records')
+          .update(updates)
+          .eq('id', record.id);
+
+        if (updateError) {
+          console.error('Update error:', updateError);
+          throw updateError;
+        }
+
+        const updatedRecords = financialRecords.map(r =>
+          r.id === record.id
+            ? {
+                ...r,
+                noAdjustmentApplied: true,
+                noAdjustmentReason: reason.trim(),
+                noAdjustmentYear: year,
+                noAdjustmentDate: new Date().toISOString().split('T')[0],
+              }
+            : r
+        );
+        setFinancialRecords(updatedRecords);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error recording no adjustment:', error);
-      throw error;
+      throw new Error(error.message || 'Erro ao registrar não reajuste');
     }
   };
 
